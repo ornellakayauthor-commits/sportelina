@@ -197,11 +197,11 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .pdate{font-size:12px;color:var(--muted);font-weight:600;margin:4px 0 0 32px}
 .prow{display:flex;align-items:center;gap:8px;width:100%;border-top:1px dashed rgba(200,170,200,.45)}
 .pbody{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:13px 4px;text-align:left}
-.mv{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
-.mv button{width:30px;height:22px;border-radius:8px;background:rgba(255,255,255,.7);display:grid;place-items:center;color:var(--acc-text)}
-.mv button:active{transform:scale(.9)}
-.mv button[disabled]{opacity:.25;pointer-events:none}
-.mv svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.prow,.dir-head{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.drag-item{position:relative;z-index:1}
+.dragging{z-index:10;transition:box-shadow .2s,background .2s;box-shadow:0 14px 34px rgba(150,100,140,.28);background:rgba(255,252,250,.97);border-radius:16px}
+.card.dir.dragging{border-radius:24px}
+.drag-anim{transition:transform .18s ease}
 .prow .pn{flex:1;min-width:0;font-weight:600}
 .pst{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.75);color:var(--muted);white-space:nowrap}
 .pst.now{background:var(--c);color:#fff}
@@ -721,15 +721,17 @@ function progStatus(d,p){
   return {txt:nx===p?'следующая':'по очереди',cls:''};
 }
 function renderProgs(){
-  let h=`<header class="top"><h1>Программы</h1><div class="date">Один раз заполняешь — дальше план собирается сам</div></header>`;
+  let h=`<header class="top"><h1>Программы</h1><div class="date">Чтобы поменять порядок, зажми направление или программу и перетащи</div></header>`;
   h+=`<div class="sec-title">Направления</div>`;
+  h+=`<div id="dirlist">`;
   state.dirs.forEach(d=>{
-    h+=`<div class="card dir" style="--c:${d.color}">
+    h+=`<div class="card dir drag-item" data-id="${d.id}" style="--c:${d.color}">
       <div class="dir-head" data-a="editDir" data-id="${d.id}">${dot(d.color,1)}
         <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
-      <div style="margin-top:8px">${d.progs.map((p,i,arr)=>{const s=progStatus(d,p);return `<div class="prow">${arr.length>1?`<span class="mv"><button data-a="mvProg" data-d="${d.id}" data-p="${p.id}" data-dir="-1" ${i===0?'disabled':''} aria-label="Выше"><svg viewBox="0 0 12 12"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg></button><button data-a="mvProg" data-d="${d.id}" data-p="${p.id}" data-dir="1" ${i===arr.length-1?'disabled':''} aria-label="Ниже"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></button></span>`:''}<button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
+      <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
       <button class="ghost" data-a="addProg" data-id="${d.id}">+ Программа</button></div>`;
   });
+  h+=`</div>`;
   h+=`<button class="add-btn" data-a="addDir">+ Новое направление</button>`;
   h+=`<div class="sec-title">Каждый день</div><div class="card">${state.stable.map(s=>`<div class="srow" data-a="editStable" data-id="${s.id}" style="cursor:pointer">${dot(s.color,1)}<span class="sname">${esc(s.name)}</span><span class="chev">›</span></div>`).join('')||'<div class="hint-empty">Пока ничего</div>'}</div>
      <button class="add-btn" data-a="addStable">+ Ежедневная задача</button>`;
@@ -1009,7 +1011,6 @@ const A={
   addDir:()=>dirSheet(null),
   editDir:t=>dirSheet(t.dataset.id),
   addProg:t=>progSheet(t.dataset.id,null),
-  mvProg:t=>{const d=dirById(t.dataset.d);if(!d)return;const i=d.progs.findIndex(p=>p.id===t.dataset.p),j=i+(+t.dataset.dir);if(i<0||j<0||j>=d.progs.length)return;[d.progs[i],d.progs[j]]=[d.progs[j],d.progs[i]];fixNext(d);save();render();haptic('light')},
   editProg:t=>progSheet(t.dataset.d,t.dataset.p),
   addStable:()=>stableSheet(null),
   editStable:t=>stableSheet(t.dataset.id),
@@ -1018,6 +1019,7 @@ const A={
   jar:t=>{state.theme.jar=t.dataset.k;save();render();haptic('light')}
 };
 document.addEventListener('click',e=>{
+  if(Date.now()<dragBlockUntil){e.preventDefault();e.stopPropagation();return}
   const t=e.target.closest('[data-a]');
   if(!t||t.closest('.sheet')||!state) return;
   const f=A[t.dataset.a]; if(f){e.preventDefault();f(t)}
@@ -1030,10 +1032,60 @@ function toast(m){
   t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);
 }
 
+/* ================= перетаскивание ================= */
+let dragBlockUntil=0, dragActive=false;
+document.addEventListener('touchmove',e=>{if(dragActive)e.preventDefault()},{passive:false});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.drag-item'))e.preventDefault()});
+function sortable(box,itemSel,handleSel,done){
+  if(!box) return;
+  box.addEventListener('pointerdown',e=>{
+    if(e.button>0) return;
+    const handle=e.target.closest(handleSel); if(!handle||!box.contains(handle)) return;
+    const item=handle.closest(itemSel); if(!item||item.parentElement!==box) return;
+    const items=()=>[...box.children].filter(x=>x.matches(itemSel));
+    if(items().length<2) return;
+    const sx=e.clientX, sy=e.clientY; let started=false, timer, baseY=sy, offset=0;
+    const cleanup=()=>{clearTimeout(timer);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',cancel)};
+    const start=()=>{started=true;dragActive=true;item.classList.add('dragging');haptic('medium')};
+    const move=ev=>{
+      if(!started){if(Math.abs(ev.clientX-sx)>8||Math.abs(ev.clientY-sy)>8){cleanup()}return}
+      ev.preventDefault();
+      const dy=ev.clientY-baseY;
+      item.style.transform=`translateY(${dy}px)`;
+      const list=items(), i=list.indexOf(item);
+      const prev=list[i-1], next=list[i+1];
+      if(prev){const r=prev.getBoundingClientRect(); if(ev.clientY<r.top+r.height/2){const t0=item.offsetTop;box.insertBefore(item,prev);baseY+=item.offsetTop-t0;item.style.transform=`translateY(${ev.clientY-baseY}px)`;haptic('light');return}}
+      if(next){const r=next.getBoundingClientRect(); if(ev.clientY>r.top+r.height/2){const t0=item.offsetTop;box.insertBefore(next,item);baseY+=item.offsetTop-t0;item.style.transform=`translateY(${ev.clientY-baseY}px)`;haptic('light')}}
+    };
+    const finish=()=>{
+      cleanup(); if(!started) return;
+      dragActive=false; dragBlockUntil=Date.now()+400;
+      item.classList.add('drag-anim'); item.style.transform='';
+      setTimeout(()=>{item.classList.remove('dragging','drag-anim');done(items().map(x=>x.dataset.p||x.dataset.id))},190);
+    };
+    const up=()=>finish(), cancel=()=>{if(started)finish();else cleanup()};
+    timer=setTimeout(start,380);
+    window.addEventListener('pointermove',move,{passive:false});
+    window.addEventListener('pointerup',up);
+    window.addEventListener('pointercancel',cancel);
+  });
+}
+function bindProgsDrag(){
+  sortable(document.getElementById('dirlist'),'.card.dir','.dir-head',ids=>{
+    const order=ids.join(); if(order===state.dirs.map(d=>d.id).join()) return;
+    state.dirs.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); save(); render();
+  });
+  document.querySelectorAll('.plist').forEach(box=>sortable(box,'.prow','.prow',ids=>{
+    const d=dirById(box.dataset.d); if(!d) return;
+    if(ids.join()===d.progs.map(p=>p.id).join()) return;
+    d.progs.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); fixNext(d); save(); render();
+  }));
+}
 function render(){
   const v=document.getElementById('view');
   v.innerHTML=tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():renderLook();
   if(tab==='look') bindLook();
+  if(tab==='progs') bindProgsDrag();
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   animNew=false;
 }
