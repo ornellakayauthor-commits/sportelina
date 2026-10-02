@@ -685,7 +685,6 @@ function renderProgs(){
   const w=curWeek();
   let h=`<header class="top"><h1>Программы</h1><div class="date">Один раз заполняешь — дальше план собирается сам</div></header>`;
   h+=`<div class="sec-title">Направления</div>`;
-  if(!state.dirs.length) h+=`<div class="card"><div class="hint-empty">Направлений пока нет.<br>Начни с одного: спорт, язык, книга…<br><button class="pill" data-a="example">Показать на примере</button></div></div>`;
   state.dirs.forEach(d=>{
     const curP=w.progs[d.id], cl=cyc(d), nx=cl.length?cl[(d.next||0)%cl.length]:null, t=today();
     h+=`<div class="card dir" style="--c:${d.color}">
@@ -826,11 +825,11 @@ function switchSheet(id){
 function addOneSheet(){
   let sel=null, when='day', newColor=COLORS[state.dirs.length%COLORS.length];
   sheet('Новое дело',`
-    <div class="field"><label class="t">Что сделать</label><input type="text" id="a-name" maxlength="60" placeholder="Например, сходить в бассейн"></div>
+    <div class="field"><label class="t">Что сделать</label><input type="text" id="a-name" maxlength="60" placeholder="Название дела"></div>
     <div class="field"><label class="t">Когда</label><div class="seg"><button type="button" data-w="day" class="on">Сегодня</button><button type="button" data-w="week">На этой неделе</button></div></div>
     <div class="field"><label class="t">Направление</label><div class="chips" id="a-chips"><button class="chip on" data-d="">${dot(ONE_COLOR)}Разное</button>${state.dirs.map(d=>`<button class="chip" data-d="${d.id}">${dot(d.color)}${esc(d.name)}</button>`).join('')}<button class="chip add" id="a-new">+ Новое</button></div>
       <div class="newdir" id="a-newbox" style="display:none">
-        <input type="text" id="a-dname" maxlength="40" placeholder="Название, например «Английский»">
+        <input type="text" id="a-dname" maxlength="40" placeholder="Название направления">
         <div class="lbl">Цвет звёздочек</div>${colorField('nc',newColor,COLORS)}
         <button class="btn soft" id="a-dok">Создать направление</button>
       </div></div>
@@ -865,7 +864,7 @@ function dirSheet(id){
   const ex={cycle:'Каждую неделю — следующая программа. После последней снова первая.',
             order:'Следующая программа начнётся, только когда в текущей всё сделано. Несделанное само переходит на новую неделю. Подходит для языка и книги.'};
   sheet(d?'Направление':'Новое направление',`
-    <div class="field"><label class="t">Название</label><input type="text" id="f-name" maxlength="40" placeholder="Например, Спорт" value="${d?esc(d.name):''}"></div>
+    <div class="field"><label class="t">Название</label><input type="text" id="f-name" maxlength="40" placeholder="Название направления" value="${d?esc(d.name):''}"></div>
     <div class="field"><label class="t">Цвет звёздочек</label>${colorField('fc',st.color,COLORS)}</div>
     <div class="field"><label class="t">Как повторять программу</label><div class="seg"><button type="button" data-f="day">Каждый день недели</button><button type="button" data-f="week">Раз в неделю</button></div><div class="explain" id="f-fx"></div></div>
     <div class="field" id="f-modebox"><label class="t">Как меняются программы</label><div class="seg"><button type="button" data-m="cycle">По кругу</button><button type="button" data-m="order">По порядку</button></div><div class="explain" id="f-ex"></div></div>
@@ -936,7 +935,7 @@ function stableSheet(id){
   const s=id?stableById(id):null;
   const st={color:s?s.color:COLORS[(state.stable.length+3)%COLORS.length]};
   sheet(s?'Ежедневная задача':'Новая ежедневная задача',`
-    <div class="field"><label class="t">Название</label><input type="text" id="s-name" maxlength="40" placeholder="Например, Стакан воды" value="${s?esc(s.name):''}"></div>
+    <div class="field"><label class="t">Название</label><input type="text" id="s-name" maxlength="40" placeholder="Название задачи" value="${s?esc(s.name):''}"></div>
     <div class="field"><label class="t">Цвет звёздочек</label>${colorField('sc',st.color,COLORS)}</div>
     <button class="btn main" id="s-save">Сохранить</button>
     ${s?'<button class="btn danger" id="s-del">Удалить задачу</button>':''}`,(el,close)=>{
@@ -948,22 +947,6 @@ function stableSheet(id){
     };
     if(s) confirmBtn(el.querySelector('#s-del'),'Нажми ещё раз — задача удалится',()=>{state.stable=state.stable.filter(x=>x!==s);save();close();render()});
   });
-}
-
-/* ================= пример ================= */
-function addExample(){
-  const mk=(name,items)=>({id:uid(),name,items:items.map(n=>({id:uid(),name:n}))});
-  state.dirs.push(
-    {id:uid(),name:'Спорт',color:'#E8A3B6',mode:'cycle',freq:'day',next:0,progs:[
-      mk('Спина',['Кошка-корова','Лодочка','Планка 1 минута','Растяжка спины']),
-      mk('Ноги и ягодицы',['Приседания','Ягодичный мостик','Выпады']),
-      mk('Растяжка',['Наклоны вперёд','Бабочка','Растяжка шеи'])]},
-    {id:uid(),name:'Английский',color:'#9DBFE3',mode:'order',freq:'week',next:0,progs:[
-      mk('Сериал и слова',['Серия с субтитрами','20 новых слов']),
-      mk('Грамматика и подкаст',['Урок грамматики','Эпизод подкаста'])]}
-  );
-  const w=curWeek();
-  state.dirs.slice(-2).forEach(d=>startProgram(w,d,0,true));
 }
 
 /* ================= действия ================= */
@@ -995,7 +978,6 @@ const A={
   delItem:t=>{const p=progOf(t.dataset.d,t.dataset.p);if(!p)return;p.items=p.items.filter(x=>x.id!==t.dataset.i);save();render()},
   addStable:()=>stableSheet(null),
   editStable:t=>stableSheet(t.dataset.id),
-  example:()=>{addExample();save();render();toast('Пример добавлен — его можно поправить или удалить')},
   bg:t=>{const k=t.dataset.k;if(k==='photo'&&!photo){document.getElementById('photoIn').click();return}state.theme.bg=k;save();applyTheme();render()},
   pickPhoto:()=>document.getElementById('photoIn').click(),
   jar:t=>{state.theme.jar=t.dataset.k;save();render();haptic('light')}
