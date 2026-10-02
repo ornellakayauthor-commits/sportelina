@@ -200,6 +200,12 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .chip{display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:999px;background:#fff;font-size:14px;font-weight:600}
 .chip .dot{width:9px;height:9px;box-shadow:none}
 .chip.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.chip.add{background:transparent;border:1.5px dashed var(--acc-line);color:var(--acc-text)}
+.newdir{margin-top:12px;padding:14px;border-radius:18px;background:rgba(255,255,255,.6)}
+.newdir input[type=text]{width:100%;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px;margin-bottom:12px}
+.newdir input[type=text]:focus{border-color:var(--acc)}
+.newdir .lbl{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:8px}
+.newdir .btn{margin-top:14px}
 .btn{display:block;width:100%;padding:14px;border-radius:16px;font-weight:700;font-size:15px;margin-top:10px;text-align:center}
 .btn.main{background:var(--grad);color:#fff;box-shadow:0 6px 16px var(--acc-glow)}
 .btn.soft{background:rgba(255,255,255,.7);color:var(--acc-text)}
@@ -818,14 +824,35 @@ function switchSheet(id){
     (el,close)=>{el.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{switchProgram(d,+b.dataset.i);save();close();render();haptic('medium')})});
 }
 function addOneSheet(){
-  let sel=null, when='day';
+  let sel=null, when='day', newColor=COLORS[state.dirs.length%COLORS.length];
   sheet('Новое дело',`
     <div class="field"><label class="t">Что сделать</label><input type="text" id="a-name" maxlength="60" placeholder="Например, сходить в бассейн"></div>
     <div class="field"><label class="t">Когда</label><div class="seg"><button type="button" data-w="day" class="on">Сегодня</button><button type="button" data-w="week">На этой неделе</button></div></div>
-    <div class="field"><label class="t">Направление</label><div class="chips"><button class="chip on" data-d="">${dot(ONE_COLOR)}Разное</button>${state.dirs.map(d=>`<button class="chip" data-d="${d.id}">${dot(d.color)}${esc(d.name)}</button>`).join('')}</div></div>
+    <div class="field"><label class="t">Направление</label><div class="chips" id="a-chips"><button class="chip on" data-d="">${dot(ONE_COLOR)}Разное</button>${state.dirs.map(d=>`<button class="chip" data-d="${d.id}">${dot(d.color)}${esc(d.name)}</button>`).join('')}<button class="chip add" id="a-new">+ Новое</button></div>
+      <div class="newdir" id="a-newbox" style="display:none">
+        <input type="text" id="a-dname" maxlength="40" placeholder="Название, например «Английский»">
+        <div class="lbl">Цвет звёздочек</div>${colorField('nc',newColor,COLORS)}
+        <button class="btn soft" id="a-dok">Создать направление</button>
+      </div></div>
     <button class="btn main" id="a-ok">Добавить</button>`,(el,close)=>{
     el.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{when=b.dataset.w;el.querySelectorAll('[data-w]').forEach(x=>x.classList.toggle('on',x===b))});
-    el.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sel=b.dataset.d||null;el.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b))});
+    const pick=b=>{sel=b.dataset.d||null;el.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b))};
+    const bindChip=b=>b.onclick=()=>pick(b);
+    el.querySelectorAll('[data-d]').forEach(bindChip);
+    const box=el.querySelector('#a-newbox');
+    el.querySelector('#a-new').onclick=()=>{const open=box.style.display==='none';box.style.display=open?'':'none';if(open)el.querySelector('#a-dname').focus()};
+    bindColor(el,'nc',c=>newColor=c);
+    el.querySelector('#a-dok').onclick=()=>{
+      const inp=el.querySelector('#a-dname'),name=inp.value.trim(); if(!name) return inp.focus();
+      const d={id:uid(),name,color:newColor,mode:'cycle',freq:'day',next:0,progs:[]};
+      state.dirs.push(d); save();
+      const chip=document.createElement('button'); chip.className='chip'; chip.dataset.d=d.id;
+      chip.innerHTML=dot(d.color)+esc(d.name);
+      el.querySelector('#a-chips').insertBefore(chip,el.querySelector('#a-new'));
+      bindChip(chip); pick(chip);
+      inp.value=''; box.style.display='none';
+      toast('Направление «'+name+'» создано');
+    };
     el.querySelector('#a-ok').onclick=()=>{const inp=el.querySelector('#a-name'),v=inp.value.trim();if(!v)return inp.focus();
       (when==='day'?curDay():curWeek()).items.push(mkItem(sel,v,0));save();close();render()};
   });
