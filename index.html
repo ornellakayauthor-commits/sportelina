@@ -195,6 +195,23 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .dates input{display:block;width:100%;margin-top:6px;padding:11px 12px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px;color:var(--ink);min-height:46px;-webkit-appearance:none;appearance:none}
 .dates input:focus{border-color:var(--acc)}
 .pdate{font-size:12px;color:var(--muted);font-weight:600;margin:4px 0 0 32px}
+.prow{display:flex;align-items:center;gap:10px;width:100%;padding:13px 4px;text-align:left;border-top:1px dashed rgba(200,170,200,.45)}
+.prow .pn{flex:1;min-width:0;font-weight:600}
+.pst{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.75);color:var(--muted);white-space:nowrap}
+.pst.now{background:var(--c);color:#fff}
+.pst.off{background:transparent;border:1px dashed var(--soft)}
+.prow .chev{margin-left:0}
+.dir .ghost{margin-top:8px}
+.ex-list{list-style:none;margin:0 0 8px}
+.ex-list li{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;border-radius:14px;background:#fff;font-size:15px}
+.ex-list li span{flex:1;min-width:0}
+.ex-list li::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--c);flex-shrink:0}
+.ex-empty{font-size:13px;color:var(--muted);padding:2px 2px 8px}
+.ex-add{display:flex;gap:8px}
+.ex-add input{flex:1;min-width:0;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px}
+.ex-add input:focus{border-color:var(--acc)}
+.ex-add button{width:48px;border-radius:14px;background:var(--c);color:#fff;font-size:22px;font-weight:700}
+.seg3 button{font-size:13px;padding:10px 4px}
 .tag{font-size:12.5px;color:var(--acc-text);font-weight:600;text-align:right}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:999px;background:#fff;font-size:14px;font-weight:600}
@@ -293,7 +310,7 @@ function normalize(s){
   for(const k in f) if(s[k]===undefined) s[k]=f[k];
   s.theme=Object.assign({},f.theme,s.theme||{});
   if(!SHAPES[s.theme.jar]) s.theme.jar='classic';
-  s.dirs.forEach(d=>{if(!d.freq)d.freq='week'});
+  s.dirs.forEach(d=>{if(!d.freq)d.freq='week';d.progs.forEach(p=>{if(!p.status)p.status=(p.from&&p.to)?'dates':'queue'})});
   s.stable.forEach(x=>{if(!x.color)x.color=STABLE_COLOR});
   return s;
 }
@@ -391,8 +408,8 @@ function loadAll(cb){
 function isDaily(d){return !!d&&d.freq==='day'}
 function mkItem(dir,name,prog){return {id:uid(),dir:dir||null,name,prog:!!prog,done:false,doneOn:null}}
 function curDay(){return state.days[today()]}
-function isDated(p){return !!(p&&p.from&&p.to)}
-function cyc(d){return d.progs.filter(p=>!isDated(p))}
+function isDated(p){return !!(p&&p.status==='dates'&&p.from&&p.to)}
+function cyc(d){return d.progs.filter(p=>(p.status||'queue')==='queue')}
 function datedFor(d,date){return d.progs.find(p=>isDated(p)&&p.from<=date&&date<=p.to)}
 function fmtD(k){const [y,m,dd]=k.split('-').map(Number);return dd+' '+MON[m-1]}
 function skipOf(d){const w=curWeek();return (w.skip&&w.skip[d.id])||[]}
@@ -420,14 +437,6 @@ function ensureWeek(){
   state.weeks[key]=w;
   state.dirs.forEach(dir=>{
     const list=cyc(dir); if(!list.length) return;
-    if(!isDaily(dir)&&dir.mode==='order'&&prev){
-      const left=prev.items.filter(i=>i.dir===dir.id&&i.prog&&!i.done);
-      if(left.length){
-        if(prev.progs[dir.id]) w.progs[dir.id]=prev.progs[dir.id];
-        left.forEach(i=>w.items.push(mkItem(i.dir,i.name,1)));
-        return;
-      }
-    }
     startProgram(w,dir,(dir.next||0)%list.length,false);
   });
   state.carry.forEach(c=>w.items.push(mkItem(c.dir,c.name,c.prog)));
@@ -457,6 +466,17 @@ function dropUndone(list,dirId){list.items=list.items.filter(i=>!(i.dir===dirId&
 function switchProgram(dir,idx){
   if(!isDaily(dir)) dropUndone(curWeek(),dir.id);
   startProgram(curWeek(),dir,idx,true);
+}
+function fixNext(d){
+  const cl=cyc(d), i=cl.findIndex(p=>p.id===curWeek().progs[d.id]);
+  d.next=i>=0?(i+1)%cl.length:(cl.length?(d.next||0)%cl.length:0);
+}
+function syncWeek(d){
+  if(isDaily(d)) return;
+  const w=curWeek(), p=progOf(d.id,w.progs[d.id]);
+  const done=new Set(w.items.filter(i=>i.dir===d.id&&i.prog&&i.done).map(i=>i.name));
+  dropUndone(w,d.id);
+  if(p&&cyc(d).includes(p)) p.items.forEach(it=>{if(!done.has(it.name))w.items.push(mkItem(d.id,it.name,1))});
 }
 function changeFreq(d,f){
   if(d.freq===f) return;
@@ -681,21 +701,27 @@ function renderStats(){
 }
 
 /* ================= экран «Программы» ================= */
+function progStatus(d,p){
+  const t=today(), w=curWeek(), st=p.status||'queue';
+  if(st==='off') return {txt:'на паузе',cls:'off'};
+  if(st==='dates'){
+    if(!p.from||!p.to) return {txt:'даты не выбраны',cls:'off'};
+    if(p.from<=t&&t<=p.to) return {txt:'сейчас · до '+fmtD(p.to),cls:'now'};
+    if(p.to<t) return {txt:'даты прошли',cls:'off'};
+    return {txt:fmtD(p.from)+' — '+fmtD(p.to),cls:''};
+  }
+  if(w.progs[d.id]===p.id&&!datedFor(d,t)) return {txt:'сейчас',cls:'now'};
+  const cl=cyc(d), nx=cl.length?cl[(d.next||0)%cl.length]:null;
+  return {txt:nx===p?'следующая':'по очереди',cls:''};
+}
 function renderProgs(){
-  const w=curWeek();
   let h=`<header class="top"><h1>Программы</h1><div class="date">Один раз заполняешь — дальше план собирается сам</div></header>`;
   h+=`<div class="sec-title">Направления</div>`;
   state.dirs.forEach(d=>{
-    const curP=w.progs[d.id], cl=cyc(d), nx=cl.length?cl[(d.next||0)%cl.length]:null, t=today();
     h+=`<div class="card dir" style="--c:${d.color}">
       <div class="dir-head" data-a="editDir" data-id="${d.id}">${dot(d.color,1)}
-        <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'раз в неделю · '+(d.mode==='cycle'?'по кругу':'по порядку')}${nx?' · дальше: '+esc(nx.name):''}</div></div><span class="chev">›</span></div>
-      ${d.progs.map((p,i)=>{const dt=isDated(p), act=dt?(p.from<=t&&t<=p.to):(p.id===curP&&!datedFor(d,t));return `<div class="prog${act?' cur':''}">
-        <div class="prog-head" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pl">${LETTERS[i]||'•'}</span><span>${esc(p.name)}</span>${act?'<span class="now">сейчас</span>':'<span class="chev">›</span>'}</div>
-        ${dt?`<div class="pdate">только ${fmtD(p.from)} — ${fmtD(p.to)}${p.to<t?' · даты прошли':''}</div>`:''}
-        <ul>${p.items.map(x=>`<li><span>${esc(x.name)}</span><button class="x" data-a="delItem" data-d="${d.id}" data-p="${p.id}" data-i="${x.id}" aria-label="Удалить">×</button></li>`).join('')}</ul>
-        <div class="add-row"><input type="text" data-p="${p.id}" maxlength="60" placeholder="Новое занятие" enterkeyhint="done"><button data-a="addItem" data-d="${d.id}" data-p="${p.id}" aria-label="Добавить">+</button></div>
-      </div>`}).join('')}
+        <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
+      <div style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<button class="prow" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button>`}).join('')}</div>
       <button class="ghost" data-a="addProg" data-id="${d.id}">+ Программа</button></div>`;
   });
   h+=`<button class="add-btn" data-a="addDir">+ Новое направление</button>`;
@@ -818,8 +844,8 @@ function replaceSheet(id){
 function switchSheet(id){
   const d=dirById(id), cur=curWeek().progs[id];
   sheet(esc(d.name),
-    `<div class="explain" style="margin:-6px 0 14px">${isDaily(d)?'Программа на эту неделю — будет повторяться каждый день до воскресенья. Сегодняшнее несделанное заменится, сделанное останется.':'Программа на эту неделю. Несделанное из текущей заменится, сделанное останется.'} Дальше круг пойдёт от выбранной.</div>`+
-    cyc(d).map((p,i)=>`<button class="opt${p.id===cur?' on':''}" data-i="${i}" style="--c:${d.color}"><span class="pl">${LETTERS[d.progs.indexOf(p)]||'•'}</span><span>${esc(p.name)}<small>${p.items.map(x=>esc(x.name)).join(' · ')||'пока пусто'}</small></span></button>`).join(''),
+    `<div class="explain" style="margin:-6px 0 14px">${isDaily(d)?'Программа на эту неделю — будет повторяться каждый день до воскресенья. Сегодняшнее несделанное заменится, сделанное останется.':'Программа на эту неделю. Несделанное из текущей заменится, сделанное останется.'} Дальше очередь пойдёт от выбранной.</div>`+
+    cyc(d).map((p,i)=>`<button class="opt${p.id===cur?' on':''}" data-i="${i}" style="--c:${d.color}"><span>${esc(p.name)}<small>${p.items.map(x=>esc(x.name)).join(' · ')||'пока пусто'}</small></span></button>`).join(''),
     (el,close)=>{el.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{switchProgram(d,+b.dataset.i);save();close();render();haptic('medium')})});
 }
 function addOneSheet(){
@@ -858,29 +884,23 @@ function addOneSheet(){
 }
 function dirSheet(id){
   const d=id?dirById(id):null;
-  const st={color:d?d.color:COLORS[state.dirs.length%COLORS.length],mode:d?d.mode:'cycle',freq:d?d.freq:'day'};
-  const fx={day:'Всю неделю каждый день — одна и та же программа. В следующий понедельник начнётся следующая программа по кругу.',
-            week:'Дела программы нужно сделать один раз за неделю, в любые дни.'};
-  const ex={cycle:'Каждую неделю — следующая программа. После последней снова первая.',
-            order:'Следующая программа начнётся, только когда в текущей всё сделано. Несделанное само переходит на новую неделю. Подходит для языка и книги.'};
+  const st={color:d?d.color:COLORS[state.dirs.length%COLORS.length],freq:d?d.freq:'day'};
+  const fx={day:'Всю неделю каждый день — одни и те же дела. В понедельник программа сменится на следующую.',
+            week:'Дела программы нужно сделать один раз за неделю, в любые дни. В понедельник — следующая программа.'};
   sheet(d?'Направление':'Новое направление',`
     <div class="field"><label class="t">Название</label><input type="text" id="f-name" maxlength="40" placeholder="Название направления" value="${d?esc(d.name):''}"></div>
     <div class="field"><label class="t">Цвет звёздочек</label>${colorField('fc',st.color,COLORS)}</div>
-    <div class="field"><label class="t">Как повторять программу</label><div class="seg"><button type="button" data-f="day">Каждый день недели</button><button type="button" data-f="week">Раз в неделю</button></div><div class="explain" id="f-fx"></div></div>
-    <div class="field" id="f-modebox"><label class="t">Как меняются программы</label><div class="seg"><button type="button" data-m="cycle">По кругу</button><button type="button" data-m="order">По порядку</button></div><div class="explain" id="f-ex"></div></div>
+    <div class="field"><label class="t">Как выполнять программы</label><div class="seg"><button type="button" data-f="day">Каждый день</button><button type="button" data-f="week">Раз за неделю</button></div><div class="explain" id="f-fx"></div></div>
     <button class="btn main" id="f-save">Сохранить</button>
     ${d?'<button class="btn danger" id="f-del">Удалить направление</button>':''}`,(el,close)=>{
-    const segs=el.querySelectorAll('[data-m]'), fsegs=el.querySelectorAll('[data-f]');
-    const setM=m=>{st.mode=m;segs.forEach(b=>b.classList.toggle('on',b.dataset.m===m));el.querySelector('#f-ex').textContent=ex[m]};
-    const setF=f=>{st.freq=f;fsegs.forEach(b=>b.classList.toggle('on',b.dataset.f===f));el.querySelector('#f-fx').textContent=fx[f];el.querySelector('#f-modebox').style.display=f==='day'?'none':''};
-    setM(st.mode); segs.forEach(b=>b.onclick=()=>setM(b.dataset.m));
+    const fsegs=el.querySelectorAll('[data-f]');
+    const setF=f=>{st.freq=f;fsegs.forEach(b=>b.classList.toggle('on',b.dataset.f===f));el.querySelector('#f-fx').textContent=fx[f]};
     setF(st.freq); fsegs.forEach(b=>b.onclick=()=>setF(b.dataset.f));
     bindColor(el,'fc',c=>st.color=c);
     el.querySelector('#f-save').onclick=()=>{
       const inp=el.querySelector('#f-name'),name=inp.value.trim(); if(!name) return inp.focus();
-      const mode=st.freq==='day'?'cycle':st.mode;
-      if(d){Object.assign(d,{name,color:st.color,mode});changeFreq(d,st.freq)}
-      else state.dirs.push({id:uid(),name,color:st.color,mode,freq:st.freq,next:0,progs:[]});
+      if(d){Object.assign(d,{name,color:st.color});changeFreq(d,st.freq)}
+      else state.dirs.push({id:uid(),name,color:st.color,mode:'cycle',freq:st.freq,next:0,progs:[]});
       save();close();render();
     };
     if(d) confirmBtn(el.querySelector('#f-del'),'Нажми ещё раз — направление удалится',()=>{
@@ -890,43 +910,64 @@ function dirSheet(id){
     });
   });
 }
-function progSheet(dId,pId,isNew){
-  const d=dirById(dId), p=progOf(dId,pId); if(!p) return;
-  let dated=isDated(p);
+function progSheet(dId,pId){
+  const d=dirById(dId); if(!d) return;
+  const orig=pId?progOf(dId,pId):null, isNew=!orig;
+  const dr={name:orig?orig.name:'',items:orig?orig.items.map(x=>({...x})):[],status:orig?(orig.status||'queue'):'queue',from:orig&&orig.from||'',to:orig&&orig.to||''};
+  const ex={queue:'Программы «по очереди» сменяют друг друга каждый понедельник.',
+            dates:'Включится сама в эти даты и заменит обычную программу. Потом снова выключится — даты можно поменять в любой момент.',
+            off:'Программа сохранена, но не включается. Верни её «по очереди» или поставь даты, когда понадобится.'};
   sheet(isNew?'Новая программа':'Программа',`
-    <div class="field"><label class="t">Название</label><input type="text" id="p-name" maxlength="40" value="${esc(p.name)}"></div>
-    <div class="field"><label class="t">Когда действует</label>
-      <div class="seg"><button type="button" data-dt="0">Всегда, по кругу</button><button type="button" data-dt="1">Только в эти даты</button></div>
-      <div id="p-datebox"><div class="dates"><label>С<input type="date" id="p-from" value="${p.from||''}"></label><label>По<input type="date" id="p-to" value="${p.to||''}"></label></div>
-      <div class="explain">В эти дни программа будет каждый день в «Сегодня» вместо обычной. В круг она не входит. Когда даты пройдут, её можно просто перенести на новые.</div></div>
-      <div class="explain" id="p-cyc">Программа входит в круг: недели идут по очереди.</div>
-    </div>
+    <div class="field"><label class="t">Название</label><input type="text" id="p-name" maxlength="40" placeholder="Название программы" value="${esc(dr.name)}"></div>
+    <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
+      <ul class="ex-list" id="p-list"></ul>
+      <div class="ex-add"><input type="text" id="p-new" maxlength="60" placeholder="Добавить дело" enterkeyhint="done"><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div></div>
+    <div class="field"><label class="t">Когда включать</label>
+      <div class="seg seg3"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="dates">В даты</button><button type="button" data-s="off">Пауза</button></div>
+      <div id="p-datebox"><div class="dates"><label>С<input type="date" id="p-from" value="${dr.from}"></label><label>По<input type="date" id="p-to" value="${dr.to}"></label></div></div>
+      <div class="explain" id="p-ex"></div></div>
     <button class="btn main" id="p-save">Сохранить</button>
-    <button class="btn danger" id="p-del">Удалить программу</button>`,(el,close)=>{
-    const segs=el.querySelectorAll('[data-dt]');
-    const setD=v=>{dated=v;segs.forEach(b=>b.classList.toggle('on',(b.dataset.dt==='1')===v));el.querySelector('#p-datebox').style.display=v?'':'none';el.querySelector('#p-cyc').style.display=v?'none':''};
-    setD(dated); segs.forEach(b=>b.onclick=()=>setD(b.dataset.dt==='1'));
-    if(isNew) setTimeout(()=>{const i=el.querySelector('#p-name');i.focus();i.select()},320);
+    ${isNew?'':'<button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
+    const list=el.querySelector('#p-list');
+    const draw=()=>{list.innerHTML=dr.items.length?dr.items.map((x,i)=>`<li><span>${esc(x.name)}</span><button type="button" class="x" data-rm="${i}" aria-label="Удалить">×</button></li>`).join(''):'<div class="ex-empty">Пока пусто — добавь первое дело</div>';
+      list.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{dr.items.splice(+b.dataset.rm,1);draw()})};
+    draw();
+    const inp=el.querySelector('#p-new');
+    const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();dr.items.push({id:uid(),name:v});inp.value='';draw();inp.focus()};
+    el.querySelector('#p-addbtn').onclick=add;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});
+    const segs=el.querySelectorAll('[data-s]');
+    const setS=v=>{dr.status=v;segs.forEach(b=>b.classList.toggle('on',b.dataset.s===v));el.querySelector('#p-datebox').style.display=v==='dates'?'':'none';el.querySelector('#p-ex').textContent=ex[v]};
+    setS(dr.status); segs.forEach(b=>b.onclick=()=>setS(b.dataset.s));
+    if(isNew) setTimeout(()=>el.querySelector('#p-name').focus(),320);
     el.querySelector('#p-save').onclick=()=>{
-      const v=el.querySelector('#p-name').value.trim(); if(v) p.name=v;
-      const w=curWeek(), was=isDated(p);
-      if(dated){
-        const a=el.querySelector('#p-from').value, b=el.querySelector('#p-to').value;
-        if(!a||!b){toast('Выбери обе даты');return}
-        if(a>b){toast('Дата начала позже даты конца');return}
-        p.from=a; p.to=b;
-        if(!was&&w.progs[d.id]===p.id){delete w.progs[d.id]; if(!isDaily(d)) dropUndone(w,d.id)}
-      } else { delete p.from; delete p.to; }
-      const n=cyc(d).length; d.next=n?(d.next||0)%n:0;
-      refreshToday(d);
+      const nm=el.querySelector('#p-name');
+      dr.name=nm.value.trim(); if(!dr.name){nm.focus();return}
+      if(inp.value.trim()) add();
+      if(dr.status==='dates'){
+        dr.from=el.querySelector('#p-from').value; dr.to=el.querySelector('#p-to').value;
+        if(!dr.from||!dr.to){toast('Выбери обе даты');return}
+        if(dr.from>dr.to){toast('Дата начала позже даты конца');return}
+      }
+      const w=curWeek();
+      const p=orig||{id:uid()};
+      p.name=dr.name; p.items=dr.items; p.status=dr.status;
+      if(dr.status==='dates'){p.from=dr.from;p.to=dr.to} else {delete p.from;delete p.to}
+      if(isNew) d.progs.push(p);
+      if(w.progs[d.id]===p.id&&p.status!=='queue') delete w.progs[d.id];
+      fixNext(d);
+      if(p.status==='queue'&&!w.progs[d.id]) startProgram(w,d,cyc(d).indexOf(p),true);
+      fixNext(d);
+      syncWeek(d); refreshToday(d);
       save();close();render();
     };
-    confirmBtn(el.querySelector('#p-del'),'Нажми ещё раз — программа удалится',()=>{
+    const del=el.querySelector('#p-del');
+    if(del) confirmBtn(del,'Нажми ещё раз — программа удалится',()=>{
       const w=curWeek();
-      d.progs=d.progs.filter(x=>x!==p);
-      if(w.progs[d.id]===p.id) delete w.progs[d.id];
-      const n=cyc(d).length; d.next=n?(d.next||0)%n:0;
-      refreshToday(d);
+      d.progs=d.progs.filter(x=>x!==orig);
+      if(w.progs[d.id]===orig.id) delete w.progs[d.id];
+      fixNext(d);
+      syncWeek(d); refreshToday(d);
       save();close();render();
     });
   });
@@ -950,17 +991,6 @@ function stableSheet(id){
 }
 
 /* ================= действия ================= */
-function addItem(dId,pId){
-  const p=progOf(dId,pId), inp=document.querySelector(`.add-row input[data-p="${pId}"]`);
-  if(!p||!inp) return;
-  const v=inp.value.trim(); if(!v) return inp.focus();
-  p.items.push({id:uid(),name:v});
-  const w=curWeek(), d=dirById(dId);
-  if(dayProg(d,today())===p) curDay().items.push(mkItem(dId,v,1));
-  else if(!isDaily(d)&&!isDated(p)&&w.progs[dId]===pId) w.items.push(mkItem(dId,v,1));
-  save();render();
-  const again=document.querySelector(`.add-row input[data-p="${pId}"]`); again&&again.focus();
-}
 const A={
   tab:t=>{tab=t.dataset.t;render();window.scrollTo(0,0)},
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
@@ -972,10 +1002,8 @@ const A={
   addOne:()=>addOneSheet(),
   addDir:()=>dirSheet(null),
   editDir:t=>dirSheet(t.dataset.id),
-  addProg:t=>{const d=dirById(t.dataset.id),p={id:uid(),name:'Программа '+(LETTERS[d.progs.length]||d.progs.length+1),items:[]};d.progs.push(p);save();render();progSheet(d.id,p.id,true)},
+  addProg:t=>progSheet(t.dataset.id,null),
   editProg:t=>progSheet(t.dataset.d,t.dataset.p),
-  addItem:t=>addItem(t.dataset.d,t.dataset.p),
-  delItem:t=>{const p=progOf(t.dataset.d,t.dataset.p);if(!p)return;p.items=p.items.filter(x=>x.id!==t.dataset.i);save();render()},
   addStable:()=>stableSheet(null),
   editStable:t=>stableSheet(t.dataset.id),
   bg:t=>{const k=t.dataset.k;if(k==='photo'&&!photo){document.getElementById('photoIn').click();return}state.theme.bg=k;save();applyTheme();render()},
@@ -986,11 +1014,6 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('[data-a]');
   if(!t||t.closest('.sheet')||!state) return;
   const f=A[t.dataset.a]; if(f){e.preventDefault();f(t)}
-});
-document.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&e.target.matches('.add-row input')){
-    const b=e.target.parentElement.querySelector('button'); b&&A.addItem(b);
-  }
 });
 
 let toastT;
