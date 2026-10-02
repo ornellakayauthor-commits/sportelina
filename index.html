@@ -195,7 +195,13 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .dates input{display:block;width:100%;margin-top:6px;padding:11px 12px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px;color:var(--ink);min-height:46px;-webkit-appearance:none;appearance:none}
 .dates input:focus{border-color:var(--acc)}
 .pdate{font-size:12px;color:var(--muted);font-weight:600;margin:4px 0 0 32px}
-.prow{display:flex;align-items:center;gap:10px;width:100%;padding:13px 4px;text-align:left;border-top:1px dashed rgba(200,170,200,.45)}
+.prow{display:flex;align-items:center;gap:8px;width:100%;border-top:1px dashed rgba(200,170,200,.45)}
+.pbody{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:13px 4px;text-align:left}
+.mv{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.mv button{width:30px;height:22px;border-radius:8px;background:rgba(255,255,255,.7);display:grid;place-items:center;color:var(--acc-text)}
+.mv button:active{transform:scale(.9)}
+.mv button[disabled]{opacity:.25;pointer-events:none}
+.mv svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .prow .pn{flex:1;min-width:0;font-weight:600}
 .pst{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.75);color:var(--muted);white-space:nowrap}
 .pst.now{background:var(--c);color:#fff}
@@ -721,7 +727,7 @@ function renderProgs(){
     h+=`<div class="card dir" style="--c:${d.color}">
       <div class="dir-head" data-a="editDir" data-id="${d.id}">${dot(d.color,1)}
         <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
-      <div style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<button class="prow" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button>`}).join('')}</div>
+      <div style="margin-top:8px">${d.progs.map((p,i,arr)=>{const s=progStatus(d,p);return `<div class="prow">${arr.length>1?`<span class="mv"><button data-a="mvProg" data-d="${d.id}" data-p="${p.id}" data-dir="-1" ${i===0?'disabled':''} aria-label="Выше"><svg viewBox="0 0 12 12"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg></button><button data-a="mvProg" data-d="${d.id}" data-p="${p.id}" data-dir="1" ${i===arr.length-1?'disabled':''} aria-label="Ниже"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></button></span>`:''}<button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
       <button class="ghost" data-a="addProg" data-id="${d.id}">+ Программа</button></div>`;
   });
   h+=`<button class="add-btn" data-a="addDir">+ Новое направление</button>`;
@@ -1003,6 +1009,7 @@ const A={
   addDir:()=>dirSheet(null),
   editDir:t=>dirSheet(t.dataset.id),
   addProg:t=>progSheet(t.dataset.id,null),
+  mvProg:t=>{const d=dirById(t.dataset.d);if(!d)return;const i=d.progs.findIndex(p=>p.id===t.dataset.p),j=i+(+t.dataset.dir);if(i<0||j<0||j>=d.progs.length)return;[d.progs[i],d.progs[j]]=[d.progs[j],d.progs[i]];fixNext(d);save();render();haptic('light')},
   editProg:t=>progSheet(t.dataset.d,t.dataset.p),
   addStable:()=>stableSheet(null),
   editStable:t=>stableSheet(t.dataset.id),
