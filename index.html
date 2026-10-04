@@ -287,7 +287,7 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 /* ================= основа ================= */
 const TG = window.Telegram && window.Telegram.WebApp;
 const CLOUD = !!(TG && TG.initData && TG.CloudStorage && (!TG.isVersionAtLeast || TG.isVersionAtLeast('6.9')));
-const LS = 'starjar-v1', PHOTO_LS = 'starjar-photo', CAP = 50;
+const LS = 'starjar-v1', PHOTO_LS = 'starjar-photo', CAP = 10;
 const COLORS = ['#E8A3B6','#B8A4DE','#9DBFE3','#F2BD98','#A8D5C0','#E3B86E','#D59BC8','#F4C26B'];
 const ACCENTS = ['#D49BC4','#E8A0B4','#B39DDB','#8FB3E0','#E7A982','#7FC1A6','#C9A45C','#A08AA8'];
 const BG_COLORS = ['#FBF3EF','#F8EEF3','#F3EFFA','#EEF3FA','#F1F7F2','#FBF4E8','#F6F1EA','#EFE9F1'];
@@ -555,7 +555,7 @@ function starSlots(k){
   const S=shapeOf(k), P=new Path2D(S.body), ctx=document.createElement('canvas').getContext('2d');
   const inn=(x,y)=>ctx.isPointInPath(P,x,y);
   let slots=[];
-  for(let sc=1;sc>=.5;sc-=.05){
+  for(let sc=2.6;sc>=.5;sc-=.05){
     slots=[]; const dx=29*sc, dy=17.5*sc, m=12*sc;
     for(let row=0;row<60&&slots.length<CAP;row++){
       const y=S.floor-10*sc-row*dy; if(y<S.ceil) break;
@@ -577,7 +577,7 @@ function starSlots(k){
 let jarUid=0;
 function jarSVG(n,total,opt){
   opt=opt||{}; const k=opt.shape||state.theme.jar, S=shapeOf(k), id='j'+(jarUid++), thumb=!!opt.thumb;
-  const slots=starSlots(k), start=total-n; let stars='';
+  const slots=starSlots(k); n=Math.min(n,slots.length); const start=total-n; let stars='';
   for(let i=0;i<n;i++){
     const s=slots[i], col=opt.colors?opt.colors[i%opt.colors.length]:colorOf(state.seq[start+i]);
     stars+=`<g class="${!thumb&&animNew&&i===n-1?'drop':''}"><path d="${sparkle(s.x,s.y,s.r)}" fill="${col}"/><circle cx="${s.x}" cy="${s.y}" r="${f1(s.r*.24)}" fill="#fff"/></g>`;
@@ -757,7 +757,7 @@ function renderLook(){
   h+=`<div class="sec-title">Цвет кнопок</div><div class="card"><div class="look-row">${colorField('acc',t.accent,ACCENTS)}
       <div class="preview-btn"><span class="fake">Кнопка</span><span class="fake2">+ Добавить</span></div></div></div>`;
   const TC=['#F4C26B','#E8A3B6','#F2BD98','#B8A4DE'];
-  h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div></div>`;
+  h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(6,6,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div></div>`;
   h+=`<p class="tiny" style="text-align:center;margin-top:16px">Цвет звёздочек меняется в настройках каждого направления и ежедневной задачи.</p>`;
   return h;
 }
