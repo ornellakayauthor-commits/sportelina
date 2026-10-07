@@ -85,7 +85,7 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .tick:active{transform:scale(.88)}
 .item.done .tick{background:var(--c)}
 .tick svg{width:14px;height:14px}
-.iname{flex:1;cursor:pointer;min-width:0}
+.iname{flex:1;cursor:pointer;min-width:0;overflow-wrap:anywhere}
 .item.done .iname{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(156,135,152,.5)}
 .more{width:34px;height:30px;border-radius:10px;color:var(--soft);font-size:11px;letter-spacing:1px;flex-shrink:0}
 .nodir{color:var(--muted);font-size:13.5px;padding:6px 0 4px}
@@ -173,11 +173,14 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
   transition:transform .3s cubic-bezier(.2,.9,.3,1);box-shadow:0 -10px 40px rgba(150,100,140,.2)}
 .overlay.open .sheet{transform:none}
 .grab{width:40px;height:5px;border-radius:9px;background:var(--soft);margin:0 auto 14px;opacity:.7}
-.sheet h3{font-family:var(--serif);font-style:italic;font-weight:600;font-size:27px;line-height:1.1;margin-bottom:14px}
+.sheet h3{font-family:var(--serif);font-style:italic;font-weight:600;font-size:27px;line-height:1.1;margin-bottom:14px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .field{margin-bottom:16px}
 .field label.t{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:8px}
 .field input[type=text]{width:100%;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px}
 .field input[type=text]:focus{border-color:var(--acc)}
+.field textarea{width:100%;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px}
+.field textarea:focus{border-color:var(--acc)}
+textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:16px;line-height:1.35;color:inherit;min-height:48px;max-height:40vh}
 .swatches{display:flex;flex-wrap:wrap;gap:10px}
 .swatches button,.sw-own{width:36px;height:36px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 3px rgba(255,255,255,.7);transition:box-shadow .15s}
 .swatches button.on,.sw-own.on{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--c)}
@@ -210,12 +213,14 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .dir .ghost{margin-top:8px}
 .ex-list{list-style:none;margin:0 0 8px}
 .ex-list li{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;border-radius:14px;background:#fff;font-size:15px}
-.ex-list li span{flex:1;min-width:0}
+.ex-list li span{flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .ex-list li::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--c);flex-shrink:0}
 .ex-empty{font-size:13px;color:var(--muted);padding:2px 2px 8px}
 .ex-add{display:flex;gap:8px}
-.ex-add input{flex:1;min-width:0;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px}
-.ex-add input:focus{border-color:var(--acc)}
+.ex-add textarea{flex:1;min-width:0;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px}
+.ex-add textarea:focus{border-color:var(--acc)}
+.ex-add{align-items:flex-end}
+.ex-add button{height:48px}
 .ex-add button{width:48px;border-radius:14px;background:var(--c);color:#fff;font-size:22px;font-weight:700}
 .seg3 button{font-size:13px;padding:10px 4px}
 .tag{font-size:12.5px;color:var(--acc-text);font-weight:600;text-align:right}
@@ -321,6 +326,8 @@ function normalize(s){
   return s;
 }
 function uid(){return Math.random().toString(36).slice(2,9)}
+function grow(t){if(!t)return;t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,window.innerHeight*.4)+'px';t.style.overflowY=t.scrollHeight+2>window.innerHeight*.4?'auto':'hidden'}
+document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('textarea.grow'))grow(e.target)});
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function pad(n){return String(n).padStart(2,'0')}
 function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
@@ -843,10 +850,11 @@ function replaceSheet(id){
   const d=dirById(it.dir);
   const names=d?[...new Set(d.progs.flatMap(p=>p.items.map(x=>x.name)))].filter(n=>n!==it.name):[];
   sheet(f.kind==='day'?'Заменить на сегодня':'Заменить', names.map((n,i)=>`<button class="opt" data-n="${i}"><span>${esc(n)}</span></button>`).join('')+`
-    <div class="field" style="margin-top:14px"><label class="t">Или своё</label><input type="text" id="r-own" maxlength="60" placeholder="Название занятия"></div>
+    <div class="field" style="margin-top:14px"><label class="t">Или своё</label><textarea id="r-own" class="grow" rows="1" maxlength="500" placeholder="Название занятия" enterkeyhint="done"></textarea></div>
     <button class="btn main" id="r-ok">Заменить</button>`,(el,close)=>{
     el.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{it.name=names[+b.dataset.n];save();close();render()});
     el.querySelector('#r-ok').onclick=()=>{const inp=el.querySelector('#r-own'),v=inp.value.trim();if(!v)return inp.focus();it.name=v;save();close();render()};
+    el.querySelector('#r-own').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('#r-ok').click()}});
   });
 }
 function switchSheet(id){
@@ -859,7 +867,7 @@ function switchSheet(id){
 function addOneSheet(){
   let sel=null, when='day', newColor=COLORS[state.dirs.length%COLORS.length];
   sheet('Новое дело',`
-    <div class="field"><label class="t">Что сделать</label><input type="text" id="a-name" maxlength="60" placeholder="Название дела"></div>
+    <div class="field"><label class="t">Что сделать</label><textarea id="a-name" class="grow" rows="1" maxlength="500" placeholder="Название дела" enterkeyhint="done"></textarea></div>
     <div class="field"><label class="t">Когда</label><div class="seg"><button type="button" data-w="day" class="on">Сегодня</button><button type="button" data-w="week">На этой неделе</button></div></div>
     <div class="field"><label class="t">Направление</label><div class="chips" id="a-chips"><button class="chip on" data-d="">${dot(ONE_COLOR)}Разное</button>${state.dirs.map(d=>`<button class="chip" data-d="${d.id}">${dot(d.color)}${esc(d.name)}</button>`).join('')}<button class="chip add" id="a-new">+ Новое</button></div>
       <div class="newdir" id="a-newbox" style="display:none">
@@ -888,6 +896,7 @@ function addOneSheet(){
     };
     el.querySelector('#a-ok').onclick=()=>{const inp=el.querySelector('#a-name'),v=inp.value.trim();if(!v)return inp.focus();
       (when==='day'?curDay():curWeek()).items.push(mkItem(sel,v,0));save();close();render()};
+    el.querySelector('#a-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('#a-ok').click()}});
   });
 }
 function dirSheet(id){
@@ -929,7 +938,7 @@ function progSheet(dId,pId){
     <div class="field"><label class="t">Название</label><input type="text" id="p-name" maxlength="40" placeholder="Название программы" value="${esc(dr.name)}"></div>
     <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
       <ul class="ex-list" id="p-list"></ul>
-      <div class="ex-add"><input type="text" id="p-new" maxlength="60" placeholder="Добавить дело" enterkeyhint="done"><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div></div>
+      <div class="ex-add"><textarea id="p-new" class="grow" rows="1" maxlength="500" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div></div>
     <div class="field"><label class="t">Когда включать</label>
       <div class="seg seg3"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="dates">В даты</button><button type="button" data-s="off">Пауза</button></div>
       <div id="p-datebox"><div class="dates"><label>С<input type="date" id="p-from" value="${dr.from}"></label><label>По<input type="date" id="p-to" value="${dr.to}"></label></div></div>
@@ -941,7 +950,7 @@ function progSheet(dId,pId){
       list.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{dr.items.splice(+b.dataset.rm,1);draw()})};
     draw();
     const inp=el.querySelector('#p-new');
-    const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();dr.items.push({id:uid(),name:v});inp.value='';draw();inp.focus()};
+    const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();dr.items.push({id:uid(),name:v});inp.value='';grow(inp);draw();inp.focus()};
     el.querySelector('#p-addbtn').onclick=add;
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});
     const segs=el.querySelectorAll('[data-s]');
