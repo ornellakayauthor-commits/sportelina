@@ -173,7 +173,8 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
   transition:transform .3s cubic-bezier(.2,.9,.3,1);box-shadow:0 -10px 40px rgba(150,100,140,.2)}
 .overlay.open .sheet{transform:none}
 .grab{width:40px;height:5px;border-radius:9px;background:var(--soft);margin:0 auto 14px;opacity:.7}
-.sheet h3{font-family:var(--serif);font-style:italic;font-weight:600;font-size:27px;line-height:1.1;margin-bottom:14px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.sheet h3{font-family:var(--serif);font-style:italic;font-weight:600;font-size:27px;line-height:1.1;margin-bottom:14px;overflow-wrap:anywhere}
+.sheet h3.long{font-family:inherit;font-style:normal;font-size:17px;line-height:1.4;font-weight:600}
 .field{margin-bottom:16px}
 .field label.t{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:8px}
 .field input[type=text]{width:100%;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px}
@@ -819,7 +820,7 @@ document.getElementById('photoIn').addEventListener('change',e=>{
 /* ================= шторки ================= */
 function sheet(title,body,mount){
   const o=document.createElement('div');o.className='overlay';
-  o.innerHTML=`<div class="sheet" role="dialog"><div class="grab"></div><h3>${title}</h3>${body}</div>`;
+  o.innerHTML=`<div class="sheet" role="dialog"><div class="grab"></div><h3${String(title).length>70?' class="long"':''}>${title}</h3>${body}</div>`;
   document.body.appendChild(o);
   requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.add('open')));
   const close=()=>{o.classList.remove('open');setTimeout(()=>o.remove(),280)};
