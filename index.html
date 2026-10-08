@@ -446,20 +446,43 @@ function startProgram(w,dir,idx,toToday){
   const list=cyc(dir), p=list[idx]; if(!p) return;
   w.progs[dir.id]=p.id;
   if(isDaily(dir)){if(toToday) refreshToday(dir)}
-  else p.items.forEach(it=>w.items.push(mkItem(dir.id,it.name,1)));
+  else{
+    const has=new Set(w.items.filter(i=>i.dir===dir.id).map(i=>i.name));
+    p.items.forEach(it=>{if(!has.has(it.name)){has.add(it.name);w.items.push(mkItem(dir.id,it.name,1))}});
+    (p.carry||[]).forEach(n=>{if(!has.has(n)){has.add(n);w.items.push(mkItem(dir.id,n,1))}});
+    p.carry=[];
+  }
   dir.next=(idx+1)%list.length;
 }
+// невыполненные дела программы ждут её следующего включения
+function stashUndone(w,d){
+  if(!w||!d||isDaily(d)) return;
+  const p=progOf(d.id,w.progs&&w.progs[d.id]); if(!p) return false;
+  p.carry=p.carry||[];
+  w.items.forEach(i=>{if(i.dir===d.id&&i.prog&&!i.done&&!p.carry.includes(i.name))p.carry.push(i.name)});
+  return true;
+}
+function sameIn(list,dir,name){return list.some(x=>(x.dir||null)===(dir||null)&&x.name===name)}
 function ensureWeek(){
   const key=weekKey();
   if(state.weeks[key]) return;
   const prev=state.lastWeek?state.weeks[state.lastWeek]:null;
   const w={items:[],progs:{},skip:{}};
+  if(prev){
+    state.dirs.forEach(d=>stashUndone(prev,d));
+    prev.items.forEach(i=>{
+      if(i.done) return;
+      const d=i.dir&&dirById(i.dir);
+      if(i.prog&&d&&!isDaily(d)&&progOf(d.id,prev.progs&&prev.progs[d.id])) return; // ушло в программу
+      if(!sameIn(state.carry,i.dir,i.name)) state.carry.push({dir:i.dir,name:i.name,prog:false});
+    });
+  }
   state.weeks[key]=w;
   state.dirs.forEach(dir=>{
     const list=cyc(dir); if(!list.length) return;
     startProgram(w,dir,(dir.next||0)%list.length,false);
   });
-  state.carry.forEach(c=>w.items.push(mkItem(c.dir,c.name,c.prog)));
+  state.carry.forEach(c=>{if(!sameIn(w.items,c.dir,c.name))w.items.push(mkItem(c.dir,c.name,c.prog))});
   state.carry=[];
   state.lastWeek=key;
   const keys=Object.keys(state.weeks).sort();
@@ -471,6 +494,11 @@ function ensureDay(){
   if(state.days[key]) return;
   const items=[];
   state.dirs.forEach(d=>{const p=dayProg(d,key); if(p) items.push(...progItems(d,p))});
+  const prevKey=Object.keys(state.days).filter(k=>k<key).sort().pop(), prev=prevKey&&state.days[prevKey];
+  if(prev) prev.items.forEach(i=>{
+    if(i.done||i.prog||sameIn(items,i.dir,i.name)) return; // дела программы и так придут по программе
+    items.push(mkItem(i.dir,i.name,0));
+  });
   state.days[key]={items};
   const ks=Object.keys(state.days).sort();
   while(ks.length>14) delete state.days[ks.shift()];
@@ -484,7 +512,7 @@ function findItem(id){
 }
 function dropUndone(list,dirId){list.items=list.items.filter(i=>!(i.dir===dirId&&i.prog&&!i.done))}
 function switchProgram(dir,idx){
-  if(!isDaily(dir)) dropUndone(curWeek(),dir.id);
+  if(!isDaily(dir)){stashUndone(curWeek(),dir);dropUndone(curWeek(),dir.id)}
   startProgram(curWeek(),dir,idx,true);
 }
 function fixNext(d){
