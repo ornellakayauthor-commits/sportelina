@@ -89,6 +89,9 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .item.done .iname{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(156,135,152,.5)}
 .more{width:34px;height:30px;border-radius:10px;color:var(--soft);font-size:11px;letter-spacing:1px;flex-shrink:0}
 .nodir{color:var(--muted);font-size:13.5px;padding:6px 0 4px}
+.dhead{display:flex;justify-content:space-between;align-items:center;margin:10px 0 2px;padding-top:10px;border-top:1px dashed rgba(200,170,200,.45);font-size:12.5px;font-weight:700;color:var(--muted)}
+.dlist .item{padding:5px 0}
+.dlist .item .tick{transform:scale(.86)}
 .nodir .pill{margin-top:8px}
 .add-btn{display:block;width:100%;margin-top:12px;padding:14px;border-radius:18px;border:1.5px dashed var(--acc-line);
   color:var(--acc-text);font-weight:700;background:rgba(255,255,255,.35)}
@@ -224,6 +227,8 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .ex-list.done li{background:rgba(255,255,255,.5);color:var(--muted)}
 .ex-list.done li span{text-decoration:line-through;text-decoration-color:rgba(156,135,152,.5)}
 .ex-list.done li::before{opacity:.45}
+.ex-list li textarea.inline{width:100%;min-height:0;padding:0;border:none;background:transparent;outline:none;font-size:15px;-webkit-user-select:text;user-select:text}
+.ex-list li span{cursor:text}
 .back{color:var(--soft);font-size:18px;width:30px;height:30px;line-height:1;flex-shrink:0}
 .prow .pn small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
 .ex-list li{transition:height .22s ease,opacity .22s ease,margin .22s ease,padding .22s ease;overflow:hidden;box-sizing:border-box}
@@ -575,7 +580,17 @@ function toggleItem(id){
   if(!it.done){it.done=true;it.doneOn=today();addStar(key,it.doneOn);haptic('light')}
   else{removeStar(key,it.doneOn);it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
-  save();render();
+  save();flip(render);
+}
+function flip(fn){
+  const was={};document.querySelectorAll('.item[data-id]').forEach(e=>was[e.dataset.id]=e.getBoundingClientRect().top);
+  fn();
+  document.querySelectorAll('.item[data-id]').forEach(e=>{
+    const t=was[e.dataset.id]; if(t==null) return;
+    const dy=t-e.getBoundingClientRect().top; if(Math.abs(dy)<1) return;
+    e.style.transition='none'; e.style.transform=`translateY(${dy}px)`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{e.style.transition='transform .38s cubic-bezier(.2,.9,.3,1)';e.style.transform='';setTimeout(()=>{e.style.transition=''},420)}));
+  });
 }
 
 /* ================= банка (рисунок) ================= */
@@ -701,11 +716,11 @@ function renderHome(){
   const build=(kind,list)=>{
     const g=[];
     state.dirs.forEach(d=>{
-      const items=list.items.filter(i=>i.dir===d.id);
+      const items=list.items.filter(i=>i.dir===d.id&&!i.hidden);
       const own=(kind==='day')===isDaily(d);
       if(items.length||(own&&cyc(d).length)||(kind==='day'&&datedFor(d,today()))) g.push(groupHTML(d,items,w,kind,own));
     });
-    const misc=list.items.filter(i=>!i.dir||!dirById(i.dir));
+    const misc=list.items.filter(i=>(!i.dir||!dirById(i.dir))&&!i.hidden);
     if(misc.length) g.push(groupHTML(null,misc,w,kind,false));
     return g;
   };
@@ -728,11 +743,13 @@ function groupHTML(d,items,w,kind,own){
       :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
     head=`<div class="ghead"><span class="gname">${dot(color)}${esc(d.name)}</span>${right}</div>`;
   } else head=`<div class="ghead"><span class="gname">${dot(color)}Разное</span></div>`;
-  let body=items.map(i=>`<div class="item drag-item${i.done?' done':''}" data-id="${i.id}">
+  const row=i=>`<div class="item${i.done?' done':' drag-item'}" data-id="${i.id}">
       <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
       <span class="iname" data-a="toggle" data-id="${i.id}">${esc(i.name)}</span>
-      <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`).join('');
-  if(items.length) body=`<div class="ilist" data-k="${kind}">${body}</div>`;
+      <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`;
+  const und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
+  let body=und.length?`<div class="ilist" data-k="${kind}">${und.map(row).join('')}</div>`:'';
+  if(dn.length) body+=`<div class="dhead"><span>Выполнено · ${dn.length}</span><button class="link" data-a="clearDone" data-k="${kind}" data-d="${d?d.id:''}">Очистить</button></div><div class="dlist">${dn.map(row).join('')}</div>`;
   if(d&&!items.length){
     if(own&&!w.progs[d.id]&&cyc(d).length&&!(kind==='day'&&datedFor(d,today()))){
       const nx=cyc(d)[(d.next||0)%cyc(d).length];
@@ -894,13 +911,41 @@ function itemMenu(id){
     : `<button class="opt" id="o-move"><span>Перенести на следующую неделю<small>Без пометок, просто переедет</small></span></button>
        <button class="opt" id="o-rep"><span>Заменить<small>На другое занятие или своё</small></span></button>
        <button class="opt" id="o-del"><span>Убрать из плана</span></button>`;
-  sheet(esc(it.name),opts,(el,close)=>{
+  sheet(esc(it.name),`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
     const mv=el.querySelector('#o-move'), rp=el.querySelector('#o-rep');
     if(mv) mv.onclick=()=>{L.items=L.items.filter(i=>i!==it);state.carry.push({dir:it.dir,name:it.name,prog:it.prog});save();close();render();toast('Переедет на следующую неделю')};
     if(rp) rp.onclick=()=>{close();setTimeout(()=>replaceSheet(id),280)};
     const sk=el.querySelector('#o-skip');
     if(sk) sk.onclick=()=>{const w=curWeek();w.skip=w.skip||{};(w.skip[it.dir]=w.skip[it.dir]||[]).push(it.name);L.items=L.items.filter(i=>i!==it);save();close();render();toast('Убрано до воскресенья')};
-    el.querySelector('#o-del').onclick=()=>{L.items=L.items.filter(i=>i!==it);save();close();render()};
+    el.querySelector('#o-del').onclick=()=>{if(it.done)it.hidden=true;else L.items=L.items.filter(i=>i!==it);save();close();render()};
+    el.querySelector('#o-edit').onclick=()=>{close();setTimeout(()=>editSheet(id),280)};
+  });
+}
+function progForItem(it){
+  if(!it.prog||!it.dir) return null; const d=dirById(it.dir); if(!d) return null;
+  const c=[it.pid&&progOf(d.id,it.pid),progOf(d.id,curWeek().progs[d.id]),dayProg(d,today())];
+  for(const p of c) if(p&&progItemFor(p,it)) return p;
+  return null;
+}
+function renameItem(it,v){
+  const P=progForItem(it), px=P&&progItemFor(P,it), old=it.name;
+  if(px){
+    [curWeek(),curDay()].forEach(L=>L&&L.items.forEach(i=>{if(i!==it&&i.dir===it.dir&&i.prog&&(i.pi?i.pi===px.id:i.name===old))i.name=v}));
+    px.name=v; it.pid=P.id; it.pi=px.id;
+  }
+  it.name=v; return P;
+}
+function editSheet(id){
+  const f=findItem(id); if(!f) return; const it=f.it, P=progForItem(it);
+  sheet('Изменить дело',`
+    <div class="field"><textarea id="e-name" class="grow" rows="1" enterkeyhint="done">${esc(it.name)}</textarea>
+    ${P?`<div class="explain" style="margin-top:8px">Текст поменяется и в программе «${esc(P.name)}»</div>`:''}</div>
+    <button class="btn main" id="e-ok">Сохранить</button>`,(el,close)=>{
+    const t=el.querySelector('#e-name'); grow(t);
+    setTimeout(()=>{t.focus();t.setSelectionRange(t.value.length,t.value.length);grow(t)},320);
+    const ok=()=>{const v=t.value.trim();if(!v)return t.focus();if(v!==it.name)renameItem(it,v);save();close();render()};
+    el.querySelector('#e-ok').onclick=ok;
+    t.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ok()}});
   });
 }
 function replaceSheet(id){
@@ -1034,6 +1079,7 @@ function progSheet(dId,pId){
     list.addEventListener('mousedown',keepFocus); addBtn.addEventListener('mousedown',keepFocus);
     // удаление: строка плавно схлопывается, остальные мягко подтягиваются
     list.addEventListener('click',e=>{
+      const sp=e.target.closest('li > span'); if(sp&&!sp.querySelector('textarea')) return editInline(sp);
       const b=e.target.closest('.x'); if(!b) return;
       const li=b.closest('li'); if(!li||li.classList.contains('leaving')) return;
       dr.items=dr.items.filter(x=>x.id!==li.dataset.id);
@@ -1041,6 +1087,14 @@ function progSheet(dId,pId){
       li.classList.add('leaving'); li.style.height='0px';
       setTimeout(()=>{li.remove(); if(!dr.items.some(isAct)) draw()},230);
     });
+    const editInline=sp=>{
+      const x=dr.items.find(y=>y.id===sp.closest('li').dataset.id); if(!x) return;
+      const t=document.createElement('textarea'); t.className='grow inline'; t.rows=1; t.value=x.name; t.setAttribute('enterkeyhint','done');
+      sp.textContent=''; sp.appendChild(t); grow(t); t.focus(); t.setSelectionRange(t.value.length,t.value.length);
+      const fin=()=>{const v=t.value.trim(); if(v) x.name=v; sp.textContent=x.name};
+      t.addEventListener('blur',fin,{once:true});
+      t.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();t.blur()}});
+    };
     // добавление: дописываем одну строку с плавным появлением, без перерисовки всего списка
     const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();
       const x={id:uid(),name:v}; dr.items.push(x);
@@ -1117,6 +1171,9 @@ const A={
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
   sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
   toggle:t=>toggleItem(t.dataset.id),
+  clearDone:t=>{const L=t.dataset.k==='day'?curDay():curWeek(), dId=t.dataset.d;
+    L.items.forEach(i=>{if(i.done&&(dId?i.dir===dId:(!i.dir||!dirById(i.dir))))i.hidden=true});
+    haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
   switch:t=>switchSheet(t.dataset.id),
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
