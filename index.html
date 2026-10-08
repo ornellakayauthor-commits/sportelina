@@ -91,6 +91,56 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .nodir{color:var(--muted);font-size:13.5px;padding:6px 0 4px}
 .dhead{display:flex;justify-content:space-between;align-items:center;margin:10px 0 2px;padding-top:10px;border-top:1px dashed rgba(200,170,200,.45);font-size:12.5px;font-weight:700;color:var(--muted)}
 .dlist .item{padding:5px 0}
+.jars{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.top+.card{margin-top:18px}
+.card+.jars{margin-top:12px}
+.jcard{position:relative;min-height:132px;border-radius:24px;padding:14px 14px 13px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.75);box-shadow:var(--shadow);background:var(--c);color:var(--ink);transition:transform .15s}
+.jcard:active{transform:scale(.97)}
+.jcard .jemo{position:absolute;top:12px;left:13px;font-size:30px;line-height:1;filter:drop-shadow(0 2px 4px rgba(90,68,102,.15))}
+.jcard .jname{font-family:var(--serif);font-style:italic;font-weight:700;font-size:21px;line-height:1.05;overflow-wrap:anywhere}
+.jcard .jcnt{font-size:12px;font-weight:600;opacity:.75}
+.jcard.big{min-height:120px;margin-bottom:16px}
+.jcard.big .jname{font-size:24px}
+.st-soft{background:linear-gradient(150deg,color-mix(in srgb,var(--c) 20%,#fff),color-mix(in srgb,var(--c) 48%,#fff))}
+.st-bold{background:linear-gradient(150deg,var(--c),color-mix(in srgb,var(--c) 68%,#5A4466));color:#fff}
+.st-dots{background:radial-gradient(circle,rgba(255,255,255,.95) 1.3px,transparent 1.8px) 0 0/15px 15px,linear-gradient(150deg,color-mix(in srgb,var(--c) 28%,#fff),color-mix(in srgb,var(--c) 58%,#fff))}
+.jcard.add{border:1.5px dashed var(--acc-line);background:rgba(255,255,255,.35);color:var(--acc-text);font-weight:700;align-items:center;justify-content:center;box-shadow:none;font-size:14px}
+.jtitle{display:block}
+.jedit{font-size:13px;font-weight:700;color:var(--acc-text);margin:-6px 0 14px;padding:4px 0}
+.jl{list-style:none;margin:0 0 6px}
+.jl li{background:#fff;border-radius:14px;margin-bottom:6px;padding:9px 8px 9px 12px;font-size:15px}
+.jl.soft li{background:rgba(255,255,255,.6)}
+.jl.done li{background:rgba(255,255,255,.5);color:var(--muted)}
+.jl.done .jt{text-decoration:line-through;text-decoration-color:rgba(156,135,152,.5)}
+.jrow{display:flex;align-items:center;gap:6px}
+.jrow::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--c);flex-shrink:0;margin-right:4px}
+.jl.done .jrow::before{opacity:.45}
+.jt{flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap;cursor:text}
+.jt small{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:1px}
+.jt textarea.inline{width:100%;min-height:0;padding:0;border:none;background:transparent;outline:none;font-size:15px;-webkit-user-select:text;user-select:text}
+.pull{font-size:12.5px;font-weight:700;color:#fff;background:var(--c);padding:6px 11px;border-radius:99px;flex-shrink:0}
+.pullbox{display:none;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin:9px 0 2px 13px}
+.jl li.open .pullbox{display:flex}
+.pullbox button,.jdate{position:relative;display:inline-flex;align-items:center;margin:0;font-size:12.5px;font-weight:700;padding:7px 10px;border-radius:99px;background:color-mix(in srgb,var(--c) 20%,#fff);color:var(--ink);cursor:pointer}
+.jdate input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0}
+.jl li{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.jprev .jcard{width:62%;margin:0 auto 16px}
+.emo{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.emo button{font-size:22px;height:40px;border-radius:12px;transition:background .15s}
+.emo button.on{background:#fff;box-shadow:inset 0 0 0 2px var(--acc)}
+.emo-own{margin-top:8px}
+.jstyles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.jstyles button{height:62px;border-radius:16px;font-size:13px;font-weight:700;display:flex;align-items:flex-end;padding:8px 10px;color:var(--ink);border:1px solid rgba(255,255,255,.75);background-color:var(--c)}
+.jstyles button.st-bold{color:#fff}
+.jstyles button.on{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--acc)}
+.soon{cursor:pointer}
+.srow2{display:flex;align-items:center;gap:10px;padding:8px 0}
+.srow2+.srow2{border-top:1px dashed rgba(200,170,200,.45)}
+.sday{font-size:12.5px;font-weight:700;color:var(--acc-text);min-width:74px}
+.semo{font-size:18px;line-height:1}
+.stxt{flex:1;min-width:0;overflow-wrap:anywhere}
+.smore{font-size:12.5px;color:var(--muted);padding-top:6px}
 .dwrap{display:grid;grid-template-rows:1fr;transition:grid-template-rows .3s ease,opacity .3s ease}
 .dwrap>*{overflow:hidden;min-height:0}
 .dwrap.folded{grid-template-rows:0fr;opacity:0}
@@ -312,6 +362,9 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
   <button data-a="tab" data-t="progs">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9.5 6h10.5M9.5 12h10.5M9.5 18h10.5"/><circle cx="5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>
     Программы</button>
+  <button data-a="tab" data-t="jars">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9" width="17" height="11.5" rx="3"/><path d="M6 9V7.5A1.5 1.5 0 0 1 7.5 6h9A1.5 1.5 0 0 1 18 7.5V9"/><path d="M10 3.5h4"/><path d="M12 12.6l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7z" fill="currentColor" stroke="none"/></svg>
+    Копилки</button>
   <button data-a="tab" data-t="look">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.3 0 2-.8 2-1.8 0-1.3-1-1.6-1-2.8 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.4 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>
     Оформление</button>
@@ -342,7 +395,7 @@ const TICK = '<svg viewBox="0 0 20 20"><path d="M10 1Q11.4 8.6 19 10Q11.4 11.4 1
 let state = null, tab = 'home', animNew = false, photo = null;
 try{photo=localStorage.getItem(PHOTO_LS)}catch(e){}
 
-function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},
+function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],
   theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic'}}}
 function normalize(s){
   if(!s || s.v!==1) return fresh();
@@ -369,7 +422,7 @@ function rnd(i,s){const x=Math.sin(i*12.9898+s*78.233)*43758.5453;return x-Math.
 function dirById(id){return state.dirs.find(d=>d.id===id)}
 function stableById(id){return state.stable.find(s=>s.id===id)}
 function progOf(dId,pId){const d=dirById(dId);return d&&d.progs.find(p=>p.id===pId)}
-function colorOf(k){const d=dirById(k);if(d)return d.color;if(k==='one')return ONE_COLOR;const s=stableById(k);return s?s.color:STABLE_COLOR}
+function colorOf(k){const d=dirById(k);if(d)return d.color;if(String(k).startsWith('j:')){const j=jarById(k.slice(2));return j?j.color:ONE_COLOR}if(k==='one')return ONE_COLOR;const s=stableById(k);return s?s.color:STABLE_COLOR}
 function curWeek(){return state.weeks[weekKey()]}
 function haptic(t){try{TG&&TG.HapticFeedback&&TG.HapticFeedback.impactOccurred(t||'light')}catch(e){}}
 function dot(c,big){return `<span class="dot${big?' big':''}" style="--c:${c}"></span>`}
@@ -505,6 +558,7 @@ function ensureWeek(){
     state.dirs.forEach(d=>stashUndone(prev,d));
     prev.items.forEach(i=>{
       if(i.done) return;
+      if(i.jar){jarIdle(i);return}
       const d=i.dir&&dirById(i.dir);
       const P=d&&!isDaily(d)&&progOf(d.id,prev.progs&&prev.progs[d.id]);
       if(i.prog&&P&&(!isOnce(P)||progItemFor(P,i))) return; // ждёт в своей программе
@@ -532,9 +586,12 @@ function ensureDay(){
   state.dirs.forEach(d=>{const p=dayProg(d,key); if(p) items.push(...progItems(d,p))});
   const prevKey=Object.keys(state.days).filter(k=>k<key).sort().pop(), prev=prevKey&&state.days[prevKey];
   if(prev) prev.items.forEach(i=>{
+    if(i.jar){if(!i.done)jarIdle(i);return} // несостоявшееся из копилки возвращается в копилку
     if(i.done||i.prog||sameIn(items,i.dir,i.name)) return; // дела программы и так придут по программе
     items.push(mkItem(i.dir,i.name,0));
   });
+  // запланированное из копилок на этот день (и на пропущенные дни)
+  (state.jars||[]).forEach(j=>j.items.forEach(x=>{if(x.st==='plan'&&x.date<=key){items.push(mkJarItem(j,x));x.st='out';delete x.date}}));
   state.days[key]={items};
   const ks=Object.keys(state.days).sort();
   while(ks.length>14) delete state.days[ks.shift()];
@@ -586,10 +643,11 @@ function removeStar(key,date){
 }
 function toggleItem(id){
   const f=findItem(id); if(!f) return; const it=f.it;
-  const key=it.dir||'one';
+  const key=it.dir||(it.jar?'j:'+it.jar:'one');
   if(!it.done){it.done=true;it.doneOn=today();addStar(key,it.doneOn);haptic('light')}
   else{removeStar(key,it.doneOn);it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
+  const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
   save();flip(render);
 }
 function isFolded(k){return !!(state.fold&&state.fold[k])}
@@ -732,7 +790,8 @@ function renderHome(){
       const own=(kind==='day')===isDaily(d);
       if(items.length||(own&&cyc(d).length)||(kind==='day'&&datedFor(d,today()))) g.push(groupHTML(d,items,w,kind,own));
     });
-    const misc=list.items.filter(i=>(!i.dir||!dirById(i.dir))&&!i.hidden);
+    state.jars.forEach(j=>{const it=list.items.filter(i=>i.jar===j.id&&!i.hidden);if(it.length)g.push(groupHTML(jarAsDir(j),it,w,kind,false))});
+    const misc=list.items.filter(i=>(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))&&!i.hidden);
     if(misc.length) g.push(groupHTML(null,misc,w,kind,false));
     return g;
   };
@@ -743,6 +802,7 @@ function renderHome(){
   if(dg.length) h+=`<div class="sec-title">Сегодня</div><div class="card">${dg.join('')}</div>`;
   if(wg.length) h+=`<div class="sec-title">Эта неделя <small>${weekLabel()}</small></div><div class="card">${wg.join('')}</div>`;
   h+=`<button class="add-btn" data-a="addOne">+ Добавить дело</button>`;
+  h+=soonHTML();
   return h;
 }
 function groupHTML(d,items,w,kind,own){
@@ -784,6 +844,7 @@ function renderStats(){
     <div class="card"><div class="tile-v">${sum(inWeek)}</div><div class="tile-l">на этой неделе</div></div>
     <div class="card"><div class="tile-v">${sum(inMonth)}</div><div class="tile-l">в этом месяце</div></div></div>`;
   const rows=state.dirs.map(d=>({name:d.name,c:d.color,all:sum(all,d.id),m:sum(inMonth,d.id)}));
+  state.jars.forEach(j=>{const a=sum(all,'j:'+j.id);if(a)rows.push({name:(j.emoji?j.emoji+' ':'')+j.name,c:j.color,all:a,m:sum(inMonth,'j:'+j.id)})});
   const oneAll=sum(all,'one'); if(oneAll) rows.push({name:'Разное',c:ONE_COLOR,all:oneAll,m:sum(inMonth,'one')});
   if(rows.length){
     const max=Math.max(1,...rows.map(r=>r.all));
@@ -901,6 +962,158 @@ document.getElementById('photoIn').addEventListener('change',e=>{
   r.readAsDataURL(f);
 });
 
+/* ================= копилки ================= */
+const JAR_EMOJI=['🎬','🍿','📺','📚','📖','🎮','🎧','🎵','🎨','🖌️','🎭','🎤','✨','🌸','🌙','☕','🧁','🍰','🍜','🛁','🕯️','🧘‍♀️','🚲','🏞️','🌊','🗺️','✈️','💃','🧶','🪴','💌','🎁'];
+const JAR_STYLES=[['soft','Нежный'],['bold','Яркий'],['dots','В звёздочках']];
+const WD=['вс','пн','вт','ср','чт','пт','сб'];
+function jarById(id){return (state.jars||[]).find(j=>j.id===id)}
+function jarAsDir(j){return {id:'jar_'+j.id,name:(j.emoji?j.emoji+' ':'')+j.name,color:j.color,progs:[]}}
+function mkJarItem(j,x){const o=mkItem(null,x.name,0);o.jar=j.id;o.ji=x.id;return o}
+function jarItemOf(i){const j=i.jar&&jarById(i.jar);return j?j.items.find(x=>x.id===i.ji):null}
+function jarIdle(i){const x=jarItemOf(i);if(x&&x.st!=='done'){x.st='idle';delete x.date}}
+function dayLabel(k){const [y,m,d]=k.split('-').map(Number),dt=new Date(y,m-1,d),t=today();
+  const tm=new Date();tm.setDate(tm.getDate()+1);
+  if(k===t)return 'сегодня'; if(k===ymd(tm))return 'завтра';
+  return WD[dt.getDay()]+', '+d+' '+MON[m-1]}
+function jarCount(j){const c={idle:0,plan:0,out:0,done:0};j.items.forEach(x=>c[x.st]=(c[x.st]||0)+1);return c}
+function jarCard(j,big){
+  const c=jarCount(j);
+  const sub=c.idle?`${c.idle} ${pl(c.idle,'идея','идеи','идей')}`:'пока пусто';
+  return `<${big?'div':'button'} class="jcard st-${j.style||'soft'}${big?' big':''}" style="--c:${j.color}" ${big?'':`data-a="openJar" data-id="${j.id}"`}>
+    <span class="jemo">${esc(j.emoji||'✨')}</span><span class="jname">${esc(j.name||'Без названия')}</span>
+    <span class="jcnt">${sub}${c.plan?' · '+c.plan+' в планах':''}</span></${big?'div':'button'}>`;
+}
+function soonHTML(){
+  const t=today(), lim=new Date();lim.setDate(lim.getDate()+7);const L=ymd(lim);
+  const list=[];(state.jars||[]).forEach(j=>j.items.forEach(x=>{if(x.st==='plan'&&x.date>t&&x.date<=L)list.push({j,x})}));
+  if(!list.length) return '';
+  list.sort((a,b)=>a.x.date<b.x.date?-1:1);
+  return `<div class="sec-title">Скоро</div><div class="card soon" data-a="goJars">`+list.slice(0,4).map(({j,x})=>
+    `<div class="srow2"><span class="sday">${dayLabel(x.date)}</span><span class="semo">${esc(j.emoji||'✨')}</span><span class="stxt">${esc(x.name)}</span></div>`).join('')+
+    (list.length>4?`<div class="smore">и ещё ${list.length-4}</div>`:'')+`</div>`;
+}
+function renderJars(){
+  let h=`<header class="top"><h1>Копилки</h1><div class="date">Идеи на свободное время — достань, когда захочется</div></header>`;
+  if(!state.jars.length){
+    const st=[['🎬 Фильмы','#E8A3B6'],['📺 Сериалы','#B8A4DE'],['📚 Почитать','#9DBFE3'],['✨ Хочу сделать','#F2BD98']];
+    h+=`<div class="card"><div class="hint-empty" style="padding-bottom:10px">Складывай сюда всё, что хочется посмотреть, почитать или попробовать. А в свободный день — доставай.<br><br>Начать с готовой:</div>
+      <div class="chips" style="justify-content:center">${st.map(([v,c])=>`<button class="chip" data-a="starterJar" data-v="${v}" data-c="${c}">${esc(v)}</button>`).join('')}</div></div>`;
+  }
+  h+=`<div class="jars">${state.jars.map(j=>jarCard(j)).join('')}<button class="jcard add" data-a="addJar">+ Новая копилка</button></div>`;
+  const plans=[];state.jars.forEach(j=>j.items.forEach(x=>{if(x.st==='plan')plans.push({j,x})}));
+  if(plans.length){
+    plans.sort((a,b)=>a.x.date<b.x.date?-1:1);
+    h+=`<div class="sec-title">Запланировано</div><div class="card">`+plans.map(({j,x})=>
+      `<div class="srow2" style="--c:${j.color}"><span class="sday">${dayLabel(x.date)}</span><span class="semo">${esc(j.emoji||'✨')}</span><span class="stxt">${esc(x.name)}</span>
+       <button class="back" data-a="unplan" data-j="${j.id}" data-x="${x.id}" aria-label="Вернуть в копилку">↺</button></div>`).join('')+`</div>`;
+  }
+  return h;
+}
+function jarSheet(id){
+  const j=jarById(id); if(!j) return;
+  sheet(`<span class="jtitle">${esc(j.emoji||'✨')} ${esc(j.name)}</span>`,`
+    <button type="button" class="jedit" id="j-edit">✎ Оформление</button>
+    <div class="field" style="--c:${j.color}">
+      <div class="ex-add"><textarea id="j-new" class="grow" rows="1" placeholder="Новая идея" enterkeyhint="done"></textarea><button type="button" id="j-addbtn" aria-label="Добавить">+</button></div>
+    </div>
+    <div style="--c:${j.color}">
+      <ul class="jl" id="j-idle"></ul>
+      <div id="j-plan"></div><div id="j-out"></div>
+      <div id="j-donebox"><div class="done-head" id="j-dhead"><button type="button" class="dtoggle" id="j-fold"><span class="chev-s">▾</span><span id="j-dcnt"></span></button><button type="button" id="j-clear">Очистить</button></div>
+        <div class="dwrap" id="j-dwrap"><ul class="jl done" id="j-done"></ul></div></div>
+    </div>`,(el,close)=>{
+    const idle=el.querySelector('#j-idle'), inp=el.querySelector('#j-new'), t=today();
+    const sec=(title,rows)=>rows.length?`<div class="done-head"><span>${title}</span></div><ul class="jl soft">${rows.join('')}</ul>`:'';
+    const draw=()=>{
+      const xs=st=>j.items.filter(x=>x.st===st);
+      const id_=xs('idle');
+      idle.innerHTML=id_.length?id_.map(x=>`<li class="drag-item" data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span>
+          <button type="button" class="pull">Достать</button><button type="button" class="x" aria-label="Удалить">×</button></div>
+          <div class="pullbox"><button type="button" data-to="day">На сегодня</button><button type="button" data-to="week">На эту неделю</button>
+          <label class="jdate">В день…<input type="date" min="${t}"></label></div></li>`).join('')
+        :`<div class="ex-empty">${j.items.length?'Все идеи уже в деле ✨':'Пока пусто — запиши первую идею'}</div>`;
+      el.querySelector('#j-plan').innerHTML=sec('Запланировано',xs('plan').sort((a,b)=>a.date<b.date?-1:1).map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}<small>${dayLabel(x.date)}</small></span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`));
+      el.querySelector('#j-out').innerHTML=sec('Уже в списках',xs('out').map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}<small>${placeOf(x)}</small></span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`));
+      const dn=xs('done');
+      el.querySelector('#j-donebox').style.display=dn.length?'':'none';
+      el.querySelector('#j-dcnt').textContent='Выполнено · '+dn.length;
+      el.querySelector('#j-done').innerHTML=dn.map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span></div></li>`).join('');
+    };
+    const placeOf=x=>{const w=curWeek().items.some(i=>i.ji===x.id&&!i.done);return w?'на этой неделе':'в «Сегодня»'};
+    const commit=()=>{save();draw();render()};
+    draw();
+    sortable(idle,'li','.jrow',ids=>{const rest=j.items.filter(x=>!ids.includes(x.id));j.items=[...ids.map(i=>j.items.find(x=>x.id===i)).filter(Boolean),...rest];commit()});
+    const fk='j:'+j.id, applyFold=f=>{el.querySelector('#j-dhead').classList.toggle('folded',f);el.querySelector('#j-dwrap').classList.toggle('folded',f)};
+    applyFold(isFolded(fk)); el.querySelector('#j-fold').onclick=()=>{applyFold(setFold(fk));haptic('light')};
+    el.querySelector('#j-clear').onclick=()=>{j.items=j.items.filter(x=>x.st!=='done');commit()};
+    el.querySelector('#j-edit').onclick=()=>{close();setTimeout(()=>jarEdit(j.id),280)};
+    const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();j.items.push({id:uid(),name:v,st:'idle'});inp.value='';grow(inp);commit();if(document.activeElement!==inp)inp.focus({preventScroll:true})};
+    el.querySelector('#j-addbtn').addEventListener('mousedown',e=>e.preventDefault());
+    el.querySelector('#j-addbtn').onclick=add;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});
+    const pullTo=(x,to,date)=>{
+      if(to==='date'&&date===today()) to='day';
+      if(to==='day'){curDay().items.push(mkJarItem(j,x));x.st='out';toast('Добавлено на сегодня')}
+      else if(to==='week'){curWeek().items.push(mkJarItem(j,x));x.st='out';toast('Добавлено на эту неделю')}
+      else {x.st='plan';x.date=date;toast('Запланировано: '+dayLabel(date))}
+      haptic('medium');commit();
+    };
+    const back=x=>{[curDay(),curWeek()].forEach(L=>{L.items=L.items.filter(i=>!(i.ji===x.id&&!i.done))});x.st='idle';delete x.date;haptic('light');commit()};
+    el.addEventListener('click',e=>{
+      const li=e.target.closest('li[data-id]'); if(!li) return;
+      const x=j.items.find(y=>y.id===li.dataset.id); if(!x) return;
+      if(e.target.closest('.pull')){const o=li.classList.contains('open');idle.querySelectorAll('li.open').forEach(l=>l.classList.remove('open'));li.classList.toggle('open',!o);return}
+      const to=e.target.closest('[data-to]'); if(to) return pullTo(x,to.dataset.to);
+      if(e.target.closest('.back')) return back(x);
+      if(e.target.closest('.x')){j.items=j.items.filter(y=>y!==x);haptic('light');commit();return}
+      const sp=e.target.closest('.jt'); if(sp&&x.st==='idle'&&!sp.querySelector('textarea')){
+        const ta=document.createElement('textarea');ta.className='grow inline';ta.rows=1;ta.value=x.name;ta.setAttribute('enterkeyhint','done');
+        sp.textContent='';sp.appendChild(ta);grow(ta);ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+        ta.addEventListener('blur',()=>{const v=ta.value.trim();if(v)x.name=v;commit()},{once:true});
+        ta.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();ta.blur()}});
+      }
+    });
+    el.addEventListener('change',e=>{const d=e.target.closest('.jdate input');if(!d||!d.value)return;const x=j.items.find(y=>y.id===d.closest('li').dataset.id);if(x)pullTo(x,'date',d.value)});
+  });
+}
+function jarEdit(id){
+  const j=id?jarById(id):null, isNew=!j;
+  const dr={name:j?j.name:'',emoji:j?j.emoji||'✨':'🎬',color:j?j.color:COLORS[state.jars.length%COLORS.length],style:j?j.style||'soft':'soft'};
+  sheet(isNew?'Новая копилка':'Оформление',`
+    <div class="jprev" id="jx-prev"></div>
+    <div class="field"><label class="t">Название</label><input type="text" id="jx-name" maxlength="40" placeholder="Например, Фильмы на вечер" value="${esc(dr.name)}"></div>
+    <div class="field"><label class="t">Значок</label><div class="emo" id="jx-emo">${JAR_EMOJI.map(e=>`<button type="button" data-e="${e}">${e}</button>`).join('')}</div>
+      <input type="text" id="jx-own" maxlength="4" placeholder="Или свой значок" class="emo-own"></div>
+    <div class="field"><label class="t">Цвет</label>${colorField('jc',dr.color,COLORS)}</div>
+    <div class="field"><label class="t">Стиль карточки</label><div class="jstyles" id="jx-st">${JAR_STYLES.map(([k,n])=>`<button type="button" data-s="${k}" class="st-${k}" style="--c:${dr.color}">${n}</button>`).join('')}</div></div>
+    <button class="btn main" id="jx-save">${isNew?'Создать копилку':'Сохранить'}</button>
+    ${isNew?'':'<button class="btn danger" id="jx-del">Удалить копилку</button>'}`,(el,close)=>{
+    const prev=el.querySelector('#jx-prev'), nm=el.querySelector('#jx-name');
+    const upd=()=>{
+      prev.innerHTML=jarCard({...dr,name:nm.value.trim()||'Название',items:j?j.items:[]},true);
+      el.querySelectorAll('#jx-emo [data-e]').forEach(b=>b.classList.toggle('on',b.dataset.e===dr.emoji));
+      el.querySelectorAll('#jx-st [data-s]').forEach(b=>{b.classList.toggle('on',b.dataset.s===dr.style);b.style.setProperty('--c',dr.color)});
+    };
+    upd(); nm.addEventListener('input',upd);
+    el.querySelectorAll('#jx-emo [data-e]').forEach(b=>b.onclick=()=>{dr.emoji=b.dataset.e;el.querySelector('#jx-own').value='';upd();haptic('light')});
+    el.querySelector('#jx-own').addEventListener('input',e=>{const v=e.target.value.trim();if(v){dr.emoji=v;upd()}});
+    el.querySelectorAll('#jx-st [data-s]').forEach(b=>b.onclick=()=>{dr.style=b.dataset.s;upd();haptic('light')});
+    bindColor(el,'jc',c=>{dr.color=c;upd()});
+    if(isNew) setTimeout(()=>nm.focus(),320);
+    el.querySelector('#jx-save').onclick=()=>{
+      dr.name=nm.value.trim(); if(!dr.name){nm.focus();return}
+      const t=j||{id:uid(),items:[]}; Object.assign(t,{name:dr.name,emoji:dr.emoji,color:dr.color,style:dr.style});
+      if(isNew) state.jars.push(t);
+      save();close();render();setTimeout(()=>jarSheet(t.id),300);
+    };
+    const del=el.querySelector('#jx-del');
+    if(del) confirmBtn(del,'Нажми ещё раз — копилка и идеи в ней удалятся',()=>{
+      [curDay(),curWeek()].forEach(L=>{L.items=L.items.filter(i=>!(i.jar===j.id&&!i.done))});
+      state.jars=state.jars.filter(x=>x!==j);save();close();render();
+    });
+  });
+}
+
 /* ================= шторки ================= */
 function sheet(title,body,mount){
   const o=document.createElement('div');o.className='overlay';
@@ -915,7 +1128,11 @@ function confirmBtn(b,txt,fn){let armed=false;b.onclick=()=>{if(armed)return fn(
 
 function itemMenu(id){
   const f=findItem(id); if(!f) return; const it=f.it, L=f.list, isDay=f.kind==='day';
-  const opts=it.done
+  const J=it.jar&&jarById(it.jar);
+  const opts=J
+    ? (it.done?`<button class="opt" id="o-del"><span>Убрать из списка<small>Звёздочка останется в банке</small></span></button>`
+              :`<button class="opt" id="o-del"><span>Вернуть в копилку<small>Идея снова будет ждать в «${esc(J.name)}»</small></span></button>`)
+    : it.done
     ? `<button class="opt" id="o-del"><span>Убрать из списка<small>Звёздочка останется в банке</small></span></button>`
     : isDay
     ? `<button class="opt" id="o-rep"><span>Заменить на сегодня<small>Завтра снова будет по программе</small></span></button>
@@ -930,7 +1147,7 @@ function itemMenu(id){
     if(rp) rp.onclick=()=>{close();setTimeout(()=>replaceSheet(id),280)};
     const sk=el.querySelector('#o-skip');
     if(sk) sk.onclick=()=>{const w=curWeek();w.skip=w.skip||{};(w.skip[it.dir]=w.skip[it.dir]||[]).push(it.name);L.items=L.items.filter(i=>i!==it);save();close();render();toast('Убрано до воскресенья')};
-    el.querySelector('#o-del').onclick=()=>{if(it.done)it.hidden=true;else L.items=L.items.filter(i=>i!==it);save();close();render()};
+    el.querySelector('#o-del').onclick=()=>{if(it.done)it.hidden=true;else{if(it.jar)jarIdle(it);L.items=L.items.filter(i=>i!==it)}save();close();render()};
     el.querySelector('#o-edit').onclick=()=>{close();setTimeout(()=>editSheet(id),280)};
   });
 }
@@ -946,6 +1163,7 @@ function renameItem(it,v){
     [curWeek(),curDay()].forEach(L=>L&&L.items.forEach(i=>{if(i!==it&&i.dir===it.dir&&i.prog&&(i.pi?i.pi===px.id:i.name===old))i.name=v}));
     px.name=v; it.pid=P.id; it.pi=px.id;
   }
+  const jx=jarItemOf(it); if(jx) jx.name=v;
   it.name=v; return P;
 }
 function editSheet(id){
@@ -1185,12 +1403,16 @@ function stableSheet(id){
 /* ================= действия ================= */
 const A={
   tab:t=>{tab=t.dataset.t;render();window.scrollTo(0,0)},
+  openJar:t=>jarSheet(t.dataset.id),
+  addJar:()=>jarEdit(null),
+  starterJar:t=>{const [e,...n]=t.dataset.v.split(' ');const j={id:uid(),name:n.join(' '),emoji:e,color:t.dataset.c,style:'soft',items:[]};state.jars.push(j);save();render();haptic('light');jarSheet(j.id)},
+  goJars:()=>{tab='jars';render();window.scrollTo(0,0)},
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
   sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
   toggle:t=>toggleItem(t.dataset.id),
   fold:t=>{const head=t.closest('.dhead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
   clearDone:t=>{const L=t.dataset.k==='day'?curDay():curWeek(), dId=t.dataset.d;
-    L.items.forEach(i=>{if(i.done&&(dId?i.dir===dId:(!i.dir||!dirById(i.dir))))i.hidden=true});
+    L.items.forEach(i=>{if(i.done&&(dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))))i.hidden=true});
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
   switch:t=>switchSheet(t.dataset.id),
@@ -1203,6 +1425,7 @@ const A={
   addStable:()=>stableSheet(null),
   editStable:t=>stableSheet(t.dataset.id),
   bg:t=>{const k=t.dataset.k;if(k==='photo'&&!photo){document.getElementById('photoIn').click();return}state.theme.bg=k;save();applyTheme();render()},
+  unplan:t=>{const j=jarById(t.dataset.j),x=j&&j.items.find(y=>y.id===t.dataset.x);if(x){x.st='idle';delete x.date;save();render();haptic('light')}},
   pickPhoto:()=>document.getElementById('photoIn').click(),
   jar:t=>{state.theme.jar=t.dataset.k;save();render();haptic('light')}
 };
@@ -1285,7 +1508,7 @@ function bindHomeDrag(){
 }
 function render(){
   const v=document.getElementById('view');
-  v.innerHTML=tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():renderLook();
+  v.innerHTML=tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():tab==='jars'?renderJars():renderLook();
   if(tab==='look') bindLook();
   if(tab==='progs') bindProgsDrag();
   if(tab==='home') bindHomeDrag();
