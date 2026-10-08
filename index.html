@@ -97,7 +97,6 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .jcard{position:relative;min-height:132px;border-radius:24px;padding:14px 14px 13px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;
   border:1px solid rgba(255,255,255,.75);box-shadow:var(--shadow);background:var(--c);color:var(--ink);transition:transform .15s}
 .jcard:active{transform:scale(.97)}
-.jcard .jemo{position:absolute;top:12px;left:13px;font-size:30px;line-height:1;filter:drop-shadow(0 2px 4px rgba(90,68,102,.15))}
 .jcard .jname{font-family:var(--serif);font-style:italic;font-weight:700;font-size:21px;line-height:1.05;overflow-wrap:anywhere}
 .jcard .jcnt{font-size:12px;font-weight:600;opacity:.75}
 .jcard.big{min-height:120px;margin-bottom:16px}
@@ -105,8 +104,19 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .st-soft{background:linear-gradient(150deg,color-mix(in srgb,var(--c) 20%,#fff),color-mix(in srgb,var(--c) 48%,#fff))}
 .st-bold{background:linear-gradient(150deg,var(--c),color-mix(in srgb,var(--c) 68%,#5A4466));color:#fff}
 .st-dots{background:radial-gradient(circle,rgba(255,255,255,.95) 1.3px,transparent 1.8px) 0 0/15px 15px,linear-gradient(150deg,color-mix(in srgb,var(--c) 28%,#fff),color-mix(in srgb,var(--c) 58%,#fff))}
+.jcard.has-photo{background-size:cover;background-position:center;color:#fff}
+.jcard.has-photo .jname{text-shadow:0 1px 8px rgba(40,20,45,.35)}
+.jcard.has-photo .jcnt{opacity:.9}
 .jcard.add{border:1.5px dashed var(--acc-line);background:rgba(255,255,255,.35);color:var(--acc-text);font-weight:700;align-items:center;justify-content:center;box-shadow:none;font-size:14px}
 .jtitle{display:block}
+.jbanner{display:block;height:128px;margin:0 0 14px;border-radius:20px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
+.phrow{display:flex;align-items:center;gap:8px}
+.phrow .btn{margin:0;flex:1;padding:11px}
+.phthumb{width:64px;height:48px;border-radius:12px;background-size:cover;background-position:center;flex-shrink:0}
+.phadd{width:100%;padding:13px;border-radius:14px;border:1.5px dashed var(--acc-line);color:var(--acc-text);font-weight:700;font-size:14px;background:rgba(255,255,255,.5)}
+#jx-stf{transition:opacity .2s}
+#jx-stf.dim{opacity:.45}
+.stxt small{display:block;font-size:11.5px;color:var(--muted);font-weight:600}
 .jedit{font-size:13px;font-weight:700;color:var(--acc-text);margin:-6px 0 14px;padding:4px 0}
 .jl{list-style:none;margin:0 0 6px}
 .jl li{background:#fff;border-radius:14px;margin-bottom:6px;padding:9px 8px 9px 12px;font-size:15px}
@@ -126,10 +136,6 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .jdate input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0}
 .jl li{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .jprev .jcard{width:62%;margin:0 auto 16px}
-.emo{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-.emo button{font-size:22px;height:40px;border-radius:12px;transition:background .15s}
-.emo button.on{background:#fff;box-shadow:inset 0 0 0 2px var(--acc)}
-.emo-own{margin-top:8px}
 .jstyles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .jstyles button{height:62px;border-radius:16px;font-size:13px;font-weight:700;display:flex;align-items:flex-end;padding:8px 10px;color:var(--ink);border:1px solid rgba(255,255,255,.75);background-color:var(--c)}
 .jstyles button.st-bold{color:#fff}
@@ -138,7 +144,6 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .srow2{display:flex;align-items:center;gap:10px;padding:8px 0}
 .srow2+.srow2{border-top:1px dashed rgba(200,170,200,.45)}
 .sday{font-size:12.5px;font-weight:700;color:var(--acc-text);min-width:74px}
-.semo{font-size:18px;line-height:1}
 .stxt{flex:1;min-width:0;overflow-wrap:anywhere}
 .smore{font-size:12.5px;color:var(--muted);padding-top:6px}
 .dwrap{display:grid;grid-template-rows:1fr;transition:grid-template-rows .3s ease,opacity .3s ease}
@@ -395,7 +400,7 @@ const TICK = '<svg viewBox="0 0 20 20"><path d="M10 1Q11.4 8.6 19 10Q11.4 11.4 1
 let state = null, tab = 'home', animNew = false, photo = null;
 try{photo=localStorage.getItem(PHOTO_LS)}catch(e){}
 
-function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],
+function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],pins:{items:[]},
   theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic'}}}
 function normalize(s){
   if(!s || s.v!==1) return fresh();
@@ -590,6 +595,7 @@ function ensureDay(){
     if(i.done||i.prog||sameIn(items,i.dir,i.name)) return; // дела программы и так придут по программе
     items.push(mkItem(i.dir,i.name,0));
   });
+  if(state.pins) state.pins.items=state.pins.items.filter(i=>!i.done);
   // запланированное из копилок на этот день (и на пропущенные дни)
   (state.jars||[]).forEach(j=>j.items.forEach(x=>{if(x.st==='plan'&&x.date<=key){items.push(mkJarItem(j,x));x.st='out';delete x.date}}));
   state.days[key]={items};
@@ -598,6 +604,8 @@ function ensureDay(){
   save();
 }
 function findItem(id){
+  const pn=state.pins&&state.pins.items.find(i=>i.id===id);
+  if(pn) return {it:pn,list:state.pins,kind:'pin'};
   const w=curWeek(); let it=w.items.find(i=>i.id===id);
   if(it) return {it,list:w,kind:'week'};
   const d=curDay(); it=d&&d.items.find(i=>i.id===id);
@@ -795,8 +803,9 @@ function renderHome(){
     if(misc.length) g.push(groupHTML(null,misc,w,kind,false));
     return g;
   };
-  const dg=build('day',day), wg=build('week',w);
-  if(!dg.length&&!wg.length){
+  const dg=build('day',day), wg=build('week',w), pg=build('pin',state.pins);
+  if(pg.length) h+=`<div class="sec-title">Закреплено</div><div class="card">${pg.join('')}</div>`;
+  if(!dg.length&&!wg.length&&!pg.length){
     h+=`<div class="sec-title">Сегодня</div><div class="card"><div class="hint-empty">Пока здесь пусто.<br>Заведи направления и программы во вкладке «Программы» — и план соберётся сам.</div></div>`;
   }
   if(dg.length) h+=`<div class="sec-title">Сегодня</div><div class="card">${dg.join('')}</div>`;
@@ -844,7 +853,7 @@ function renderStats(){
     <div class="card"><div class="tile-v">${sum(inWeek)}</div><div class="tile-l">на этой неделе</div></div>
     <div class="card"><div class="tile-v">${sum(inMonth)}</div><div class="tile-l">в этом месяце</div></div></div>`;
   const rows=state.dirs.map(d=>({name:d.name,c:d.color,all:sum(all,d.id),m:sum(inMonth,d.id)}));
-  state.jars.forEach(j=>{const a=sum(all,'j:'+j.id);if(a)rows.push({name:(j.emoji?j.emoji+' ':'')+j.name,c:j.color,all:a,m:sum(inMonth,'j:'+j.id)})});
+  state.jars.forEach(j=>{const a=sum(all,'j:'+j.id);if(a)rows.push({name:j.name,c:j.color,all:a,m:sum(inMonth,'j:'+j.id)})});
   const oneAll=sum(all,'one'); if(oneAll) rows.push({name:'Разное',c:ONE_COLOR,all:oneAll,m:sum(inMonth,'one')});
   if(rows.length){
     const max=Math.max(1,...rows.map(r=>r.all));
@@ -963,11 +972,21 @@ document.getElementById('photoIn').addEventListener('change',e=>{
 });
 
 /* ================= копилки ================= */
-const JAR_EMOJI=['🎬','🍿','📺','📚','📖','🎮','🎧','🎵','🎨','🖌️','🎭','🎤','✨','🌸','🌙','☕','🧁','🍰','🍜','🛁','🕯️','🧘‍♀️','🚲','🏞️','🌊','🗺️','✈️','💃','🧶','🪴','💌','🎁'];
+const JAR_PH='starjar-jarph-', jarPh={};
+function jarPhoto(id){if(!(id in jarPh)){try{jarPh[id]=localStorage.getItem(JAR_PH+id)||''}catch(e){jarPh[id]=''}}return jarPh[id]}
+function setJarPhoto(id,url){jarPh[id]=url||'';try{if(url)localStorage.setItem(JAR_PH+id,url);else localStorage.removeItem(JAR_PH+id)}catch(e){toast('Фото не сохранится после закрытия — оно слишком большое')}}
+function readPhoto(f,cb){
+  const r=new FileReader();
+  r.onload=()=>{const img=new Image();
+    img.onload=()=>{const m=900,k=Math.min(1,m/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.78))};
+    img.onerror=()=>toast('Не получилось открыть это фото'); img.src=r.result};
+  r.readAsDataURL(f);
+}
 const JAR_STYLES=[['soft','Нежный'],['bold','Яркий'],['dots','В звёздочках']];
 const WD=['вс','пн','вт','ср','чт','пт','сб'];
 function jarById(id){return (state.jars||[]).find(j=>j.id===id)}
-function jarAsDir(j){return {id:'jar_'+j.id,name:(j.emoji?j.emoji+' ':'')+j.name,color:j.color,progs:[]}}
+function jarAsDir(j){return {id:'jar_'+j.id,name:j.name,color:j.color,progs:[]}}
 function mkJarItem(j,x){const o=mkItem(null,x.name,0);o.jar=j.id;o.ji=x.id;return o}
 function jarItemOf(i){const j=i.jar&&jarById(i.jar);return j?j.items.find(x=>x.id===i.ji):null}
 function jarIdle(i){const x=jarItemOf(i);if(x&&x.st!=='done'){x.st='idle';delete x.date}}
@@ -976,11 +995,12 @@ function dayLabel(k){const [y,m,d]=k.split('-').map(Number),dt=new Date(y,m-1,d)
   if(k===t)return 'сегодня'; if(k===ymd(tm))return 'завтра';
   return WD[dt.getDay()]+', '+d+' '+MON[m-1]}
 function jarCount(j){const c={idle:0,plan:0,out:0,done:0};j.items.forEach(x=>c[x.st]=(c[x.st]||0)+1);return c}
-function jarCard(j,big){
-  const c=jarCount(j);
+function jarCard(j,big,ph){
+  const c=jarCount(j), photo=ph!==undefined?ph:jarPhoto(j.id);
   const sub=c.idle?`${c.idle} ${pl(c.idle,'идея','идеи','идей')}`:'пока пусто';
-  return `<${big?'div':'button'} class="jcard st-${j.style||'soft'}${big?' big':''}" style="--c:${j.color}" ${big?'':`data-a="openJar" data-id="${j.id}"`}>
-    <span class="jemo">${esc(j.emoji||'✨')}</span><span class="jname">${esc(j.name||'Без названия')}</span>
+  const bg=photo?`;background-image:linear-gradient(180deg,rgba(58,36,64,0) 30%,rgba(58,36,64,.62)),url('${photo}')`:'';
+  return `<${big?'div':'button'} class="jcard st-${j.style||'soft'}${photo?' has-photo':''}${big?' big':''}" style="--c:${j.color}${bg}" ${big?'':`data-a="openJar" data-id="${j.id}"`}>
+    <span class="jname">${esc(j.name||'Без названия')}</span>
     <span class="jcnt">${sub}${c.plan?' · '+c.plan+' в планах':''}</span></${big?'div':'button'}>`;
 }
 function soonHTML(){
@@ -989,29 +1009,30 @@ function soonHTML(){
   if(!list.length) return '';
   list.sort((a,b)=>a.x.date<b.x.date?-1:1);
   return `<div class="sec-title">Скоро</div><div class="card soon" data-a="goJars">`+list.slice(0,4).map(({j,x})=>
-    `<div class="srow2"><span class="sday">${dayLabel(x.date)}</span><span class="semo">${esc(j.emoji||'✨')}</span><span class="stxt">${esc(x.name)}</span></div>`).join('')+
+    `<div class="srow2" style="--c:${j.color}"><span class="sday">${dayLabel(x.date)}</span>${dot(j.color)}<span class="stxt">${esc(x.name)}<small>${esc(j.name)}</small></span></div>`).join('')+
     (list.length>4?`<div class="smore">и ещё ${list.length-4}</div>`:'')+`</div>`;
 }
 function renderJars(){
   let h=`<header class="top"><h1>Копилки</h1><div class="date">Идеи на свободное время — достань, когда захочется</div></header>`;
   if(!state.jars.length){
-    const st=[['🎬 Фильмы','#E8A3B6'],['📺 Сериалы','#B8A4DE'],['📚 Почитать','#9DBFE3'],['✨ Хочу сделать','#F2BD98']];
+    const st=[['Фильмы','#E8A3B6'],['Сериалы','#B8A4DE'],['Почитать','#9DBFE3'],['Хочу сделать','#F2BD98']];
     h+=`<div class="card"><div class="hint-empty" style="padding-bottom:10px">Складывай сюда всё, что хочется посмотреть, почитать или попробовать. А в свободный день — доставай.<br><br>Начать с готовой:</div>
-      <div class="chips" style="justify-content:center">${st.map(([v,c])=>`<button class="chip" data-a="starterJar" data-v="${v}" data-c="${c}">${esc(v)}</button>`).join('')}</div></div>`;
+      <div class="chips" style="justify-content:center">${st.map(([v,c])=>`<button class="chip" data-a="starterJar" data-v="${v}" data-c="${c}">${dot(c)}${esc(v)}</button>`).join('')}</div></div>`;
   }
   h+=`<div class="jars">${state.jars.map(j=>jarCard(j)).join('')}<button class="jcard add" data-a="addJar">+ Новая копилка</button></div>`;
   const plans=[];state.jars.forEach(j=>j.items.forEach(x=>{if(x.st==='plan')plans.push({j,x})}));
   if(plans.length){
     plans.sort((a,b)=>a.x.date<b.x.date?-1:1);
     h+=`<div class="sec-title">Запланировано</div><div class="card">`+plans.map(({j,x})=>
-      `<div class="srow2" style="--c:${j.color}"><span class="sday">${dayLabel(x.date)}</span><span class="semo">${esc(j.emoji||'✨')}</span><span class="stxt">${esc(x.name)}</span>
+      `<div class="srow2" style="--c:${j.color}"><span class="sday">${dayLabel(x.date)}</span>${dot(j.color)}<span class="stxt">${esc(x.name)}<small>${esc(j.name)}</small></span>
        <button class="back" data-a="unplan" data-j="${j.id}" data-x="${x.id}" aria-label="Вернуть в копилку">↺</button></div>`).join('')+`</div>`;
   }
   return h;
 }
 function jarSheet(id){
   const j=jarById(id); if(!j) return;
-  sheet(`<span class="jtitle">${esc(j.emoji||'✨')} ${esc(j.name)}</span>`,`
+  const ph=jarPhoto(j.id);
+  sheet(`${ph?`<span class="jbanner" style="background-image:url('${ph}')"></span>`:''}<span class="jtitle">${esc(j.name)}</span>`,`
     <button type="button" class="jedit" id="j-edit">✎ Оформление</button>
     <div class="field" style="--c:${j.color}">
       <div class="ex-add"><textarea id="j-new" class="grow" rows="1" placeholder="Новая идея" enterkeyhint="done"></textarea><button type="button" id="j-addbtn" aria-label="Добавить">+</button></div>
@@ -1029,8 +1050,8 @@ function jarSheet(id){
       const id_=xs('idle');
       idle.innerHTML=id_.length?id_.map(x=>`<li class="drag-item" data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span>
           <button type="button" class="pull">Достать</button><button type="button" class="x" aria-label="Удалить">×</button></div>
-          <div class="pullbox"><button type="button" data-to="day">На сегодня</button><button type="button" data-to="week">На эту неделю</button>
-          <label class="jdate">В день…<input type="date" min="${t}"></label></div></li>`).join('')
+          <div class="pullbox"><button type="button" data-to="day">Сегодня</button><button type="button" data-to="week">На неделю</button>
+          <label class="jdate">В день…<input type="date" min="${t}"></label><button type="button" data-to="pin">Закрепить</button></div></li>`).join('')
         :`<div class="ex-empty">${j.items.length?'Все идеи уже в деле ✨':'Пока пусто — запиши первую идею'}</div>`;
       el.querySelector('#j-plan').innerHTML=sec('Запланировано',xs('plan').sort((a,b)=>a.date<b.date?-1:1).map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}<small>${dayLabel(x.date)}</small></span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`));
       el.querySelector('#j-out').innerHTML=sec('Уже в списках',xs('out').map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}<small>${placeOf(x)}</small></span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`));
@@ -1039,7 +1060,7 @@ function jarSheet(id){
       el.querySelector('#j-dcnt').textContent='Выполнено · '+dn.length;
       el.querySelector('#j-done').innerHTML=dn.map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span></div></li>`).join('');
     };
-    const placeOf=x=>{const w=curWeek().items.some(i=>i.ji===x.id&&!i.done);return w?'на этой неделе':'в «Сегодня»'};
+    const placeOf=x=>state.pins.items.some(i=>i.ji===x.id)?'закреплено на главном':curWeek().items.some(i=>i.ji===x.id&&!i.done)?'на этой неделе':'в «Сегодня»';
     const commit=()=>{save();draw();render()};
     draw();
     sortable(idle,'li','.jrow',ids=>{const rest=j.items.filter(x=>!ids.includes(x.id));j.items=[...ids.map(i=>j.items.find(x=>x.id===i)).filter(Boolean),...rest];commit()});
@@ -1055,10 +1076,11 @@ function jarSheet(id){
       if(to==='date'&&date===today()) to='day';
       if(to==='day'){curDay().items.push(mkJarItem(j,x));x.st='out';toast('Добавлено на сегодня')}
       else if(to==='week'){curWeek().items.push(mkJarItem(j,x));x.st='out';toast('Добавлено на эту неделю')}
+      else if(to==='pin'){state.pins.items.push(mkJarItem(j,x));x.st='out';toast('Закреплено на главном')}
       else {x.st='plan';x.date=date;toast('Запланировано: '+dayLabel(date))}
       haptic('medium');commit();
     };
-    const back=x=>{[curDay(),curWeek()].forEach(L=>{L.items=L.items.filter(i=>!(i.ji===x.id&&!i.done))});x.st='idle';delete x.date;haptic('light');commit()};
+    const back=x=>{[curDay(),curWeek(),state.pins].forEach(L=>{L.items=L.items.filter(i=>!(i.ji===x.id&&!i.done))});x.st='idle';delete x.date;haptic('light');commit()};
     el.addEventListener('click',e=>{
       const li=e.target.closest('li[data-id]'); if(!li) return;
       const x=j.items.find(y=>y.id===li.dataset.id); if(!x) return;
@@ -1078,38 +1100,42 @@ function jarSheet(id){
 }
 function jarEdit(id){
   const j=id?jarById(id):null, isNew=!j;
-  const dr={name:j?j.name:'',emoji:j?j.emoji||'✨':'🎬',color:j?j.color:COLORS[state.jars.length%COLORS.length],style:j?j.style||'soft':'soft'};
+  const dr={name:j?j.name:'',color:j?j.color:COLORS[state.jars.length%COLORS.length],style:j?j.style||'soft':'soft',photo:j?jarPhoto(j.id):''};
   sheet(isNew?'Новая копилка':'Оформление',`
     <div class="jprev" id="jx-prev"></div>
     <div class="field"><label class="t">Название</label><input type="text" id="jx-name" maxlength="40" placeholder="Например, Фильмы на вечер" value="${esc(dr.name)}"></div>
-    <div class="field"><label class="t">Значок</label><div class="emo" id="jx-emo">${JAR_EMOJI.map(e=>`<button type="button" data-e="${e}">${e}</button>`).join('')}</div>
-      <input type="text" id="jx-own" maxlength="4" placeholder="Или свой значок" class="emo-own"></div>
+    <div class="field"><label class="t">Фото на обложку</label><div id="jx-ph"></div><input type="file" id="jx-file" accept="image/*" hidden></div>
     <div class="field"><label class="t">Цвет</label>${colorField('jc',dr.color,COLORS)}</div>
-    <div class="field"><label class="t">Стиль карточки</label><div class="jstyles" id="jx-st">${JAR_STYLES.map(([k,n])=>`<button type="button" data-s="${k}" class="st-${k}" style="--c:${dr.color}">${n}</button>`).join('')}</div></div>
+    <div class="field" id="jx-stf"><label class="t">Стиль карточки без фото</label><div class="jstyles" id="jx-st">${JAR_STYLES.map(([k,n])=>`<button type="button" data-s="${k}" class="st-${k}" style="--c:${dr.color}">${n}</button>`).join('')}</div></div>
     <button class="btn main" id="jx-save">${isNew?'Создать копилку':'Сохранить'}</button>
     ${isNew?'':'<button class="btn danger" id="jx-del">Удалить копилку</button>'}`,(el,close)=>{
     const prev=el.querySelector('#jx-prev'), nm=el.querySelector('#jx-name');
+    const file=el.querySelector('#jx-file');
     const upd=()=>{
-      prev.innerHTML=jarCard({...dr,name:nm.value.trim()||'Название',items:j?j.items:[]},true);
-      el.querySelectorAll('#jx-emo [data-e]').forEach(b=>b.classList.toggle('on',b.dataset.e===dr.emoji));
+      prev.innerHTML=jarCard({...dr,name:nm.value.trim()||'Название',items:j?j.items:[]},true,dr.photo);
+      el.querySelector('#jx-ph').innerHTML=dr.photo
+        ?`<div class="phrow"><span class="phthumb" style="background-image:url('${dr.photo}')"></span><button type="button" class="btn soft" data-ph="pick">Заменить</button><button type="button" class="btn soft" data-ph="del">Убрать</button></div>`
+        :`<button type="button" class="phadd" data-ph="pick">+ Добавить фото</button>`;
+      el.querySelector('#jx-stf').classList.toggle('dim',!!dr.photo);
       el.querySelectorAll('#jx-st [data-s]').forEach(b=>{b.classList.toggle('on',b.dataset.s===dr.style);b.style.setProperty('--c',dr.color)});
     };
     upd(); nm.addEventListener('input',upd);
-    el.querySelectorAll('#jx-emo [data-e]').forEach(b=>b.onclick=()=>{dr.emoji=b.dataset.e;el.querySelector('#jx-own').value='';upd();haptic('light')});
-    el.querySelector('#jx-own').addEventListener('input',e=>{const v=e.target.value.trim();if(v){dr.emoji=v;upd()}});
+    el.querySelector('#jx-ph').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;if(b.dataset.ph==='pick')file.click();else{dr.photo='';upd()}});
+    file.addEventListener('change',()=>{const f=file.files&&file.files[0];file.value='';if(f)readPhoto(f,u=>{dr.photo=u;upd();haptic('light')})});
     el.querySelectorAll('#jx-st [data-s]').forEach(b=>b.onclick=()=>{dr.style=b.dataset.s;upd();haptic('light')});
     bindColor(el,'jc',c=>{dr.color=c;upd()});
     if(isNew) setTimeout(()=>nm.focus(),320);
     el.querySelector('#jx-save').onclick=()=>{
       dr.name=nm.value.trim(); if(!dr.name){nm.focus();return}
-      const t=j||{id:uid(),items:[]}; Object.assign(t,{name:dr.name,emoji:dr.emoji,color:dr.color,style:dr.style});
+      const t=j||{id:uid(),items:[]}; Object.assign(t,{name:dr.name,color:dr.color,style:dr.style}); delete t.emoji;
       if(isNew) state.jars.push(t);
+      if(dr.photo!==jarPhoto(t.id)) setJarPhoto(t.id,dr.photo);
       save();close();render();setTimeout(()=>jarSheet(t.id),300);
     };
     const del=el.querySelector('#jx-del');
     if(del) confirmBtn(del,'Нажми ещё раз — копилка и идеи в ней удалятся',()=>{
-      [curDay(),curWeek()].forEach(L=>{L.items=L.items.filter(i=>!(i.jar===j.id&&!i.done))});
-      state.jars=state.jars.filter(x=>x!==j);save();close();render();
+      [curDay(),curWeek(),state.pins].forEach(L=>{L.items=L.items.filter(i=>!(i.jar===j.id&&!i.done))});
+      setJarPhoto(j.id,'');state.jars=state.jars.filter(x=>x!==j);save();close();render();
     });
   });
 }
@@ -1117,7 +1143,7 @@ function jarEdit(id){
 /* ================= шторки ================= */
 function sheet(title,body,mount){
   const o=document.createElement('div');o.className='overlay';
-  o.innerHTML=`<div class="sheet" role="dialog"><div class="grab"></div><h3${String(title).length>70?' class="long"':''}>${title}</h3>${body}</div>`;
+  o.innerHTML=`<div class="sheet" role="dialog"><div class="grab"></div><h3${String(title).replace(/<[^>]*>/g,'').length>70?' class="long"':''}>${title}</h3>${body}</div>`;
   document.body.appendChild(o);
   requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.add('open')));
   const close=()=>{o.classList.remove('open');setTimeout(()=>o.remove(),280)};
@@ -1131,7 +1157,9 @@ function itemMenu(id){
   const J=it.jar&&jarById(it.jar);
   const opts=J
     ? (it.done?`<button class="opt" id="o-del"><span>Убрать из списка<small>Звёздочка останется в банке</small></span></button>`
-              :`<button class="opt" id="o-del"><span>Вернуть в копилку<small>Идея снова будет ждать в «${esc(J.name)}»</small></span></button>`)
+              :(f.kind==='pin'?`<button class="opt" id="o-unpin"><span>Открепить<small>Переедет в «Сегодня» — если не успеешь, вернётся в копилку</small></span></button>`
+                             :`<button class="opt" id="o-pin"><span>Закрепить на главном<small>Будет висеть, пока не выполнишь или не открепишь</small></span></button>`)+
+               `<button class="opt" id="o-del"><span>Вернуть в копилку<small>Идея снова будет ждать в «${esc(J.name)}»</small></span></button>`)
     : it.done
     ? `<button class="opt" id="o-del"><span>Убрать из списка<small>Звёздочка останется в банке</small></span></button>`
     : isDay
@@ -1149,6 +1177,9 @@ function itemMenu(id){
     if(sk) sk.onclick=()=>{const w=curWeek();w.skip=w.skip||{};(w.skip[it.dir]=w.skip[it.dir]||[]).push(it.name);L.items=L.items.filter(i=>i!==it);save();close();render();toast('Убрано до воскресенья')};
     el.querySelector('#o-del').onclick=()=>{if(it.done)it.hidden=true;else{if(it.jar)jarIdle(it);L.items=L.items.filter(i=>i!==it)}save();close();render()};
     el.querySelector('#o-edit').onclick=()=>{close();setTimeout(()=>editSheet(id),280)};
+    const pn=el.querySelector('#o-pin'), up=el.querySelector('#o-unpin');
+    if(pn) pn.onclick=()=>{L.items=L.items.filter(i=>i!==it);state.pins.items.push(it);save();close();render();toast('Закреплено на главном');haptic('medium')};
+    if(up) up.onclick=()=>{L.items=L.items.filter(i=>i!==it);curDay().items.push(it);save();close();render();toast('Откреплено — теперь в «Сегодня»')};
   });
 }
 function progForItem(it){
@@ -1405,13 +1436,13 @@ const A={
   tab:t=>{tab=t.dataset.t;render();window.scrollTo(0,0)},
   openJar:t=>jarSheet(t.dataset.id),
   addJar:()=>jarEdit(null),
-  starterJar:t=>{const [e,...n]=t.dataset.v.split(' ');const j={id:uid(),name:n.join(' '),emoji:e,color:t.dataset.c,style:'soft',items:[]};state.jars.push(j);save();render();haptic('light');jarSheet(j.id)},
+  starterJar:t=>{const j={id:uid(),name:t.dataset.v,color:t.dataset.c,style:'soft',items:[]};state.jars.push(j);save();render();haptic('light');jarSheet(j.id)},
   goJars:()=>{tab='jars';render();window.scrollTo(0,0)},
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
   sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
   toggle:t=>toggleItem(t.dataset.id),
   fold:t=>{const head=t.closest('.dhead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
-  clearDone:t=>{const L=t.dataset.k==='day'?curDay():curWeek(), dId=t.dataset.d;
+  clearDone:t=>{const L=t.dataset.k==='day'?curDay():t.dataset.k==='pin'?state.pins:curWeek(), dId=t.dataset.d;
     L.items.forEach(i=>{if(i.done&&(dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))))i.hidden=true});
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
@@ -1502,7 +1533,7 @@ function reorderIn(list,ids){
 }
 function bindHomeDrag(){
   document.querySelectorAll('.ilist').forEach(box=>sortable(box,'.item','.item',ids=>{
-    const list=box.dataset.k==='day'?curDay():curWeek();
+    const list=box.dataset.k==='day'?curDay():box.dataset.k==='pin'?state.pins:curWeek();
     if(reorderIn(list,ids)){save();render()}
   }));
 }
