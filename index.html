@@ -200,7 +200,9 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .pdate{font-size:12px;color:var(--muted);font-weight:600;margin:4px 0 0 32px}
 .prow{display:flex;align-items:center;gap:8px;width:100%;border-top:1px dashed rgba(200,170,200,.45)}
 .pbody{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:13px 4px;text-align:left}
-.prow,.dir-head{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.prow,.dir-head,.item,.ex-list li{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.item.dragging{margin:0 -10px;padding:8px 10px}
+.ex-list li.dragging{border-radius:14px}
 .drag-item{position:relative;z-index:1}
 .dragging{z-index:10;transition:box-shadow .2s,background .2s;box-shadow:0 14px 34px rgba(150,100,140,.28);background:rgba(255,252,250,.97);border-radius:16px}
 .card.dir.dragging{border-radius:24px}
@@ -671,10 +673,11 @@ function groupHTML(d,items,w,kind,own){
       :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
     head=`<div class="ghead"><span class="gname">${dot(color)}${esc(d.name)}</span>${right}</div>`;
   } else head=`<div class="ghead"><span class="gname">${dot(color)}Разное</span></div>`;
-  let body=items.map(i=>`<div class="item${i.done?' done':''}">
+  let body=items.map(i=>`<div class="item drag-item${i.done?' done':''}" data-id="${i.id}">
       <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
       <span class="iname" data-a="toggle" data-id="${i.id}">${esc(i.name)}</span>
       <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`).join('');
+  if(items.length) body=`<div class="ilist" data-k="${kind}">${body}</div>`;
   if(d&&!items.length){
     if(own&&!w.progs[d.id]&&cyc(d).length&&!(kind==='day'&&datedFor(d,today()))){
       const nx=cyc(d)[(d.next||0)%cyc(d).length];
@@ -930,7 +933,7 @@ function dirSheet(id){
 function progSheet(dId,pId){
   const d=dirById(dId); if(!d) return;
   const orig=pId?progOf(dId,pId):null, isNew=!orig;
-  const dr={name:orig?orig.name:'',items:orig?orig.items.map(x=>({...x})):[],status:orig?(orig.status||'queue'):'queue',from:orig&&orig.from||'',to:orig&&orig.to||''};
+  const dr={name:orig?orig.name:'',items:orig?orig.items.map(x=>({...x,id:x.id||uid()})):[],status:orig?(orig.status||'queue'):'queue',from:orig&&orig.from||'',to:orig&&orig.to||''};
   const ex={queue:'Программы «по очереди» сменяют друг друга каждый понедельник.',
             dates:'Включится сама в эти даты и заменит обычную программу. Потом снова выключится — даты можно поменять в любой момент.',
             off:'Программа сохранена, но не включается. Верни её «по очереди» или поставь даты, когда понадобится.'};
@@ -946,9 +949,10 @@ function progSheet(dId,pId){
     <button class="btn main" id="p-save">Сохранить</button>
     ${isNew?'':'<button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
     const list=el.querySelector('#p-list');
-    const draw=()=>{list.innerHTML=dr.items.length?dr.items.map((x,i)=>`<li><span>${esc(x.name)}</span><button type="button" class="x" data-rm="${i}" aria-label="Удалить">×</button></li>`).join(''):'<div class="ex-empty">Пока пусто — добавь первое дело</div>';
+    const draw=()=>{list.innerHTML=dr.items.length?dr.items.map((x,i)=>`<li class="drag-item" data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="x" data-rm="${i}" aria-label="Удалить">×</button></li>`).join(''):'<div class="ex-empty">Пока пусто — добавь первое дело</div>';
       list.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{dr.items.splice(+b.dataset.rm,1);draw()})};
     draw();
+    sortable(list,'li','li',ids=>{dr.items.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));draw()});
     const inp=el.querySelector('#p-new');
     const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();dr.items.push({id:uid(),name:v});inp.value='';grow(inp);draw();inp.focus()};
     el.querySelector('#p-addbtn').onclick=add;
@@ -1044,6 +1048,7 @@ function toast(m){
 /* ================= перетаскивание ================= */
 let dragBlockUntil=0, dragActive=false;
 document.addEventListener('touchmove',e=>{if(dragActive)e.preventDefault()},{passive:false});
+document.addEventListener('click',e=>{if(Date.now()<dragBlockUntil){e.preventDefault();e.stopPropagation()}},true);
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.drag-item'))e.preventDefault()});
 function sortable(box,itemSel,handleSel,done){
   if(!box) return;
@@ -1090,11 +1095,25 @@ function bindProgsDrag(){
     d.progs.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); fixNext(d); save(); render();
   }));
 }
+function reorderIn(list,ids){
+  const pos=[];list.items.forEach((it,i)=>{if(ids.includes(it.id))pos.push(i)});
+  const moved=ids.map(id=>list.items.find(i=>i.id===id)).filter(Boolean);
+  if(moved.length!==pos.length) return false;
+  if(pos.every((p,k)=>list.items[p]===moved[k])) return false;
+  pos.forEach((p,k)=>list.items[p]=moved[k]); return true;
+}
+function bindHomeDrag(){
+  document.querySelectorAll('.ilist').forEach(box=>sortable(box,'.item','.item',ids=>{
+    const list=box.dataset.k==='day'?curDay():curWeek();
+    if(reorderIn(list,ids)){save();render()}
+  }));
+}
 function render(){
   const v=document.getElementById('view');
   v.innerHTML=tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():renderLook();
   if(tab==='look') bindLook();
   if(tab==='progs') bindProgsDrag();
+  if(tab==='home') bindHomeDrag();
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   animNew=false;
 }
