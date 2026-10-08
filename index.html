@@ -219,6 +219,13 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .ex-list li span{flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .ex-list li::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--c);flex-shrink:0}
 .ex-empty{font-size:13px;color:var(--muted);padding:2px 2px 8px}
+.done-head{display:flex;align-items:center;justify-content:space-between;margin:16px 2px 8px;font-size:13px;font-weight:700;color:var(--muted)}
+.done-head button{font-size:13px;font-weight:700;color:var(--acc);padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.8)}
+.ex-list.done li{background:rgba(255,255,255,.5);color:var(--muted)}
+.ex-list.done li span{text-decoration:line-through;text-decoration-color:rgba(156,135,152,.5)}
+.ex-list.done li::before{opacity:.45}
+.back{color:var(--soft);font-size:18px;width:30px;height:30px;line-height:1;flex-shrink:0}
+.prow .pn small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
 .ex-list li{transition:height .22s ease,opacity .22s ease,margin .22s ease,padding .22s ease;overflow:hidden;box-sizing:border-box}
 .ex-list li.entering{opacity:0;padding-top:0;padding-bottom:0}
 .ex-list li.leaving{opacity:0;margin-bottom:0;padding-top:0;padding-bottom:0}
@@ -328,7 +335,7 @@ function normalize(s){
   for(const k in f) if(s[k]===undefined) s[k]=f[k];
   s.theme=Object.assign({},f.theme,s.theme||{});
   if(!SHAPES[s.theme.jar]) s.theme.jar='classic';
-  s.dirs.forEach(d=>{if(!d.freq)d.freq='week';d.progs.forEach(p=>{if(!p.status)p.status=(p.from&&p.to)?'dates':'queue'})});
+  s.dirs.forEach(d=>{if(!d.freq)d.freq='week';d.progs.forEach(p=>{if(!p.status)p.status=(p.from&&p.to)?'dates':'queue';if(!p.mode)p.mode='repeat';p.items.forEach(it=>{if(!it.id)it.id=uid()})})});
   s.stable.forEach(x=>{if(!x.color)x.color=STABLE_COLOR});
   return s;
 }
@@ -426,7 +433,17 @@ function loadAll(cb){
 
 /* ================= логика недели и дня ================= */
 function isDaily(d){return !!d&&d.freq==='day'}
-function mkItem(dir,name,prog){return {id:uid(),dir:dir||null,name,prog:!!prog,done:false,doneOn:null}}
+function mkItem(dir,name,prog,pid,pi){const o={id:uid(),dir:dir||null,name,prog:!!prog,done:false,doneOn:null};if(pid){o.pid=pid;o.pi=pi||null}return o}
+// режим «Только несделанное»: выполненное остаётся в программе с пометкой doneAt и больше не приходит
+function isOnce(p){return !!p&&p.mode==='once'}
+function active(p){return isOnce(p)?p.items.filter(x=>!x.doneAt):p.items}
+function progItemFor(p,i){return p&&p.items.find(x=>i.pi?x.id===i.pi:x.name===i.name)}
+function linkedProgItem(i){
+  if(!i.prog||!i.dir) return null; const d=dirById(i.dir); if(!d) return null;
+  const cands=i.pid?[progOf(d.id,i.pid)]:[progOf(d.id,curWeek().progs[d.id]),datedFor(d,today())];
+  for(const p of cands) if(isOnce(p)){const x=progItemFor(p,i); if(x) return x}
+  return null;
+}
 function curDay(){return state.days[today()]}
 function isDated(p){return !!(p&&p.status==='dates'&&p.from&&p.to)}
 function cyc(d){return d.progs.filter(p=>(p.status||'queue')==='queue')}
@@ -434,7 +451,7 @@ function datedFor(d,date){return d.progs.find(p=>isDated(p)&&p.from<=date&&date<
 function fmtD(k){const [y,m,dd]=k.split('-').map(Number);return dd+' '+MON[m-1]}
 function skipOf(d){const w=curWeek();return (w.skip&&w.skip[d.id])||[]}
 function dayProg(d,date){const dp=datedFor(d,date);if(dp)return dp;if(isDaily(d))return progOf(d.id,curWeek().progs[d.id]);return null}
-function progItems(d,p){const sk=skipOf(d);return p.items.filter(it=>!sk.includes(it.name)).map(it=>mkItem(d.id,it.name,1))}
+function progItems(d,p){const sk=skipOf(d);return active(p).filter(it=>!sk.includes(it.name)).map(it=>mkItem(d.id,it.name,1,p.id,it.id))}
 function refreshToday(d){
   const t=curDay(); if(!t) return;
   dropUndone(t,d.id);
@@ -448,8 +465,8 @@ function startProgram(w,dir,idx,toToday){
   if(isDaily(dir)){if(toToday) refreshToday(dir)}
   else{
     const has=new Set(w.items.filter(i=>i.dir===dir.id).map(i=>i.name));
-    p.items.forEach(it=>{if(!has.has(it.name)){has.add(it.name);w.items.push(mkItem(dir.id,it.name,1))}});
-    (p.carry||[]).forEach(n=>{if(!has.has(n)){has.add(n);w.items.push(mkItem(dir.id,n,1))}});
+    active(p).forEach(it=>{if(!has.has(it.name)){has.add(it.name);w.items.push(mkItem(dir.id,it.name,1,p.id,it.id))}});
+    if(!isOnce(p)) (p.carry||[]).forEach(n=>{if(!has.has(n)){has.add(n);w.items.push(mkItem(dir.id,n,1,p.id))}});
     p.carry=[];
   }
   dir.next=(idx+1)%list.length;
@@ -458,6 +475,7 @@ function startProgram(w,dir,idx,toToday){
 function stashUndone(w,d){
   if(!w||!d||isDaily(d)) return;
   const p=progOf(d.id,w.progs&&w.progs[d.id]); if(!p) return false;
+  if(isOnce(p)) return true;
   p.carry=p.carry||[];
   w.items.forEach(i=>{if(i.dir===d.id&&i.prog&&!i.done&&!p.carry.includes(i.name))p.carry.push(i.name)});
   return true;
@@ -473,14 +491,17 @@ function ensureWeek(){
     prev.items.forEach(i=>{
       if(i.done) return;
       const d=i.dir&&dirById(i.dir);
-      if(i.prog&&d&&!isDaily(d)&&progOf(d.id,prev.progs&&prev.progs[d.id])) return; // ушло в программу
+      const P=d&&!isDaily(d)&&progOf(d.id,prev.progs&&prev.progs[d.id]);
+      if(i.prog&&P&&(!isOnce(P)||progItemFor(P,i))) return; // ждёт в своей программе
       if(!sameIn(state.carry,i.dir,i.name)) state.carry.push({dir:i.dir,name:i.name,prog:false});
     });
   }
   state.weeks[key]=w;
   state.dirs.forEach(dir=>{
     const list=cyc(dir); if(!list.length) return;
-    startProgram(w,dir,(dir.next||0)%list.length,false);
+    let idx=(dir.next||0)%list.length;
+    for(let k=0;k<list.length;k++){const q=list[(idx+k)%list.length];if(!isOnce(q)||active(q).length){idx=(idx+k)%list.length;break}}
+    startProgram(w,dir,idx,false);
   });
   state.carry.forEach(c=>{if(!sameIn(w.items,c.dir,c.name))w.items.push(mkItem(c.dir,c.name,c.prog))});
   state.carry=[];
@@ -524,7 +545,7 @@ function syncWeek(d){
   const w=curWeek(), p=progOf(d.id,w.progs[d.id]);
   const done=new Set(w.items.filter(i=>i.dir===d.id&&i.prog&&i.done).map(i=>i.name));
   dropUndone(w,d.id);
-  if(p&&cyc(d).includes(p)) p.items.forEach(it=>{if(!done.has(it.name))w.items.push(mkItem(d.id,it.name,1))});
+  if(p&&cyc(d).includes(p)) active(p).forEach(it=>{if(!done.has(it.name))w.items.push(mkItem(d.id,it.name,1,p.id,it.id))});
 }
 function changeFreq(d,f){
   if(d.freq===f) return;
@@ -532,7 +553,7 @@ function changeFreq(d,f){
   if(!isDaily(d)) dropUndone(w,d.id);
   d.freq=f;
   refreshToday(d);
-  if(!isDaily(d)&&p&&!isDated(p)) p.items.forEach(it=>w.items.push(mkItem(d.id,it.name,1)));
+  if(!isDaily(d)&&p&&!isDated(p)) active(p).forEach(it=>w.items.push(mkItem(d.id,it.name,1,p.id,it.id)));
 }
 
 /* ================= звёздочки ================= */
@@ -553,6 +574,7 @@ function toggleItem(id){
   const key=it.dir||'one';
   if(!it.done){it.done=true;it.doneOn=today();addStar(key,it.doneOn);haptic('light')}
   else{removeStar(key,it.doneOn);it.done=false;it.doneOn=null}
+  const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   save();render();
 }
 
@@ -771,7 +793,7 @@ function renderProgs(){
     h+=`<div class="card dir drag-item" data-id="${d.id}" style="--c:${d.color}">
       <div class="dir-head" data-a="editDir" data-id="${d.id}">${dot(d.color,1)}
         <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
-      <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
+      <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}${isOnce(p)?`<small>${active(p).length?'осталось '+active(p).length+' из '+p.items.length:(p.items.length?'всё выполнено ✓':'только несделанное')}</small>`:''}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
       <button class="ghost" data-a="addProg" data-id="${d.id}">+ Программа</button></div>`;
   });
   h+=`</div>`;
@@ -888,8 +910,8 @@ function replaceSheet(id){
   sheet(f.kind==='day'?'Заменить на сегодня':'Заменить', names.map((n,i)=>`<button class="opt" data-n="${i}"><span>${esc(n)}</span></button>`).join('')+`
     <div class="field" style="margin-top:14px"><label class="t">Или своё</label><textarea id="r-own" class="grow" rows="1" placeholder="Название занятия" enterkeyhint="done"></textarea></div>
     <button class="btn main" id="r-ok">Заменить</button>`,(el,close)=>{
-    el.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{it.name=names[+b.dataset.n];save();close();render()});
-    el.querySelector('#r-ok').onclick=()=>{const inp=el.querySelector('#r-own'),v=inp.value.trim();if(!v)return inp.focus();it.name=v;save();close();render()};
+    el.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{it.name=names[+b.dataset.n];delete it.pi;save();close();render()});
+    el.querySelector('#r-ok').onclick=()=>{const inp=el.querySelector('#r-own'),v=inp.value.trim();if(!v)return inp.focus();it.name=v;delete it.pi;save();close();render()};
     el.querySelector('#r-own').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('#r-ok').click()}});
   });
 }
@@ -897,7 +919,7 @@ function switchSheet(id){
   const d=dirById(id), cur=curWeek().progs[id];
   sheet(esc(d.name),
     `<div class="explain" style="margin:-6px 0 14px">${isDaily(d)?'Программа на эту неделю — будет повторяться каждый день до воскресенья. Сегодняшнее несделанное заменится, сделанное останется.':'Программа на эту неделю. Несделанное из текущей заменится, сделанное останется.'} Дальше очередь пойдёт от выбранной.</div>`+
-    cyc(d).map((p,i)=>`<button class="opt${p.id===cur?' on':''}" data-i="${i}" style="--c:${d.color}"><span>${esc(p.name)}<small>${p.items.map(x=>esc(x.name)).join(' · ')||'пока пусто'}</small></span></button>`).join(''),
+    cyc(d).map((p,i)=>`<button class="opt${p.id===cur?' on':''}" data-i="${i}" style="--c:${d.color}"><span>${esc(p.name)}<small>${active(p).map(x=>esc(x.name)).join(' · ')||(isOnce(p)&&p.items.length?'всё выполнено ✓':'пока пусто')}</small></span></button>`).join(''),
     (el,close)=>{el.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{switchProgram(d,+b.dataset.i);save();close();render();haptic('medium')})});
 }
 function addOneSheet(){
@@ -966,7 +988,7 @@ function dirSheet(id){
 function progSheet(dId,pId){
   const d=dirById(dId); if(!d) return;
   const orig=pId?progOf(dId,pId):null, isNew=!orig;
-  const dr={name:orig?orig.name:'',items:orig?orig.items.map(x=>({...x,id:x.id||uid()})):[],status:orig?(orig.status||'queue'):'queue',from:orig&&orig.from||'',to:orig&&orig.to||''};
+  const dr={name:orig?orig.name:'',items:orig?orig.items.map(x=>({...x,id:x.id||uid()})):[],status:orig?(orig.status||'queue'):'queue',mode:orig&&orig.mode||'repeat',from:orig&&orig.from||'',to:orig&&orig.to||''};
   const ex={queue:'Программы «по очереди» сменяют друг друга каждый понедельник.',
             dates:'Включится сама в эти даты и заменит обычную программу. Потом снова выключится — даты можно поменять в любой момент.',
             off:'Программа сохранена, но не включается. Верни её «по очереди» или поставь даты, когда понадобится.'};
@@ -974,7 +996,11 @@ function progSheet(dId,pId){
     <div class="field"><label class="t">Название</label><input type="text" id="p-name" maxlength="40" placeholder="Название программы" value="${esc(dr.name)}"></div>
     <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
       <ul class="ex-list" id="p-list"></ul>
-      <div class="ex-add"><textarea id="p-new" class="grow" rows="1" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div></div>
+      <div class="ex-add"><textarea id="p-new" class="grow" rows="1" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div>
+      <div id="p-donebox"><div class="done-head"><span id="p-donecnt"></span><button type="button" id="p-clear">Очистить</button></div><ul class="ex-list done" id="p-done"></ul></div></div>
+    <div class="field"><label class="t">Как повторять</label>
+      <div class="seg"><button type="button" data-m="repeat">Целиком</button><button type="button" data-m="once">Только несделанное</button></div>
+      <div class="explain" id="p-mex"></div></div>
     <div class="field"><label class="t">Когда включать</label>
       <div class="seg seg3"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="dates">В даты</button><button type="button" data-s="off">Пауза</button></div>
       <div id="p-datebox"><div class="dates"><label>С<input type="date" id="p-from" value="${dr.from}"></label><label>По<input type="date" id="p-to" value="${dr.to}"></label></div></div>
@@ -984,9 +1010,24 @@ function progSheet(dId,pId){
     const list=el.querySelector('#p-list');
     const liHTML=x=>`<li class="drag-item" data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="x" aria-label="Удалить">×</button></li>`;
     const EMPTY='<div class="ex-empty">Пока пусто — добавь первое дело</div>';
-    const draw=()=>{list.innerHTML=dr.items.length?dr.items.map(liHTML).join(''):EMPTY};
+    const isAct=x=>dr.mode!=='once'||!x.doneAt;
+    const doneList=el.querySelector('#p-done'), doneBox=el.querySelector('#p-donebox');
+    const drawDone=()=>{
+      const dn=dr.mode==='once'?dr.items.filter(x=>x.doneAt):[];
+      doneBox.style.display=dn.length?'':'none';
+      el.querySelector('#p-donecnt').textContent='Выполнено · '+dn.length;
+      doneList.innerHTML=dn.map(x=>`<li data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="back" aria-label="Вернуть в программу">↺</button></li>`).join('');
+    };
+    const draw=()=>{const a=dr.items.filter(isAct);list.innerHTML=a.length?a.map(liHTML).join(''):EMPTY;drawDone()};
     draw();
-    sortable(list,'li','li',ids=>{dr.items.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));draw()});
+    sortable(list,'li','li',ids=>{dr.items=[...ids.map(id=>dr.items.find(x=>x.id===id)).filter(Boolean),...dr.items.filter(x=>!ids.includes(x.id))];draw()});
+    doneList.addEventListener('click',e=>{const b=e.target.closest('.back');if(!b)return;const x=dr.items.find(y=>y.id===b.closest('li').dataset.id);if(x){delete x.doneAt;draw();haptic('light')}});
+    el.querySelector('#p-clear').onclick=()=>{dr.items=dr.items.filter(x=>!x.doneAt);draw();toast('Выполненное убрано — не забудь «Сохранить»')};
+    const mex={repeat:'Каждый раз, когда программа включается, приходит весь список заново.',
+               once:'Приходит только то, что ещё не сделано. Выполненное опускается в «Выполнено» — его можно вернуть ↺ или очистить.'};
+    const msegs=el.querySelectorAll('[data-m]');
+    const setM=v=>{dr.mode=v;msegs.forEach(b=>b.classList.toggle('on',b.dataset.m===v));el.querySelector('#p-mex').textContent=mex[v];draw()};
+    setM(dr.mode); msegs.forEach(b=>b.onclick=()=>setM(b.dataset.m));
     const inp=el.querySelector('#p-new'), addBtn=el.querySelector('#p-addbtn');
     // кнопки «+» и «×» не забирают фокус у поля — клавиатура не прячется и не выскакивает заново
     const keepFocus=e=>{if(e.target.closest('.x,#p-addbtn'))e.preventDefault()};
@@ -998,12 +1039,12 @@ function progSheet(dId,pId){
       dr.items=dr.items.filter(x=>x.id!==li.dataset.id);
       li.style.height=li.offsetHeight+'px'; li.offsetHeight;
       li.classList.add('leaving'); li.style.height='0px';
-      setTimeout(()=>{li.remove(); if(!dr.items.length) draw()},230);
+      setTimeout(()=>{li.remove(); if(!dr.items.some(isAct)) draw()},230);
     });
     // добавление: дописываем одну строку с плавным появлением, без перерисовки всего списка
     const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();
       const x={id:uid(),name:v}; dr.items.push(x);
-      if(dr.items.length===1) list.innerHTML='';
+      if(list.querySelector('.ex-empty')) list.innerHTML='';
       list.insertAdjacentHTML('beforeend',liHTML(x));
       const li=list.lastElementChild, h=li.offsetHeight;
       li.style.height='0px'; li.classList.add('entering'); li.offsetHeight;
@@ -1030,7 +1071,8 @@ function progSheet(dId,pId){
       }
       const w=curWeek();
       const p=orig||{id:uid()};
-      p.name=dr.name; p.items=dr.items; p.status=dr.status;
+      if(dr.mode!=='once') dr.items.forEach(x=>delete x.doneAt);
+      p.name=dr.name; p.items=dr.items; p.status=dr.status; p.mode=dr.mode;
       if(dr.status==='dates'){p.from=dr.from;p.to=dr.to} else {delete p.from;delete p.to}
       if(isNew) d.progs.push(p);
       if(w.progs[d.id]===p.id&&p.status!=='queue') delete w.progs[d.id];
