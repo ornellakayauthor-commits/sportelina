@@ -850,7 +850,7 @@ function replaceSheet(id){
   const d=dirById(it.dir);
   const names=d?[...new Set(d.progs.flatMap(p=>p.items.map(x=>x.name)))].filter(n=>n!==it.name):[];
   sheet(f.kind==='day'?'Заменить на сегодня':'Заменить', names.map((n,i)=>`<button class="opt" data-n="${i}"><span>${esc(n)}</span></button>`).join('')+`
-    <div class="field" style="margin-top:14px"><label class="t">Или своё</label><textarea id="r-own" class="grow" rows="1" maxlength="500" placeholder="Название занятия" enterkeyhint="done"></textarea></div>
+    <div class="field" style="margin-top:14px"><label class="t">Или своё</label><textarea id="r-own" class="grow" rows="1" placeholder="Название занятия" enterkeyhint="done"></textarea></div>
     <button class="btn main" id="r-ok">Заменить</button>`,(el,close)=>{
     el.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{it.name=names[+b.dataset.n];save();close();render()});
     el.querySelector('#r-ok').onclick=()=>{const inp=el.querySelector('#r-own'),v=inp.value.trim();if(!v)return inp.focus();it.name=v;save();close();render()};
@@ -867,7 +867,7 @@ function switchSheet(id){
 function addOneSheet(){
   let sel=null, when='day', newColor=COLORS[state.dirs.length%COLORS.length];
   sheet('Новое дело',`
-    <div class="field"><label class="t">Что сделать</label><textarea id="a-name" class="grow" rows="1" maxlength="500" placeholder="Название дела" enterkeyhint="done"></textarea></div>
+    <div class="field"><label class="t">Что сделать</label><textarea id="a-name" class="grow" rows="1" placeholder="Название дела" enterkeyhint="done"></textarea></div>
     <div class="field"><label class="t">Когда</label><div class="seg"><button type="button" data-w="day" class="on">Сегодня</button><button type="button" data-w="week">На этой неделе</button></div></div>
     <div class="field"><label class="t">Направление</label><div class="chips" id="a-chips"><button class="chip on" data-d="">${dot(ONE_COLOR)}Разное</button>${state.dirs.map(d=>`<button class="chip" data-d="${d.id}">${dot(d.color)}${esc(d.name)}</button>`).join('')}<button class="chip add" id="a-new">+ Новое</button></div>
       <div class="newdir" id="a-newbox" style="display:none">
@@ -938,7 +938,7 @@ function progSheet(dId,pId){
     <div class="field"><label class="t">Название</label><input type="text" id="p-name" maxlength="40" placeholder="Название программы" value="${esc(dr.name)}"></div>
     <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
       <ul class="ex-list" id="p-list"></ul>
-      <div class="ex-add"><textarea id="p-new" class="grow" rows="1" maxlength="500" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div></div>
+      <div class="ex-add"><textarea id="p-new" class="grow" rows="1" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div></div>
     <div class="field"><label class="t">Когда включать</label>
       <div class="seg seg3"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="dates">В даты</button><button type="button" data-s="off">Пауза</button></div>
       <div id="p-datebox"><div class="dates"><label>С<input type="date" id="p-from" value="${dr.from}"></label><label>По<input type="date" id="p-to" value="${dr.to}"></label></div></div>
