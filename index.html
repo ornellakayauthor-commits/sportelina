@@ -107,6 +107,13 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .jcard.has-photo{background-size:cover;background-position:center;color:#fff}
 .jcard.has-photo .jname{text-shadow:0 1px 8px rgba(40,20,45,.35)}
 .jcard.has-photo .jcnt{opacity:.9}
+.jcard .jname,.jcard .jcnt{color:var(--tc,inherit)}
+.tcrow{display:flex;align-items:flex-start;gap:10px}
+.tcauto{flex-shrink:0;height:36px;padding:0 14px;border-radius:99px;background:#fff;font-size:13px;font-weight:700;color:var(--ink)}
+.tcauto.on{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--acc)}
+.tcrow .swatches{flex:1}
+.swatches button[data-c="#FFFFFF"]{box-shadow:inset 0 0 0 1px #E2D3DF}
+.swatches button[data-c="#FFFFFF"].on{box-shadow:inset 0 0 0 1px #E2D3DF,0 0 0 2px #fff,0 0 0 4px var(--acc)}
 .jcard.add{border:1.5px dashed var(--acc-line);background:rgba(255,255,255,.35);color:var(--acc-text);font-weight:700;align-items:center;justify-content:center;box-shadow:none;font-size:14px}
 .jtitle{display:block}
 .jbanner{display:block;height:128px;margin:0 0 14px;border-radius:20px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
@@ -983,6 +990,7 @@ function readPhoto(f,cb){
     img.onerror=()=>toast('Не получилось открыть это фото'); img.src=r.result};
   r.readAsDataURL(f);
 }
+const TEXT_COLORS=['#FFFFFF','#5A4466','#2E2233','#C27389','#A0679A','#7B6FB5','#4F86B8','#C98A3E'];
 const JAR_STYLES=[['soft','Нежный'],['bold','Яркий'],['dots','В звёздочках']];
 const WD=['вс','пн','вт','ср','чт','пт','сб'];
 function jarById(id){return (state.jars||[]).find(j=>j.id===id)}
@@ -999,7 +1007,7 @@ function jarCard(j,big,ph){
   const c=jarCount(j), photo=ph!==undefined?ph:jarPhoto(j.id);
   const sub=c.idle?`${c.idle} ${pl(c.idle,'идея','идеи','идей')}`:'пока пусто';
   const bg=photo?`;background-image:linear-gradient(180deg,rgba(58,36,64,0) 30%,rgba(58,36,64,.62)),url('${photo}')`:'';
-  return `<${big?'div':'button'} class="jcard st-${j.style||'soft'}${photo?' has-photo':''}${big?' big':''}" style="--c:${j.color}${bg}" ${big?'':`data-a="openJar" data-id="${j.id}"`}>
+  return `<${big?'div':'button'} class="jcard st-${j.style||'soft'}${photo?' has-photo':''}${big?' big':''}" style="--c:${j.color}${j.tc?';--tc:'+j.tc:''}${bg}" ${big?'':`data-a="openJar" data-id="${j.id}"`}>
     <span class="jname">${esc(j.name||'Без названия')}</span>
     <span class="jcnt">${sub}${c.plan?' · '+c.plan+' в планах':''}</span></${big?'div':'button'}>`;
 }
@@ -1014,11 +1022,6 @@ function soonHTML(){
 }
 function renderJars(){
   let h=`<header class="top"><h1>Копилки</h1><div class="date">Идеи на свободное время — достань, когда захочется</div></header>`;
-  if(!state.jars.length){
-    const st=[['Фильмы','#E8A3B6'],['Сериалы','#B8A4DE'],['Почитать','#9DBFE3'],['Хочу сделать','#F2BD98']];
-    h+=`<div class="card"><div class="hint-empty" style="padding-bottom:10px">Складывай сюда всё, что хочется посмотреть, почитать или попробовать. А в свободный день — доставай.<br><br>Начать с готовой:</div>
-      <div class="chips" style="justify-content:center">${st.map(([v,c])=>`<button class="chip" data-a="starterJar" data-v="${v}" data-c="${c}">${dot(c)}${esc(v)}</button>`).join('')}</div></div>`;
-  }
   h+=`<div class="jars">${state.jars.map(j=>jarCard(j)).join('')}<button class="jcard add" data-a="addJar">+ Новая копилка</button></div>`;
   const plans=[];state.jars.forEach(j=>j.items.forEach(x=>{if(x.st==='plan')plans.push({j,x})}));
   if(plans.length){
@@ -1100,12 +1103,15 @@ function jarSheet(id){
 }
 function jarEdit(id){
   const j=id?jarById(id):null, isNew=!j;
-  const dr={name:j?j.name:'',color:j?j.color:COLORS[state.jars.length%COLORS.length],style:j?j.style||'soft':'soft',photo:j?jarPhoto(j.id):''};
+  const dr={name:j?j.name:'',color:j?j.color:COLORS[state.jars.length%COLORS.length],style:j?j.style||'soft':'soft',photo:j?jarPhoto(j.id):'',tc:j&&j.tc||''};
   sheet(isNew?'Новая копилка':'Оформление',`
     <div class="jprev" id="jx-prev"></div>
     <div class="field"><label class="t">Название</label><input type="text" id="jx-name" maxlength="40" placeholder="Например, Фильмы на вечер" value="${esc(dr.name)}"></div>
     <div class="field"><label class="t">Фото на обложку</label><div id="jx-ph"></div><input type="file" id="jx-file" accept="image/*" hidden></div>
     <div class="field"><label class="t">Цвет</label>${colorField('jc',dr.color,COLORS)}</div>
+    <div class="field"><label class="t">Цвет названия</label>
+      <div class="tcrow"><button type="button" class="tcauto" id="jx-tcauto">Авто</button>${colorField('tc',dr.tc||'#FFFFFF',TEXT_COLORS)}</div>
+      <div class="explain">«Авто» — белый на фото и ярком фоне, тёмный на светлом.</div></div>
     <div class="field" id="jx-stf"><label class="t">Стиль карточки без фото</label><div class="jstyles" id="jx-st">${JAR_STYLES.map(([k,n])=>`<button type="button" data-s="${k}" class="st-${k}" style="--c:${dr.color}">${n}</button>`).join('')}</div></div>
     <button class="btn main" id="jx-save">${isNew?'Создать копилку':'Сохранить'}</button>
     ${isNew?'':'<button class="btn danger" id="jx-del">Удалить копилку</button>'}`,(el,close)=>{
@@ -1117,6 +1123,8 @@ function jarEdit(id){
         ?`<div class="phrow"><span class="phthumb" style="background-image:url('${dr.photo}')"></span><button type="button" class="btn soft" data-ph="pick">Заменить</button><button type="button" class="btn soft" data-ph="del">Убрать</button></div>`
         :`<button type="button" class="phadd" data-ph="pick">+ Добавить фото</button>`;
       el.querySelector('#jx-stf').classList.toggle('dim',!!dr.photo);
+      el.querySelector('#jx-tcauto').classList.toggle('on',!dr.tc);
+      if(!dr.tc) el.querySelectorAll('[data-cf="tc"] [data-c],[data-cf="tc"] .sw-own').forEach(x=>x.classList.remove('on'));
       el.querySelectorAll('#jx-st [data-s]').forEach(b=>{b.classList.toggle('on',b.dataset.s===dr.style);b.style.setProperty('--c',dr.color)});
     };
     upd(); nm.addEventListener('input',upd);
@@ -1124,10 +1132,12 @@ function jarEdit(id){
     file.addEventListener('change',()=>{const f=file.files&&file.files[0];file.value='';if(f)readPhoto(f,u=>{dr.photo=u;upd();haptic('light')})});
     el.querySelectorAll('#jx-st [data-s]').forEach(b=>b.onclick=()=>{dr.style=b.dataset.s;upd();haptic('light')});
     bindColor(el,'jc',c=>{dr.color=c;upd()});
+    bindColor(el,'tc',c=>{dr.tc=c;upd()});
+    el.querySelector('#jx-tcauto').onclick=()=>{dr.tc='';upd();haptic('light')};
     if(isNew) setTimeout(()=>nm.focus(),320);
     el.querySelector('#jx-save').onclick=()=>{
       dr.name=nm.value.trim(); if(!dr.name){nm.focus();return}
-      const t=j||{id:uid(),items:[]}; Object.assign(t,{name:dr.name,color:dr.color,style:dr.style}); delete t.emoji;
+      const t=j||{id:uid(),items:[]}; Object.assign(t,{name:dr.name,color:dr.color,style:dr.style}); delete t.emoji; if(dr.tc)t.tc=dr.tc; else delete t.tc;
       if(isNew) state.jars.push(t);
       if(dr.photo!==jarPhoto(t.id)) setJarPhoto(t.id,dr.photo);
       save();close();render();setTimeout(()=>jarSheet(t.id),300);
@@ -1436,7 +1446,6 @@ const A={
   tab:t=>{tab=t.dataset.t;render();window.scrollTo(0,0)},
   openJar:t=>jarSheet(t.dataset.id),
   addJar:()=>jarEdit(null),
-  starterJar:t=>{const j={id:uid(),name:t.dataset.v,color:t.dataset.c,style:'soft',items:[]};state.jars.push(j);save();render();haptic('light');jarSheet(j.id)},
   goJars:()=>{tab='jars';render();window.scrollTo(0,0)},
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
   sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
