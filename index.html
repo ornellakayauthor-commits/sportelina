@@ -91,6 +91,14 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .nodir{color:var(--muted);font-size:13.5px;padding:6px 0 4px}
 .dhead{display:flex;justify-content:space-between;align-items:center;margin:10px 0 2px;padding-top:10px;border-top:1px dashed rgba(200,170,200,.45);font-size:12.5px;font-weight:700;color:var(--muted)}
 .dlist .item{padding:5px 0}
+.dwrap{display:grid;grid-template-rows:1fr;transition:grid-template-rows .3s ease,opacity .3s ease}
+.dwrap>*{overflow:hidden;min-height:0}
+.dwrap.folded{grid-template-rows:0fr;opacity:0}
+.dtoggle{display:flex;align-items:center;gap:6px;font:inherit;color:inherit;padding:4px 0}
+.chev-s{display:inline-block;font-size:10px;transition:transform .25s ease}
+.folded .chev-s{transform:rotate(-90deg)}
+.ex-list.done{margin-bottom:0}
+.done-head .dtoggle{background:none;padding:4px 0;color:var(--muted);font-size:13px;font-weight:700}
 .dlist .item .tick{transform:scale(.86)}
 .nodir .pill{margin-top:8px}
 .add-btn{display:block;width:100%;margin-top:12px;padding:14px;border-radius:18px;border:1.5px dashed var(--acc-line);
@@ -582,6 +590,8 @@ function toggleItem(id){
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   save();flip(render);
 }
+function isFolded(k){return !!(state.fold&&state.fold[k])}
+function setFold(k){state.fold=state.fold||{};if(state.fold[k])delete state.fold[k];else state.fold[k]=1;save();return !!state.fold[k]}
 function flip(fn){
   const was={};document.querySelectorAll('.item[data-id]').forEach(e=>was[e.dataset.id]=e.getBoundingClientRect().top);
   fn();
@@ -749,7 +759,8 @@ function groupHTML(d,items,w,kind,own){
       <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`;
   const und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
   let body=und.length?`<div class="ilist" data-k="${kind}">${und.map(row).join('')}</div>`:'';
-  if(dn.length) body+=`<div class="dhead"><span>Выполнено · ${dn.length}</span><button class="link" data-a="clearDone" data-k="${kind}" data-d="${d?d.id:''}">Очистить</button></div><div class="dlist">${dn.map(row).join('')}</div>`;
+  const fk=kind+':'+(d?d.id:'misc'), fo=isFolded(fk)?' folded':'';
+  if(dn.length) body+=`<div class="dhead${fo}"><button class="dtoggle" data-a="fold" data-k="${fk}" aria-label="Свернуть или развернуть"><span class="chev-s">▾</span>Выполнено · ${dn.length}</button><button class="link" data-a="clearDone" data-k="${kind}" data-d="${d?d.id:''}">Очистить</button></div><div class="dwrap${fo}"><div class="dlist">${dn.map(row).join('')}</div></div>`;
   if(d&&!items.length){
     if(own&&!w.progs[d.id]&&cyc(d).length&&!(kind==='day'&&datedFor(d,today()))){
       const nx=cyc(d)[(d.next||0)%cyc(d).length];
@@ -1042,7 +1053,7 @@ function progSheet(dId,pId){
     <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
       <ul class="ex-list" id="p-list"></ul>
       <div class="ex-add"><textarea id="p-new" class="grow" rows="1" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div>
-      <div id="p-donebox"><div class="done-head"><span id="p-donecnt"></span><button type="button" id="p-clear">Очистить</button></div><ul class="ex-list done" id="p-done"></ul></div></div>
+      <div id="p-donebox"><div class="done-head" id="p-dhead"><button type="button" class="dtoggle" id="p-fold"><span class="chev-s">▾</span><span id="p-donecnt"></span></button><button type="button" id="p-clear">Очистить</button></div><div class="dwrap" id="p-dwrap"><ul class="ex-list done" id="p-done"></ul></div></div></div>
     <div class="field"><label class="t">Как повторять</label>
       <div class="seg"><button type="button" data-m="repeat">Целиком</button><button type="button" data-m="once">Только несделанное</button></div>
       <div class="explain" id="p-mex"></div></div>
@@ -1066,6 +1077,10 @@ function progSheet(dId,pId){
     const draw=()=>{const a=dr.items.filter(isAct);list.innerHTML=a.length?a.map(liHTML).join(''):EMPTY;drawDone()};
     draw();
     sortable(list,'li','li',ids=>{dr.items=[...ids.map(id=>dr.items.find(x=>x.id===id)).filter(Boolean),...dr.items.filter(x=>!ids.includes(x.id))];draw()});
+    const fk='p:'+(orig?orig.id:'new');
+    const applyFold=f=>{el.querySelector('#p-dhead').classList.toggle('folded',f);el.querySelector('#p-dwrap').classList.toggle('folded',f)};
+    applyFold(isFolded(fk));
+    el.querySelector('#p-fold').onclick=()=>{applyFold(setFold(fk));haptic('light')};
     doneList.addEventListener('click',e=>{const b=e.target.closest('.back');if(!b)return;const x=dr.items.find(y=>y.id===b.closest('li').dataset.id);if(x){delete x.doneAt;draw();haptic('light')}});
     el.querySelector('#p-clear').onclick=()=>{dr.items=dr.items.filter(x=>!x.doneAt);draw();toast('Выполненное убрано — не забудь «Сохранить»')};
     const mex={repeat:'Каждый раз, когда программа включается, приходит весь список заново.',
@@ -1171,6 +1186,7 @@ const A={
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
   sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
   toggle:t=>toggleItem(t.dataset.id),
+  fold:t=>{const head=t.closest('.dhead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
   clearDone:t=>{const L=t.dataset.k==='day'?curDay():curWeek(), dId=t.dataset.d;
     L.items.forEach(i=>{if(i.done&&(dId?i.dir===dId:(!i.dir||!dirById(i.dir))))i.hidden=true});
     haptic('light');save();flip(render)},
