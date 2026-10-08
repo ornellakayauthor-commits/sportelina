@@ -219,6 +219,10 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .ex-list li span{flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .ex-list li::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--c);flex-shrink:0}
 .ex-empty{font-size:13px;color:var(--muted);padding:2px 2px 8px}
+.ex-list li{transition:height .22s ease,opacity .22s ease,margin .22s ease,padding .22s ease;overflow:hidden;box-sizing:border-box}
+.ex-list li.entering{opacity:0;padding-top:0;padding-bottom:0}
+.ex-list li.leaving{opacity:0;margin-bottom:0;padding-top:0;padding-bottom:0}
+.ex-list li.dragging{overflow:visible}
 .ex-add{display:flex;gap:8px}
 .ex-add textarea{flex:1;min-width:0;padding:12px 14px;border-radius:14px;border:1px solid #F0E2EA;background:#fff;outline:none;font-size:16px}
 .ex-add textarea:focus{border-color:var(--acc)}
@@ -950,13 +954,38 @@ function progSheet(dId,pId){
     <button class="btn main" id="p-save">Сохранить</button>
     ${isNew?'':'<button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
     const list=el.querySelector('#p-list');
-    const draw=()=>{list.innerHTML=dr.items.length?dr.items.map((x,i)=>`<li class="drag-item" data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="x" data-rm="${i}" aria-label="Удалить">×</button></li>`).join(''):'<div class="ex-empty">Пока пусто — добавь первое дело</div>';
-      list.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{dr.items.splice(+b.dataset.rm,1);draw()})};
+    const liHTML=x=>`<li class="drag-item" data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="x" aria-label="Удалить">×</button></li>`;
+    const EMPTY='<div class="ex-empty">Пока пусто — добавь первое дело</div>';
+    const draw=()=>{list.innerHTML=dr.items.length?dr.items.map(liHTML).join(''):EMPTY};
     draw();
     sortable(list,'li','li',ids=>{dr.items.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));draw()});
-    const inp=el.querySelector('#p-new');
-    const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();dr.items.push({id:uid(),name:v});inp.value='';grow(inp);draw();inp.focus()};
-    el.querySelector('#p-addbtn').onclick=add;
+    const inp=el.querySelector('#p-new'), addBtn=el.querySelector('#p-addbtn');
+    // кнопки «+» и «×» не забирают фокус у поля — клавиатура не прячется и не выскакивает заново
+    const keepFocus=e=>{if(e.target.closest('.x,#p-addbtn'))e.preventDefault()};
+    list.addEventListener('mousedown',keepFocus); addBtn.addEventListener('mousedown',keepFocus);
+    // удаление: строка плавно схлопывается, остальные мягко подтягиваются
+    list.addEventListener('click',e=>{
+      const b=e.target.closest('.x'); if(!b) return;
+      const li=b.closest('li'); if(!li||li.classList.contains('leaving')) return;
+      dr.items=dr.items.filter(x=>x.id!==li.dataset.id);
+      li.style.height=li.offsetHeight+'px'; li.offsetHeight;
+      li.classList.add('leaving'); li.style.height='0px';
+      setTimeout(()=>{li.remove(); if(!dr.items.length) draw()},230);
+    });
+    // добавление: дописываем одну строку с плавным появлением, без перерисовки всего списка
+    const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();
+      const x={id:uid(),name:v}; dr.items.push(x);
+      if(dr.items.length===1) list.innerHTML='';
+      list.insertAdjacentHTML('beforeend',liHTML(x));
+      const li=list.lastElementChild, h=li.offsetHeight;
+      li.style.height='0px'; li.classList.add('entering'); li.offsetHeight;
+      li.style.height=h+'px'; li.classList.remove('entering');
+      setTimeout(()=>{li.style.height=''},240);
+      inp.value='';grow(inp);
+      if(document.activeElement!==inp) inp.focus({preventScroll:true});
+      setTimeout(()=>inp.scrollIntoView({block:'nearest',behavior:'smooth'}),240);
+    };
+    addBtn.onclick=add;
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});
     const segs=el.querySelectorAll('[data-s]');
     const setS=v=>{dr.status=v;segs.forEach(b=>b.classList.toggle('on',b.dataset.s===v));el.querySelector('#p-datebox').style.display=v==='dates'?'':'none';el.querySelector('#p-ex').textContent=ex[v]};
