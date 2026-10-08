@@ -793,7 +793,7 @@ function renderProgs(){
     h+=`<div class="card dir drag-item" data-id="${d.id}" style="--c:${d.color}">
       <div class="dir-head" data-a="editDir" data-id="${d.id}">${dot(d.color,1)}
         <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
-      <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}${isOnce(p)?`<small>${active(p).length?'осталось '+active(p).length+' из '+p.items.length:(p.items.length?'всё выполнено ✓':'только несделанное')}</small>`:''}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
+      <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}${isOnce(p)&&p.items.length&&!active(p).length?'<small>всё выполнено ✓</small>':''}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
       <button class="ghost" data-a="addProg" data-id="${d.id}">+ Программа</button></div>`;
   });
   h+=`</div>`;
