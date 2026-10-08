@@ -97,6 +97,8 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .dtoggle{display:flex;align-items:center;gap:6px;font:inherit;color:inherit;padding:4px 0}
 .chev-s{display:inline-block;font-size:10px;transition:transform .25s ease}
 .folded .chev-s{transform:rotate(-90deg)}
+.dhead [data-a=clearDone],#p-clear{transition:opacity .25s ease,visibility .25s}
+.dhead.folded [data-a=clearDone],.done-head.folded #p-clear{opacity:0;visibility:hidden;pointer-events:none}
 .ex-list.done{margin-bottom:0}
 .done-head .dtoggle{background:none;padding:4px 0;color:var(--muted);font-size:13px;font-weight:700}
 .dlist .item .tick{transform:scale(.86)}
