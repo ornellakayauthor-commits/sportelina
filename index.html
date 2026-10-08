@@ -802,6 +802,7 @@ function renderHome(){
     const g=[];
     state.dirs.forEach(d=>{
       const items=list.items.filter(i=>i.dir===d.id&&!i.hidden);
+      if(kind==='pin'){if(items.length)g.push(groupHTML(d,items,w,kind,false));return} // в «Закреплено» — только закреплённое
       const own=(kind==='day')===isDaily(d);
       if(items.length||(own&&cyc(d).length)||(kind==='day'&&datedFor(d,today()))) g.push(groupHTML(d,items,w,kind,own));
     });
