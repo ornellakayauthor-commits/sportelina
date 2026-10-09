@@ -242,6 +242,7 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .overlay{position:fixed;inset:0;z-index:20;background:rgba(90,68,102,.25);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
   opacity:0;transition:opacity .25s;display:flex;align-items:flex-end;justify-content:center}
 .overlay.open{opacity:1}
+.overlay.stacked{background:rgba(90,68,102,.1);backdrop-filter:none;-webkit-backdrop-filter:none}
 .sheet{width:100%;max-width:460px;max-height:88vh;overflow:auto;
   background:linear-gradient(180deg,#FCF4F5,#F8F3FA);border-radius:28px 28px 0 0;
   padding:10px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(100%);
@@ -991,6 +992,13 @@ function readPhoto(f,cb){
     img.onerror=()=>toast('Не получилось открыть это фото'); img.src=r.result};
   r.readAsDataURL(f);
 }
+const phSrc={};
+function srcOf(data){
+  if(!data) return ''; if(phSrc[data]) return phSrc[data];
+  try{const i=data.indexOf(','),mime=(data.slice(0,i).match(/:(.*?);/)||[])[1]||'image/jpeg',bin=atob(data.slice(i+1)),a=new Uint8Array(bin.length);
+    for(let k=0;k<bin.length;k++)a[k]=bin.charCodeAt(k);
+    return phSrc[data]=URL.createObjectURL(new Blob([a],{type:mime}))}catch(e){return data}
+}
 const TEXT_COLORS=['#FFFFFF','#5A4466','#2E2233','#C27389','#A0679A','#7B6FB5','#4F86B8','#C98A3E'];
 const JAR_STYLES=[['soft','Нежный'],['bold','Яркий'],['dots','В звёздочках']];
 const WD=['вс','пн','вт','ср','чт','пт','сб'];
@@ -1007,7 +1015,7 @@ function jarCount(j){const c={idle:0,plan:0,out:0,done:0};j.items.forEach(x=>c[x
 function jarCard(j,big,ph){
   const c=jarCount(j), photo=ph!==undefined?ph:jarPhoto(j.id);
   const sub=c.idle?`${c.idle} ${pl(c.idle,'идея','идеи','идей')}`:'пока пусто';
-  const bg=photo?`;background-image:linear-gradient(180deg,rgba(58,36,64,0) 30%,rgba(58,36,64,.62)),url('${photo}')`:'';
+  const bg=photo?`;background-image:linear-gradient(180deg,rgba(58,36,64,0) 30%,rgba(58,36,64,.62)),url('${srcOf(photo)}')`:'';
   return `<${big?'div':'button'} class="jcard st-${j.style||'soft'}${photo?' has-photo':''}${big?' big':''}" style="--c:${j.color}${j.tc?';--tc:'+j.tc:''}${bg}" ${big?'':`data-a="openJar" data-id="${j.id}"`}>
     <span class="jname">${esc(j.name||'Без названия')}</span>
     <span class="jcnt">${sub}${c.plan?' · '+c.plan+' в планах':''}</span></${big?'div':'button'}>`;
@@ -1035,19 +1043,20 @@ function renderJars(){
 }
 function jarSheet(id){
   const j=jarById(id); if(!j) return;
-  const ph=jarPhoto(j.id);
-  sheet(`${ph?`<span class="jbanner" style="background-image:url('${ph}')"></span>`:''}<span class="jtitle">${esc(j.name)}</span>`,`
+  const head=()=>{const ph=jarPhoto(j.id);return `${ph?`<span class="jbanner" style="background-image:url('${srcOf(ph)}')"></span>`:''}<span class="jtitle">${esc(j.name)}</span>`};
+  sheet(head(),`
     <button type="button" class="jedit" id="j-edit">✎ Оформление</button>
-    <div class="field" style="--c:${j.color}">
+    <div class="field">
       <div class="ex-add"><textarea id="j-new" class="grow" rows="1" placeholder="Новая идея" enterkeyhint="done"></textarea><button type="button" id="j-addbtn" aria-label="Добавить">+</button></div>
     </div>
-    <div style="--c:${j.color}">
+    <div>
       <ul class="jl" id="j-idle"></ul>
       <div id="j-plan"></div><div id="j-out"></div>
       <div id="j-donebox"><div class="done-head" id="j-dhead"><button type="button" class="dtoggle" id="j-fold"><span class="chev-s">▾</span><span id="j-dcnt"></span></button><button type="button" id="j-clear">Очистить</button></div>
         <div class="dwrap" id="j-dwrap"><ul class="jl done" id="j-done"></ul></div></div>
     </div>`,(el,close)=>{
     const idle=el.querySelector('#j-idle'), inp=el.querySelector('#j-new'), t=today();
+    el.style.setProperty('--c',j.color);
     const sec=(title,rows)=>rows.length?`<div class="done-head"><span>${title}</span></div><ul class="jl soft">${rows.join('')}</ul>`:'';
     const draw=()=>{
       const xs=st=>j.items.filter(x=>x.st===st);
@@ -1065,13 +1074,15 @@ function jarSheet(id){
       el.querySelector('#j-done').innerHTML=dn.map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span></div></li>`).join('');
     };
     const placeOf=x=>state.pins.items.some(i=>i.ji===x.id)?'закреплено на главном':curWeek().items.some(i=>i.ji===x.id&&!i.done)?'на этой неделе':'в «Сегодня»';
-    const commit=()=>{save();draw();render()};
+    const commit=()=>{save();draw()};
     draw();
     sortable(idle,'li','.jrow',ids=>{const rest=j.items.filter(x=>!ids.includes(x.id));j.items=[...ids.map(i=>j.items.find(x=>x.id===i)).filter(Boolean),...rest];commit()});
     const fk='j:'+j.id, applyFold=f=>{el.querySelector('#j-dhead').classList.toggle('folded',f);el.querySelector('#j-dwrap').classList.toggle('folded',f)};
     applyFold(isFolded(fk)); el.querySelector('#j-fold').onclick=()=>{applyFold(setFold(fk));haptic('light')};
     el.querySelector('#j-clear').onclick=()=>{j.items=j.items.filter(x=>x.st!=='done');commit()};
-    el.querySelector('#j-edit').onclick=()=>{close();setTimeout(()=>jarEdit(j.id),280)};
+    el.querySelector('#j-edit').onclick=()=>jarEdit(j.id,{
+      saved:()=>{const h=el.querySelector('h3');h.innerHTML=head();el.style.setProperty('--c',j.color);draw()},
+      deleted:close});
     const add=()=>{const v=inp.value.trim();if(!v)return inp.focus();j.items.push({id:uid(),name:v,st:'idle'});inp.value='';grow(inp);commit();if(document.activeElement!==inp)inp.focus({preventScroll:true})};
     el.querySelector('#j-addbtn').addEventListener('mousedown',e=>e.preventDefault());
     el.querySelector('#j-addbtn').onclick=add;
@@ -1100,9 +1111,9 @@ function jarSheet(id){
       }
     });
     el.addEventListener('change',e=>{const d=e.target.closest('.jdate input');if(!d||!d.value)return;const x=j.items.find(y=>y.id===d.closest('li').dataset.id);if(x)pullTo(x,'date',d.value)});
-  });
+  },()=>render());
 }
-function jarEdit(id){
+function jarEdit(id,cb){
   const j=id?jarById(id):null, isNew=!j;
   const dr={name:j?j.name:'',color:j?j.color:COLORS[state.jars.length%COLORS.length],style:j?j.style||'soft':'soft',photo:j?jarPhoto(j.id):'',tc:j&&j.tc||''};
   sheet(isNew?'Новая копилка':'Оформление',`
@@ -1118,17 +1129,19 @@ function jarEdit(id){
     ${isNew?'':'<button class="btn danger" id="jx-del">Удалить копилку</button>'}`,(el,close)=>{
     const prev=el.querySelector('#jx-prev'), nm=el.querySelector('#jx-name');
     const file=el.querySelector('#jx-file');
+    let shownPh=null;
     const upd=()=>{
       prev.innerHTML=jarCard({...dr,name:nm.value.trim()||'Название',items:j?j.items:[]},true,dr.photo);
-      el.querySelector('#jx-ph').innerHTML=dr.photo
-        ?`<div class="phrow"><span class="phthumb" style="background-image:url('${dr.photo}')"></span><button type="button" class="btn soft" data-ph="pick">Заменить</button><button type="button" class="btn soft" data-ph="del">Убрать</button></div>`
-        :`<button type="button" class="phadd" data-ph="pick">+ Добавить фото</button>`;
+      if(shownPh!==dr.photo){shownPh=dr.photo;
+        el.querySelector('#jx-ph').innerHTML=dr.photo
+          ?`<div class="phrow"><span class="phthumb" style="background-image:url('${srcOf(dr.photo)}')"></span><button type="button" class="btn soft" data-ph="pick">Заменить</button><button type="button" class="btn soft" data-ph="del">Убрать</button></div>`
+          :`<button type="button" class="phadd" data-ph="pick">+ Добавить фото</button>`;}
       el.querySelector('#jx-stf').classList.toggle('dim',!!dr.photo);
       el.querySelector('#jx-tcauto').classList.toggle('on',!dr.tc);
       if(!dr.tc) el.querySelectorAll('[data-cf="tc"] [data-c],[data-cf="tc"] .sw-own').forEach(x=>x.classList.remove('on'));
       el.querySelectorAll('#jx-st [data-s]').forEach(b=>{b.classList.toggle('on',b.dataset.s===dr.style);b.style.setProperty('--c',dr.color)});
     };
-    upd(); nm.addEventListener('input',upd);
+    upd(); nm.addEventListener('input',()=>{const n=prev.querySelector('.jname');if(n)n.textContent=nm.value.trim()||'Название'});
     el.querySelector('#jx-ph').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;if(b.dataset.ph==='pick')file.click();else{dr.photo='';upd()}});
     file.addEventListener('change',()=>{const f=file.files&&file.files[0];file.value='';if(f)readPhoto(f,u=>{dr.photo=u;upd();haptic('light')})});
     el.querySelectorAll('#jx-st [data-s]').forEach(b=>b.onclick=()=>{dr.style=b.dataset.s;upd();haptic('light')});
@@ -1141,23 +1154,26 @@ function jarEdit(id){
       const t=j||{id:uid(),items:[]}; Object.assign(t,{name:dr.name,color:dr.color,style:dr.style}); delete t.emoji; if(dr.tc)t.tc=dr.tc; else delete t.tc;
       if(isNew) state.jars.push(t);
       if(dr.photo!==jarPhoto(t.id)) setJarPhoto(t.id,dr.photo);
-      save();close();render();setTimeout(()=>jarSheet(t.id),300);
+      save();close();
+      if(cb&&cb.saved) cb.saved(); else {render();setTimeout(()=>jarSheet(t.id),300)}
     };
     const del=el.querySelector('#jx-del');
     if(del) confirmBtn(del,'Нажми ещё раз — копилка и идеи в ней удалятся',()=>{
       [curDay(),curWeek(),state.pins].forEach(L=>{L.items=L.items.filter(i=>!(i.jar===j.id&&!i.done))});
-      setJarPhoto(j.id,'');state.jars=state.jars.filter(x=>x!==j);save();close();render();
+      setJarPhoto(j.id,'');state.jars=state.jars.filter(x=>x!==j);save();close();
+      if(cb&&cb.deleted) cb.deleted(); else render();
     });
   });
 }
 
 /* ================= шторки ================= */
-function sheet(title,body,mount){
-  const o=document.createElement('div');o.className='overlay';
+function sheet(title,body,mount,onClose){
+  const o=document.createElement('div');o.className='overlay'+(document.querySelector('.overlay')?' stacked':'');
   o.innerHTML=`<div class="sheet" role="dialog"><div class="grab"></div><h3${String(title).replace(/<[^>]*>/g,'').length>70?' class="long"':''}>${title}</h3>${body}</div>`;
   document.body.appendChild(o);
   requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.add('open')));
-  const close=()=>{o.classList.remove('open');setTimeout(()=>o.remove(),280)};
+  let closed=false;
+  const close=()=>{if(closed)return;closed=true;o.classList.remove('open');setTimeout(()=>o.remove(),280);onClose&&onClose()};
   o.addEventListener('click',e=>{if(e.target===o)close()});
   mount&&mount(o.querySelector('.sheet'),close);
 }
