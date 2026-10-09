@@ -741,7 +741,7 @@ function starSlots(k){
 }
 let jarUid=0;
 function jarSVG(n,total,opt){
-  opt=opt||{}; const k=opt.shape||state.theme.jar, S=shapeOf(k), id='j'+(jarUid++), thumb=!!opt.thumb;
+  opt=opt||{}; const k=opt.shape||state.theme.jar, S=shapeOf(k), thumb=!!opt.thumb, id=(thumb?'jt'+k:'jm')+'-'+tab;
   const slots=starSlots(k), start=total-n; let stars='';
   for(let i=0;i<n;i++){
     const s=slots[i], col=opt.colors?opt.colors[i%opt.colors.length]:colorOf(state.seq[start+i]);
@@ -937,7 +937,7 @@ function renderLook(){
 }
 let lookSaveT;
 function bindLook(){
-  const v=document.getElementById('view');
+  const v=viewBox('look');
   const later=()=>{clearTimeout(lookSaveT);lookSaveT=setTimeout(save,400)};
   if(v.querySelector('[data-cf="bgc"]')) bindColor(v,'bgc',c=>{state.theme.bgColor=c;applyTheme();const i=v.querySelector('[data-k="plain"] i');if(i)i.style.background=c;later()});
   bindColor(v,'acc',c=>{state.theme.accent=c;applyTheme();later()});
@@ -1460,10 +1460,10 @@ function stableSheet(id){
 
 /* ================= действия ================= */
 const A={
-  tab:t=>{tab=t.dataset.t;render();window.scrollTo(0,0)},
+  tab:t=>goTab(t.dataset.t),
   openJar:t=>jarSheet(t.dataset.id),
   addJar:()=>jarEdit(null),
-  goJars:()=>{tab='jars';render();window.scrollTo(0,0)},
+  goJars:()=>goTab('jars'),
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
   sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
   toggle:t=>toggleItem(t.dataset.id),
@@ -1506,7 +1506,7 @@ document.addEventListener('touchmove',e=>{if(dragActive)e.preventDefault()},{pas
 document.addEventListener('click',e=>{if(Date.now()<dragBlockUntil){e.preventDefault();e.stopPropagation()}},true);
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.drag-item'))e.preventDefault()});
 function sortable(box,itemSel,handleSel,done){
-  if(!box) return;
+  if(!box||box.__sortable) return; box.__sortable=1;
   box.addEventListener('pointerdown',e=>{
     if(e.button>0) return;
     const handle=e.target.closest(handleSel); if(!handle||!box.contains(handle)) return;
@@ -1563,9 +1563,31 @@ function bindHomeDrag(){
     if(reorderIn(list,ids)){save();render()}
   }));
 }
+// Экран не собирается заново: сравниваем новое с тем, что уже на экране, и меняем только отличия.
+function morph(el,html){const t=document.createElement('template');t.innerHTML=html;patchKids(el,t.content)}
+function patchKids(a,b){
+  const an=[...a.childNodes], bn=[...b.childNodes];
+  bn.forEach((y,i)=>{const x=an[i]; if(!x) a.appendChild(y); else patchNode(a,x,y)});
+  for(let i=an.length-1;i>=bn.length;i--) a.removeChild(an[i]);
+}
+function patchNode(p,x,y){
+  if(x.nodeType!==y.nodeType||x.nodeName!==y.nodeName||(x.nodeType===1&&x.getAttribute('data-id')!==y.getAttribute('data-id'))){p.replaceChild(y,x);return}
+  if(x.nodeType!==1){if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;return}
+  for(const at of [...x.attributes]) if(!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+  for(const at of [...y.attributes]) if(x.getAttribute(at.name)!==at.value) x.setAttribute(at.name,at.value);
+  patchKids(x,y);
+}
+function viewBox(t){
+  const v=document.getElementById('view'); let b=v.querySelector(`:scope>section[data-tab="${t}"]`);
+  if(!b){const l=v.querySelector(':scope>.loading'); if(l) l.remove(); b=document.createElement('section'); b.dataset.tab=t; v.appendChild(b)}
+  return b;
+}
+const tabScroll={};
+function goTab(t){tabScroll[tab]=window.scrollY;tab=t;render();window.scrollTo(0,tabScroll[t]||0)}
 function render(){
-  const v=document.getElementById('view');
-  v.innerHTML=tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():tab==='jars'?renderJars():renderLook();
+  const box=viewBox(tab);
+  document.querySelectorAll('#view>section').forEach(x=>{x.hidden=x!==box});
+  morph(box,tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():tab==='jars'?renderJars():renderLook());
   if(tab==='look') bindLook();
   if(tab==='progs') bindProgsDrag();
   if(tab==='home') bindHomeDrag();
