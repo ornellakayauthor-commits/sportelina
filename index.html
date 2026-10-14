@@ -80,6 +80,8 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .ghead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
 .gname{font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px}
 .link{font-size:12.5px;color:var(--acc-text);font-weight:600;text-align:right}
+.ghead .link,.ghead .tag{min-width:0;max-width:62%;overflow-wrap:anywhere}
+.ghead .gname{min-width:0;overflow-wrap:anywhere}
 .item{display:flex;align-items:center;gap:12px;padding:8px 0}
 .tick{width:28px;height:28px;border-radius:50%;border:2px solid var(--c);flex-shrink:0;display:grid;place-items:center;background:rgba(255,255,255,.55);transition:background .2s,transform .12s}
 .tick:active{transform:scale(.88)}
@@ -285,7 +287,7 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .dragging{z-index:10;transition:box-shadow .2s,background .2s;box-shadow:0 14px 34px rgba(150,100,140,.28);background:rgba(255,252,250,.97);border-radius:16px}
 .card.dir.dragging{border-radius:24px}
 .drag-anim{transition:transform .18s ease}
-.prow .pn{flex:1;min-width:0;font-weight:600}
+.prow .pn{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
 .pst{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.75);color:var(--muted);white-space:nowrap}
 .pst.now{background:var(--c);color:#fff}
 .pst.off{background:transparent;border:1px dashed var(--soft)}
@@ -333,6 +335,8 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .btn.danger{color:#C27389}
 .opt{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border-radius:16px;background:#fff;margin-bottom:8px;text-align:left;font-weight:600}
 .opt.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.opt span{min-width:0;overflow-wrap:anywhere}
+.nodir .pill{max-width:100%;overflow-wrap:anywhere}
 .opt small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:2px}
 
 .toast{position:fixed;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-20px);opacity:0;z-index:30;
@@ -1354,7 +1358,7 @@ function progSheet(dId,pId){
             dates:'Включится сама в эти даты и заменит обычную программу. Потом снова выключится — даты можно поменять в любой момент.',
             off:'Программа сохранена, но не включается. Верни её «по очереди» или поставь даты, когда понадобится.'};
   sheet(isNew?'Новая программа':'Программа',`
-    <div class="field"><label class="t">Название</label><input type="text" id="p-name" maxlength="40" placeholder="Название программы" value="${esc(dr.name)}"></div>
+    <div class="field"><label class="t">Название</label><textarea id="p-name" class="grow" rows="1" placeholder="Название программы" enterkeyhint="next">${esc(dr.name)}</textarea></div>
     <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
       <ul class="ex-list" id="p-list"></ul>
       <div class="ex-add"><textarea id="p-new" class="grow" rows="1" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div>
@@ -1369,6 +1373,8 @@ function progSheet(dId,pId){
     <button class="btn main" id="p-save">Сохранить</button>
     ${isNew?'':'<button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
     const list=el.querySelector('#p-list');
+    const nameEl=el.querySelector('#p-name'); grow(nameEl);
+    nameEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('#p-new').focus()}});
     const liHTML=x=>`<li class="drag-item" data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="x" aria-label="Удалить">×</button></li>`;
     const EMPTY='<div class="ex-empty">Пока пусто — добавь первое дело</div>';
     const isAct=x=>dr.mode!=='once'||!x.doneAt;
@@ -1436,7 +1442,7 @@ function progSheet(dId,pId){
     if(isNew) setTimeout(()=>el.querySelector('#p-name').focus(),320);
     el.querySelector('#p-save').onclick=()=>{
       const nm=el.querySelector('#p-name');
-      dr.name=nm.value.trim(); if(!dr.name){nm.focus();return}
+      dr.name=nm.value.replace(/\s*\n+\s*/g,' ').trim(); if(!dr.name){nm.focus();return}
       if(inp.value.trim()) add();
       if(dr.status==='dates'){
         dr.from=el.querySelector('#p-from').value; dr.to=el.querySelector('#p-to').value;
