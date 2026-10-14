@@ -243,11 +243,12 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
   opacity:0;transition:opacity .25s;display:flex;align-items:flex-end;justify-content:center}
 .overlay.open{opacity:1}
 .overlay.stacked{background:rgba(90,68,102,.1);backdrop-filter:none;-webkit-backdrop-filter:none}
-.sheet{width:100%;max-width:460px;max-height:88vh;overflow:auto;
+.sheet{width:100%;max-width:460px;max-height:min(88vh,100%);overflow:auto;overscroll-behavior:contain;
   background:linear-gradient(180deg,#FCF4F5,#F8F3FA);border-radius:28px 28px 0 0;
   padding:10px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(100%);
   transition:transform .3s cubic-bezier(.2,.9,.3,1);box-shadow:0 -10px 40px rgba(150,100,140,.2)}
 .overlay.open .sheet{transform:none}
+.overlay.kb .sheet{max-height:calc(100% - 12px);padding-bottom:16px}
 .grab{width:40px;height:5px;border-radius:9px;background:var(--soft);margin:0 auto 14px;opacity:.7}
 .sheet h3{font-family:var(--serif);font-style:italic;font-weight:600;font-size:27px;line-height:1.1;margin-bottom:14px;overflow-wrap:anywhere}
 .sheet h3.long{font-family:inherit;font-style:normal;font-size:17px;line-height:1.4;font-weight:600}
@@ -421,7 +422,13 @@ function normalize(s){
   return s;
 }
 function uid(){return Math.random().toString(36).slice(2,9)}
-function grow(t){if(!t)return;t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,window.innerHeight*.4)+'px';t.style.overflowY=t.scrollHeight+2>window.innerHeight*.4?'auto':'hidden'}
+function grow(t){if(!t)return;
+  // запоминаем прокрутку шторки: пока поле на миг сжимается для замера, окно не должно подскакивать
+  const sc=t.closest('.sheet'), st=sc?sc.scrollTop:0, max=window.innerHeight*.4, old=t.offsetHeight;
+  t.style.height='auto'; const sh=t.scrollHeight+2;
+  t.style.height=Math.min(sh,max)+'px'; t.style.overflowY=sh>max?'auto':'hidden';
+  if(sc){sc.scrollTop=st; if(t.offsetHeight>old&&document.activeElement===t) keepVisible(t,false)}
+}
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('textarea.grow'))grow(e.target)});
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function pad(n){return String(n).padStart(2,'0')}
@@ -1167,13 +1174,33 @@ function jarEdit(id,cb){
 }
 
 /* ================= шторки ================= */
+/* ===== клавиатура: шторка всегда в видимой части экрана, фон под ней не ездит ===== */
+const VV=window.visualViewport;
+function fitOverlays(){
+  const os=document.querySelectorAll('.overlay'); if(!os.length) return;
+  const h=VV?VV.height:window.innerHeight, top=VV?VV.offsetTop:0, kb=window.innerHeight-h>120;
+  os.forEach(o=>{o.style.top=top+'px';o.style.height=h+'px';o.style.bottom='auto';o.classList.toggle('kb',kb)});
+}
+if(VV){VV.addEventListener('resize',fitOverlays);VV.addEventListener('scroll',fitOverlays)}
+let lockY=null;
+function lockScroll(){if(lockY!==null)return;lockY=window.scrollY;const b=document.body.style;b.position='fixed';b.top=-lockY+'px';b.left='0';b.right='0'}
+function unlockScroll(){if(lockY===null)return;const b=document.body.style;b.position=b.top=b.left=b.right='';window.scrollTo(0,lockY);lockY=null}
+// прокручиваем только саму шторку — страница и окно Telegram остаются на месте
+function keepVisible(t,smooth=true){
+  const sc=t&&t.closest('.sheet'); if(!sc) return;
+  const box=t.closest('.ex-add')||t, r=box.getBoundingClientRect(), s=sc.getBoundingClientRect(), pad=14;
+  let d=0; if(r.bottom>s.bottom-pad) d=r.bottom-s.bottom+pad; else if(r.top<s.top+pad) d=r.top-s.top-pad;
+  if(d) sc.scrollTo({top:sc.scrollTop+d,behavior:smooth?'smooth':'auto'});
+}
+document.addEventListener('focusin',e=>{const t=e.target;if(t.matches&&t.matches('input,textarea')&&t.closest('.sheet'))setTimeout(()=>{if(document.activeElement===t)keepVisible(t)},350)});
+
 function sheet(title,body,mount,onClose){
   const o=document.createElement('div');o.className='overlay'+(document.querySelector('.overlay')?' stacked':'');
   o.innerHTML=`<div class="sheet" role="dialog"><div class="grab"></div><h3${String(title).replace(/<[^>]*>/g,'').length>70?' class="long"':''}>${title}</h3>${body}</div>`;
-  document.body.appendChild(o);
+  lockScroll(); document.body.appendChild(o); fitOverlays();
   requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.add('open')));
   let closed=false;
-  const close=()=>{if(closed)return;closed=true;o.classList.remove('open');setTimeout(()=>o.remove(),280);onClose&&onClose()};
+  const close=()=>{if(closed)return;closed=true;o.classList.remove('open');setTimeout(()=>{o.remove();if(!document.querySelector('.overlay'))unlockScroll()},280);onClose&&onClose()};
   o.addEventListener('click',e=>{if(e.target===o)close()});
   mount&&mount(o.querySelector('.sheet'),close);
 }
@@ -1399,7 +1426,7 @@ function progSheet(dId,pId){
       setTimeout(()=>{li.style.height=''},240);
       inp.value='';grow(inp);
       if(document.activeElement!==inp) inp.focus({preventScroll:true});
-      setTimeout(()=>inp.scrollIntoView({block:'nearest',behavior:'smooth'}),240);
+      setTimeout(()=>keepVisible(inp),240);
     };
     addBtn.onclick=add;
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});
