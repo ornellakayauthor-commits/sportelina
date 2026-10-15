@@ -93,7 +93,7 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .nodir{color:var(--muted);font-size:13.5px;padding:6px 0 4px}
 .dhead{display:flex;justify-content:space-between;align-items:center;margin:10px 0 2px;padding-top:10px;border-top:1px dashed rgba(200,170,200,.45);font-size:12.5px;font-weight:700;color:var(--muted)}
 .dlist .item{padding:5px 0}
-.jars{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.jars{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:18px}
 .top+.card{margin-top:18px}
 .card+.jars{margin-top:12px}
 .jcard{position:relative;min-height:132px;border-radius:24px;padding:14px 14px 13px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;
@@ -171,7 +171,7 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
   color:var(--acc-text);font-weight:700;background:rgba(255,255,255,.35)}
 
 /* статистика */
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tiles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .tiles .card{padding:16px;margin:0}
 .tile-v{font-family:var(--serif);font-style:italic;font-weight:700;font-size:42px;line-height:1}
 .tile-l{font-size:12.5px;color:var(--muted);margin-top:6px}
@@ -345,6 +345,57 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
 @media (prefers-reduced-motion:reduce){.drop,.spark,.rise{animation:none}}
+
+/* ---------- наклейки «Закреплено» ---------- */
+.stk-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px 16px;padding:14px 6px 6px}
+.stk-grid>.stk:last-child:nth-child(odd){grid-column:1/-1}
+.stk{position:relative;min-width:0;min-height:124px;color:#5A4466;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.stk-bg{position:absolute;left:-8px;top:-8px;overflow:visible;pointer-events:none;
+  filter:drop-shadow(0 4px 8px rgba(140,100,130,.16)) drop-shadow(0 1px 1.5px rgba(140,100,130,.12))}
+.stk-deco{position:absolute;z-index:2;pointer-events:none;overflow:visible;filter:drop-shadow(0 1.5px 1.5px rgba(110,80,100,.18))}
+.d-tl .stk-deco{left:-10px;top:-17px}
+.d-tc .stk-deco{left:50%;top:-30px;transform:translateX(-50%)}
+.d-br .stk-deco{right:-7px;bottom:-7px}
+.stk[class*="d-tc"] .stk-deco[height="22"]{top:-11px}
+.stk-in{position:relative;z-index:1;display:flex;flex-direction:column;min-height:124px;padding:14px 12px 12px 16px}
+.d-tl .stk-in,.d-tc .stk-in{padding-top:22px}
+.stk[data-shape=cloud] .stk-in{padding:18px 16px 14px 20px}
+.stk[data-shape=cloud].d-tl .stk-in,.stk[data-shape=cloud].d-tc .stk-in{padding-top:24px}
+.stk[data-shape=label] .stk-in{padding-left:20px;padding-right:14px}
+.stk-head{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:22px;margin-right:-6px}
+.stk-src{display:flex;align-items:center;gap:7px;min-width:0;font-size:11.5px;font-weight:700;color:color-mix(in srgb,var(--line) 62%,#3E2C44)}
+.stk-src>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stk-src .dot{width:8px;height:8px;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.stk .more{color:color-mix(in srgb,var(--line) 70%,#fff);height:24px}
+.stk-name{flex:1;margin:6px 0 10px;font-weight:600;font-size:15px;line-height:1.35;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto;cursor:pointer}
+.stk-foot{display:flex;align-items:center;min-height:30px}
+.stk .tick{background:rgba(255,255,255,.75);border-color:var(--line)}
+.stk.d-br .stk-name{margin-right:6px}
+.stk.dragging{z-index:5}
+.stk.dragging .stk-bg{filter:drop-shadow(0 14px 22px rgba(140,100,130,.28))}
+.stk.bye{animation:stkbye .36s cubic-bezier(.4,0,.6,1) forwards}
+.stk.bye .tick{background:var(--line)}
+@keyframes stkbye{0%{transform:none}35%{transform:scale(1.05) rotate(-2deg)}100%{transform:scale(.82) rotate(3deg);opacity:0}}
+.pin-done{margin-top:16px}
+.pin-done .dhead{margin-top:6px;border-top:0;padding-top:4px}
+
+/* шторка «Оформление карточки» */
+.lk-prev{padding:18px 18px 22px;display:flex;justify-content:center}
+.lk-prev .stk{width:min(100%,250px)}
+.lk-shapes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.lk-shapes::-webkit-scrollbar{display:none}
+.lk-shapes button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px 8px;border-radius:16px;background:#fff;font-size:11px;font-weight:600;color:var(--muted);box-shadow:inset 0 0 0 1.5px transparent;transition:box-shadow .15s}
+.lk-shapes button svg{overflow:visible}
+.lk-shapes button.on{box-shadow:inset 0 0 0 1.5px var(--acc);color:var(--ink)}
+.lk-cols{display:flex;flex-wrap:wrap;gap:8px}
+.lk-cols button{width:34px;height:34px;border-radius:50%;background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--line);position:relative}
+.lk-cols button::after{content:'';position:absolute;inset:6px;border-radius:50%;border:1.3px dashed var(--line);opacity:.8}
+.lk-cols button.on{box-shadow:inset 0 0 0 1.5px var(--line),0 0 0 2px #fff,0 0 0 4px var(--line)}
+.lk-decos{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px}
+.lk-decos button{aspect-ratio:1;border-radius:16px;background:var(--bg,#fff);display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px transparent;transition:box-shadow .15s}
+.lk-decos button.none{background:#fff;font-size:12px;font-weight:700;color:var(--muted)}
+.lk-decos button.on{box-shadow:inset 0 0 0 1.5px var(--acc)}
+.lk-d{max-width:42px;max-height:42px;width:auto;height:auto;overflow:visible}
 </style>
 </head>
 <body>
@@ -680,12 +731,12 @@ function toggleItem(id){
 function isFolded(k){return !!(state.fold&&state.fold[k])}
 function setFold(k){state.fold=state.fold||{};if(state.fold[k])delete state.fold[k];else state.fold[k]=1;save();return !!state.fold[k]}
 function flip(fn){
-  const was={};document.querySelectorAll('.item[data-id]').forEach(e=>was[e.dataset.id]=e.getBoundingClientRect().top);
+  const sel='.item[data-id],.stk[data-id]',was={};document.querySelectorAll(sel).forEach(e=>{const r=e.getBoundingClientRect();was[e.dataset.id]=[r.left,r.top]});
   fn();
-  document.querySelectorAll('.item[data-id]').forEach(e=>{
-    const t=was[e.dataset.id]; if(t==null) return;
-    const dy=t-e.getBoundingClientRect().top; if(Math.abs(dy)<1) return;
-    e.style.transition='none'; e.style.transform=`translateY(${dy}px)`;
+  document.querySelectorAll(sel).forEach(e=>{
+    const t=was[e.dataset.id]; if(t==null) return; const r=e.getBoundingClientRect();
+    const dx=t[0]-r.left, dy=t[1]-r.top; if(Math.abs(dy)<1&&Math.abs(dx)<1) return;
+    e.style.transition='none'; e.style.transform=`translate(${dx}px,${dy}px)`;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{e.style.transition='transform .38s cubic-bezier(.2,.9,.3,1)';e.style.transform='';setTimeout(()=>{e.style.transition=''},420)}));
   });
 }
@@ -824,7 +875,7 @@ function renderHome(){
     return g;
   };
   const dg=build('day',day), wg=build('week',w), pg=build('pin',state.pins);
-  if(pg.length) h+=`<div class="sec-title">Закреплено</div><div class="card">${pg.join('')}</div>`;
+  h+=pinsHTML();
   if(!dg.length&&!wg.length&&!pg.length){
     h+=`<div class="sec-title">Сегодня</div><div class="card"><div class="hint-empty">Пока здесь пусто.<br>Заведи направления и программы во вкладке «Программы» — и план соберётся сам.</div></div>`;
   }
@@ -859,6 +910,268 @@ function groupHTML(d,items,w,kind,own){
     } else body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
   }
   return `<div class="group" style="--c:${color}">${head}${body}</div>`;
+}
+
+
+/* ================= наклейки: закреплённое на главном ================= */
+const STK_PAL=[
+  {k:'pink',  n:'Розовая',  bg:'#FDE7EF',line:'#E39AB3',mid:'#F5B6CA'},
+  {k:'cream', n:'Сливочная',bg:'#FFF3E2',line:'#B48D69',mid:'#E8C7A2'},
+  {k:'lilac', n:'Лавандовая',bg:'#EFE6FA',line:'#A68ED8',mid:'#C8B4EE'},
+  {k:'sky',   n:'Небесная', bg:'#E5EFFB',line:'#82A5D8',mid:'#AFC8EE'},
+  {k:'butter',n:'Лимонная', bg:'#FFF6D3',line:'#D8B44E',mid:'#F4D77F'},
+  {k:'sage',  n:'Шалфей',   bg:'#E8F2DF',line:'#8AB076',mid:'#B4D2A2'},
+  {k:'peach', n:'Персик',   bg:'#FFE9DE',line:'#E29B7D',mid:'#F5C0A7'},
+  {k:'mint',  n:'Мятная',   bg:'#DFF3EF',line:'#6DB2A1',mid:'#A5D7CB'}
+];
+const STK_SHAPES=[['soft','Мягкая'],['scallop','Фестон'],['cloud','Облачко'],['label','Этикетка'],['wave','Волна']];
+const STK_O='#6F5561';
+const so=(w)=>`stroke="${STK_O}" stroke-width="${w||1.4}" stroke-linejoin="round" stroke-linecap="round"`;
+const heartP=(cx,cy,s)=>`M${cx} ${f1(cy+3*s)}C${cx} ${f1(cy-1*s)} ${f1(cx-6*s)} ${f1(cy-1*s)} ${f1(cx-6*s)} ${f1(cy+3*s)}C${f1(cx-6*s)} ${f1(cy+6*s)} ${f1(cx-2*s)} ${f1(cy+8*s)} ${cx} ${f1(cy+10*s)}C${f1(cx+2*s)} ${f1(cy+8*s)} ${f1(cx+6*s)} ${f1(cy+6*s)} ${f1(cx+6*s)} ${f1(cy+3*s)}C${f1(cx+6*s)} ${f1(cy-1*s)} ${cx} ${f1(cy-1*s)} ${cx} ${f1(cy+3*s)}Z`;
+const spark4=(cx,cy,r)=>{const k=r*.2;return `M${cx} ${cy-r}Q${f1(cx+k)} ${f1(cy-k)} ${cx+r} ${cy}Q${f1(cx+k)} ${f1(cy+k)} ${cx} ${cy+r}Q${f1(cx-k)} ${f1(cy+k)} ${cx-r} ${cy}Q${f1(cx-k)} ${f1(cy-k)} ${cx} ${cy-r}Z`};
+const star5=(cx,cy,R,r)=>{let d='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,q=i%2?r:R;d+=(i?'L':'M')+f1(cx+q*Math.cos(a))+' '+f1(cy+q*Math.sin(a))}return d+'Z'};
+const petals=(cx,cy,rr,pr,fill)=>[0,1,2,3,4].map(i=>{const a=-Math.PI/2+i*2*Math.PI/5;return `<circle cx="${f1(cx+rr*Math.cos(a))}" cy="${f1(cy+rr*Math.sin(a))}" r="${pr}" fill="${fill}" ${so(1.2)}/>`}).join('');
+const leafP=(x,y,len,ang,wd)=>{const a=ang*Math.PI/180,c=Math.cos(a),s=Math.sin(a),ex=x+len*c,ey=y+len*s,mx=x+len*.5*c,my=y+len*.5*s,w=wd||len*.32;
+  return `M${f1(x)} ${f1(y)}Q${f1(mx-w*s)} ${f1(my+w*c)} ${f1(ex)} ${f1(ey)}Q${f1(mx+w*s)} ${f1(my-w*c)} ${f1(x)} ${f1(y)}Z`};
+const tapeShape='M2 3L62 3L60 7L62 11L60 15L62 19L2 19L4 15L2 11L4 7Z';
+// украшения: pos — где сидит на карточке; w,h — размер в px
+const DECO={
+  bow:{n:'Бантик',pos:'tl',w:48,h:38,svg:P=>`<g transform="rotate(-14 24 18)">
+    <path d="M22 18L15 32L19.5 30.5L21.5 34L24.5 19Z" fill="${P.mid}" ${so()}/><path d="M26 18L33 32L28.5 30.5L26.5 34L23.5 19Z" fill="${P.mid}" ${so()}/>
+    <path d="M24 16C18 5 6 4 5 12C4 21 15 23 24 18Z" fill="${P.mid}" ${so()}/><path d="M24 16C30 5 42 4 43 12C44 21 33 23 24 18Z" fill="${P.mid}" ${so()}/>
+    <path d="M10 12.5C14 13 18 14.5 21 16.5M38 12.5C34 13 30 14.5 27 16.5" fill="none" ${so(1.1)} opacity=".45"/>
+    <rect x="20.5" y="13" width="7" height="8" rx="3.2" fill="${P.line}" ${so()}/></g>`},
+  bear:{n:'Мишка',pos:'tc',w:50,h:42,svg:()=>`
+    <circle cx="13" cy="9.5" r="5.6" fill="#C9966A" ${so()}/><circle cx="37" cy="9.5" r="5.6" fill="#C9966A" ${so()}/>
+    <circle cx="13" cy="9.5" r="2.8" fill="#EDC6A0"/><circle cx="37" cy="9.5" r="2.8" fill="#EDC6A0"/>
+    <ellipse cx="25" cy="21" rx="14.5" ry="13" fill="#C9966A" ${so()}/>
+    <ellipse cx="25" cy="25.5" rx="6.2" ry="4.6" fill="#F2DAC1"/>
+    <ellipse cx="25" cy="23.6" rx="2.1" ry="1.5" fill="#5A3F3A"/><path d="M25 25.1v1.4M23.2 26.8q1.8 1.3 3.6 0" fill="none" stroke="#5A3F3A" stroke-width="1.1" stroke-linecap="round"/>
+    <circle cx="19" cy="19.5" r="1.5" fill="#4A3333"/><circle cx="31" cy="19.5" r="1.5" fill="#4A3333"/>
+    <ellipse cx="15.5" cy="24.5" rx="2.4" ry="1.4" fill="#F2A3A3" opacity=".85"/><ellipse cx="34.5" cy="24.5" rx="2.4" ry="1.4" fill="#F2A3A3" opacity=".85"/>
+    <ellipse cx="14" cy="35" rx="5.4" ry="4.2" fill="#C9966A" ${so()}/><ellipse cx="36" cy="35" rx="5.4" ry="4.2" fill="#C9966A" ${so()}/>
+    <path d="M12.3 32.5v2M15.7 32.5v2M34.3 32.5v2M37.7 32.5v2" ${so(1)} opacity=".55"/>`},
+  tapeCheck:{n:'Скотч в клетку',pos:'tl',w:64,h:22,svg:(P,u)=>`<g transform="rotate(-9 32 11)"><clipPath id="tc${u}"><path d="${tapeShape}"/></clipPath>
+    <path d="${tapeShape}" fill="${P.mid}" opacity=".95"/>
+    <g clip-path="url(#tc${u})" fill="#fff" opacity=".42">${[3,11,19,27,35,43,51,59].map(x=>`<rect x="${x}" y="0" width="4" height="22"/>`).join('')}<rect x="0" y="6" width="64" height="4"/><rect x="0" y="14" width="64" height="4"/></g>
+    <path d="${tapeShape}" fill="none" stroke="${P.line}" stroke-width=".9" opacity=".6"/></g>`},
+  tapeDots:{n:'Скотч в горошек',pos:'tc',w:64,h:22,svg:(P,u)=>`<clipPath id="td${u}"><path d="${tapeShape}"/></clipPath>
+    <path d="${tapeShape}" fill="${P.mid}"/>
+    <g clip-path="url(#td${u})" fill="#fff" opacity=".8">${[5,15,25,35,45,55].map((x,i)=>`<circle cx="${x}" cy="7.5" r="1.6"/><circle cx="${x+5}" cy="14.5" r="1.6"/>`).join('')}</g>
+    <path d="${tapeShape}" fill="none" stroke="${P.line}" stroke-width=".9" opacity=".6"/>`},
+  clip:{n:'Скрепка',pos:'tl',w:28,h:50,svg:P=>`
+    <path d="M10 33V13C10 8 18 8 18 13V37C18 44 7 44 7 37V16" fill="none" stroke="${P.line}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="${heartP(14,1.5,1.25)}" fill="#F28CA8" ${so(1.2)}/>`},
+  cloud:{n:'Облачко',pos:'br',w:48,h:34,svg:()=>`
+    <path d="M11 29C4 29 3 20 9.5 19C9 11 18 8 22 14C25 6 37 7 37 16C44 16 45 28 37 29Z" fill="#fff" ${so()}/>
+    <circle cx="19" cy="21.5" r="1.4" fill="#4A3B4F"/><circle cx="29" cy="21.5" r="1.4" fill="#4A3B4F"/>
+    <path d="M22.5 24q1.5 1.4 3 0" fill="none" stroke="#4A3B4F" stroke-width="1.1" stroke-linecap="round"/>
+    <ellipse cx="15.5" cy="24.3" rx="2.2" ry="1.3" fill="#F5AFC2"/><ellipse cx="32.5" cy="24.3" rx="2.2" ry="1.3" fill="#F5AFC2"/>`},
+  tulip:{n:'Тюльпан',pos:'br',w:34,h:48,svg:()=>`
+    <path d="M17 25C17 33 17 40 16 47" fill="none" stroke="#6F9C5C" stroke-width="2" stroke-linecap="round"/>
+    <path d="${leafP(16.5,44,16,-125,4.5)}" fill="#97C383" ${so(1.2)}/><path d="${leafP(16.8,40,14,-55,4)}" fill="#97C383" ${so(1.2)}/>
+    <path d="M8.5 9C8 20 11 26 17 26C23 26 26 20 25.5 9L21.3 13.5L17 6.5L12.7 13.5Z" fill="#F4A3BA" ${so()}/>
+    <path d="M12.7 13.5C13.2 19 15 22 17 23.5" fill="none" ${so(1)} opacity=".45"/>`},
+  flower:{n:'Цветочек',pos:'br',w:38,h:46,svg:P=>`
+    <path d="M19 22C19 31 18 38 16 45" fill="none" stroke="#6F9C5C" stroke-width="2" stroke-linecap="round"/>
+    <path d="${leafP(17.6,37,13,-150,4.5)}" fill="#97C383" ${so(1.2)}/>
+    ${petals(19,16,6.6,5.6,P.mid)}<circle cx="19" cy="16" r="3.6" fill="#FFD56E" ${so(1.2)}/>`},
+  forget:{n:'Незабудки',pos:'br',w:46,h:46,svg:()=>`
+    <path d="M14 21C15 30 17 38 19 45M31 28C29 35 25 41 21 45" fill="none" stroke="#6F9C5C" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="${leafP(17,38,11,-140,3.6)}" fill="#97C383" ${so(1.1)}/>
+    ${petals(14,15,4.6,4,'#A9C6EF')}<circle cx="14" cy="15" r="2.3" fill="#FFD56E"/>
+    ${petals(31,23,4.6,4,'#A9C6EF')}<circle cx="31" cy="23" r="2.3" fill="#FFD56E"/>`},
+  sprig:{n:'Веточка',pos:'br',w:42,h:46,svg:()=>`
+    <path d="M33 45C28 33 21 21 9 7" fill="none" stroke="#6F9C5C" stroke-width="1.8" stroke-linecap="round"/>
+    ${[[11,9.5,-135],[16,15,-175],[16.5,15.5,-80],[22,22.5,-170],[22.6,23,-70],[27.5,31,-160],[28,31.5,-60]].map(([x,y,a])=>`<path d="${leafP(x,y,11,a,4)}" fill="#97C383" ${so(1.1)}/>`).join('')}`},
+  strawberry:{n:'Клубничка',pos:'br',w:38,h:44,svg:()=>`
+    <path d="M19 12C29 12 32 20 30 28C28 35 22 40 19 41C16 40 10 35 8 28C6 20 9 12 19 12Z" fill="#F2838D" ${so()}/>
+    ${[[14,20],[22,19],[18,25],[12,28],[25,27],[16,33],[22,33]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx=".9" ry="1.4" fill="#FFE6A6"/>`).join('')}
+    <path d="M19 14L13.5 9.5L17.6 10.6L19 5.5L20.4 10.6L24.5 9.5Z" fill="#8CBF75" ${so(1.1)}/>
+    <path d="M12 18C11 21 11 23 11.5 25" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>`},
+  plant:{n:'Росток в горшке',pos:'br',w:40,h:46,svg:()=>`
+    <path d="${leafP(20,25,17,-90,5.5)}" fill="#8CBF75" ${so(1.2)}/><path d="${leafP(19,26,15,-140,5)}" fill="#9CCA86" ${so(1.2)}/>
+    <path d="${leafP(21,26,15,-40,5)}" fill="#9CCA86" ${so(1.2)}/><path d="${leafP(18,27,12,-170,4)}" fill="#8CBF75" ${so(1.2)}/><path d="${leafP(22,27,12,-10,4)}" fill="#8CBF75" ${so(1.2)}/>
+    <path d="M9 30L31 30L28 45L12 45Z" fill="#EBC8A1" ${so()}/><rect x="7" y="26.5" width="26" height="5.5" rx="2" fill="#E3B88E" ${so()}/>
+    <path d="${heartP(20,34.5,.55)}" fill="#D48E73"/>`},
+  bunny:{n:'Зайчик',pos:'br',w:42,h:48,svg:()=>`
+    <ellipse cx="14.5" cy="11" rx="4.6" ry="10" transform="rotate(-10 14.5 11)" fill="#fff" ${so()}/><ellipse cx="14.5" cy="11.5" rx="2" ry="6.4" transform="rotate(-10 14.5 11.5)" fill="#F7BACA"/>
+    <ellipse cx="27" cy="10.5" rx="4.6" ry="10" transform="rotate(12 27 10.5)" fill="#fff" ${so()}/><ellipse cx="27" cy="11" rx="2" ry="6.4" transform="rotate(12 27 11)" fill="#F7BACA"/>
+    <ellipse cx="21" cy="30" rx="14.5" ry="12" fill="#fff" ${so()}/>
+    <circle cx="16" cy="29" r="1.5" fill="#4A3B4F"/><circle cx="26" cy="29" r="1.5" fill="#4A3B4F"/>
+    <path d="M20 31.3h2l-1 1.1z" fill="#E98DA5"/><path d="M19.2 33.4q1.8 1.3 3.6 0" fill="none" stroke="#4A3B4F" stroke-width="1" stroke-linecap="round"/>
+    <ellipse cx="12.6" cy="32.4" rx="2.3" ry="1.4" fill="#F7B1C3"/><ellipse cx="29.4" cy="32.4" rx="2.3" ry="1.4" fill="#F7B1C3"/>
+    <ellipse cx="13" cy="42.5" rx="4.6" ry="3.6" fill="#fff" ${so()}/><ellipse cx="29" cy="42.5" rx="4.6" ry="3.6" fill="#fff" ${so()}/>`},
+  hearts:{n:'Сердечки',pos:'br',w:36,h:34,svg:P=>`<path d="${heartP(24,7,1.45)}" fill="${P.mid}" ${so(1.2)}/><path d="${heartP(11,18,1.05)}" fill="${P.line}" ${so(1.1)}/>`},
+  sparkles:{n:'Искорки',pos:'br',w:36,h:40,svg:()=>`<path d="${spark4(22,26,11)}" fill="#F7CF60" stroke="#D5A43D" stroke-width="1.2" stroke-linejoin="round"/><path d="${spark4(9,10,6.5)}" fill="#F7CF60" stroke="#D5A43D" stroke-width="1.1" stroke-linejoin="round"/>`},
+  star:{n:'Звёздочка',pos:'br',w:44,h:42,svg:()=>`<path d="${star5(25,25,14,6.6)}" fill="#F7D36B" stroke="#D5A43D" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="${spark4(7,15,4.5)}" fill="#F7CF60"/><path d="${spark4(11,4.8,3)}" fill="#F7CF60"/>
+    <circle cx="21" cy="25" r="1.1" fill="#6F5561"/><circle cx="29" cy="25" r="1.1" fill="#6F5561"/><path d="M23.6 27.6q1.4 1.2 2.8 0" fill="none" stroke="#6F5561" stroke-width="1" stroke-linecap="round"/>`},
+  moon:{n:'Месяц',pos:'br',w:38,h:40,svg:()=>`
+    <path d="M27 5C15 5 7 13 7 23C7 33 16 39 27 36C19 33 14 27 14 20C14 13 19 8 27 5Z" fill="#F6D06B" stroke="#D3A43C" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M14.5 21.5q2 1.8 4 0" fill="none" stroke="#6F5561" stroke-width="1.2" stroke-linecap="round"/>
+    <ellipse cx="15" cy="25.8" rx="2" ry="1.2" fill="#F3A69B" opacity=".8"/>
+    <path d="${spark4(32,12,3.5)}" fill="#F7CF60"/>`}
+};
+const DECO_KEYS=Object.keys(DECO);
+function hashStr(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function lookOf(it){
+  const L=it.look||{}, h=hashStr(it.id);
+  return {s:L.s||STK_SHAPES[h%STK_SHAPES.length][0], c:L.c||STK_PAL[(h>>>4)%STK_PAL.length].k, d:L.d||DECO_KEYS[(h>>>9)%DECO_KEYS.length]};
+}
+const palOf=k=>STK_PAL.find(p=>p.k===k)||STK_PAL[0];
+
+/* геометрия форм */
+function rrPerim(x,y,w,h,r){
+  r=Math.max(0,Math.min(r,w/2,h/2)); const sw=w-2*r, sh=h-2*r, q=Math.PI*r/2;
+  const S=[{l:sw,f:t=>[x+r+t,y,0,-1]},{l:q,f:t=>{const a=-Math.PI/2+t/r;return [x+w-r+r*Math.cos(a),y+r+r*Math.sin(a),Math.cos(a),Math.sin(a)]}},
+    {l:sh,f:t=>[x+w,y+r+t,1,0]},{l:q,f:t=>{const a=t/r;return [x+w-r+r*Math.cos(a),y+h-r+r*Math.sin(a),Math.cos(a),Math.sin(a)]}},
+    {l:sw,f:t=>[x+w-r-t,y+h,0,1]},{l:q,f:t=>{const a=Math.PI/2+t/r;return [x+r+r*Math.cos(a),y+h-r+r*Math.sin(a),Math.cos(a),Math.sin(a)]}},
+    {l:sh,f:t=>[x,y+h-r-t,-1,0]},{l:q,f:t=>{const a=Math.PI+t/r;return [x+r+r*Math.cos(a),y+r+r*Math.sin(a),Math.cos(a),Math.sin(a)]}}];
+  const L=S.reduce((a,s)=>a+s.l,0);
+  return {L,at:s=>{s=((s%L)+L)%L;for(const g of S){if(s<=g.l||g===S[S.length-1])return g.f(Math.min(s,g.l));s-=g.l}}};
+}
+function rrPath(x,y,w,h,r){r=Math.min(r,w/2,h/2);return `M${f1(x+r)} ${f1(y)}H${f1(x+w-r)}A${f1(r)} ${f1(r)} 0 0 1 ${f1(x+w)} ${f1(y+r)}V${f1(y+h-r)}A${f1(r)} ${f1(r)} 0 0 1 ${f1(x+w-r)} ${f1(y+h)}H${f1(x+r)}A${f1(r)} ${f1(r)} 0 0 1 ${f1(x)} ${f1(y+h-r)}V${f1(y+r)}A${f1(r)} ${f1(r)} 0 0 1 ${f1(x+r)} ${f1(y)}Z`}
+function bumpPath(x,y,w,h,r,step,amp){
+  const P=rrPerim(x,y,w,h,r), n=Math.max(6,Math.round(P.L/step)), pts=[];
+  for(let k=0;k<n;k++) pts.push(P.at(k*P.L/n));
+  let d=`M${f1(pts[0][0])} ${f1(pts[0][1])}`;
+  for(let k=0;k<n;k++){const a=pts[k],b=pts[(k+1)%n];d+=`C${f1(a[0]+a[2]*amp)} ${f1(a[1]+a[3]*amp)} ${f1(b[0]+b[2]*amp)} ${f1(b[1]+b[3]*amp)} ${f1(b[0])} ${f1(b[1])}`}
+  return d+'Z';
+}
+function wavePath(x,y,w,h,r,per,amp){
+  const P=rrPerim(x,y,w,h,r), n=Math.max(4,Math.round(P.L/per)), m=Math.ceil(P.L/2.5); let d='';
+  for(let k=0;k<m;k++){const s=k*P.L/m,p=P.at(s),o=amp*Math.sin(2*Math.PI*n*s/P.L);d+=(k?'L':'M')+f1(p[0]+p[2]*o)+' '+f1(p[1]+p[3]*o)}
+  return d+'Z';
+}
+function labelPath(x,y,w,h,c,p,q){
+  const X=x+w,Y=y+h;
+  return `M${f1(x+q+c)} ${f1(y+p)}C${f1(x+w*.3)} ${f1(y+p)} ${f1(x+w*.38)} ${f1(y)} ${f1(x+w/2)} ${f1(y)}C${f1(x+w*.62)} ${f1(y)} ${f1(x+w*.7)} ${f1(y+p)} ${f1(X-q-c)} ${f1(y+p)}`
+   +`A${c} ${c} 0 0 0 ${f1(X-q)} ${f1(y+p+c)}C${f1(X-q)} ${f1(y+h*.36)} ${f1(X)} ${f1(y+h*.38)} ${f1(X)} ${f1(y+h/2)}C${f1(X)} ${f1(y+h*.62)} ${f1(X-q)} ${f1(y+h*.64)} ${f1(X-q)} ${f1(Y-p-c)}`
+   +`A${c} ${c} 0 0 0 ${f1(X-q-c)} ${f1(Y-p)}C${f1(x+w*.7)} ${f1(Y-p)} ${f1(x+w*.62)} ${f1(Y)} ${f1(x+w/2)} ${f1(Y)}C${f1(x+w*.38)} ${f1(Y)} ${f1(x+w*.3)} ${f1(Y-p)} ${f1(x+q+c)} ${f1(Y-p)}`
+   +`A${c} ${c} 0 0 0 ${f1(x+q)} ${f1(Y-p-c)}C${f1(x+q)} ${f1(y+h*.64)} ${f1(x)} ${f1(y+h*.62)} ${f1(x)} ${f1(y+h/2)}C${f1(x)} ${f1(y+h*.38)} ${f1(x+q)} ${f1(y+h*.36)} ${f1(x+q)} ${f1(y+p+c)}`
+   +`A${c} ${c} 0 0 0 ${f1(x+q+c)} ${f1(y+p)}Z`;
+}
+// in — отступ внутрь (0 — край карточки, ~7 — пунктирная строчка)
+function stkShape(s,x,y,w,h,inn){
+  const i=inn||0, X=x+i, Y=y+i, W=w-2*i, H=h-2*i;
+  if(s==='scallop') return bumpPath(X+3.5,Y+3.5,W-7,H-7,Math.max(6,16-i),i?11.5:13,i?3.6:4.6);
+  if(s==='cloud')   return bumpPath(X+7,Y+7,W-14,H-14,Math.max(8,18-i),i?30:34,i?8:9.5);
+  if(s==='wave')    return wavePath(X+2.2,Y+2.2,W-4.4,H-4.4,Math.max(8,16-i),24,i?1.6:2);
+  if(s==='label')   return labelPath(X,Y,W,H,i?10:15,i?5:8,i?4:6);
+  return rrPath(X,Y,W,H,Math.max(8,22-i*.85));
+}
+function stkSVG(s,P,w,h,m){
+  const inn=Math.min(7.5,Math.min(w,h)*.09);
+  return `<path d="${stkShape(s,m,m,w,h,0)}" fill="#fff" stroke="#fff" stroke-width="9" stroke-linejoin="round"/>
+    <path d="${stkShape(s,m,m,w,h,0)}" fill="${P.bg}"/>
+    <path d="${stkShape(s,m,m,w,h,inn)}" fill="none" stroke="${P.line}" stroke-width="1.5" stroke-dasharray="4.5 3.6" stroke-linecap="round" opacity=".95"/>`;
+}
+let stkN=0;
+function decoSVG(key,P,cls){const D=DECO[key];if(!D)return '';const u=(++stkN).toString(36);
+  return `<svg class="${cls||'stk-deco'}" width="${D.w}" height="${D.h}" viewBox="0 0 ${D.w} ${D.h}" aria-hidden="true">${D.svg(P,u)}</svg>`}
+function pinSrc(it){const j=it.jar&&jarById(it.jar);if(j)return {name:j.name,color:j.color};const d=it.dir&&dirById(it.dir);return d?{name:d.name,color:d.color}:null}
+function stickerHTML(it,preview){
+  const L=lookOf(it), P=palOf(L.c), D=DECO[L.d], src=pinSrc(it), a=preview?'':` data-a="toggle" data-id="${it.id}"`;
+  return `<div class="stk${preview?' prev':' drag-item'}${D?' d-'+D.pos:''}"${preview?'':` data-id="${it.id}"`} data-shape="${L.s}" data-c="${L.c}" style="--bg:${P.bg};--line:${P.line};--c:${P.line}">
+    <svg class="stk-bg" aria-hidden="true"></svg>${D?decoSVG(L.d,P):''}
+    <div class="stk-in">
+      <div class="stk-head">${src?`<span class="stk-src">${dot(src.color)}<span>${esc(src.name)}</span></span>`:'<span></span>'}
+        ${preview?'':`<button class="more" data-a="menu" data-id="${it.id}" aria-label="Ещё">●●●</button>`}</div>
+      <div class="stk-name"${a}>${esc(it.name)}</div>
+      <div class="stk-foot"><button class="tick"${a} aria-label="Отметить" tabindex="${preview?-1:0}"></button></div>
+    </div></div>`;
+}
+const STK_M=8;
+function paintStk(el){
+  const w=el.offsetWidth, h=el.offsetHeight; if(!w||!h) return;
+  const svg=el.querySelector(':scope>.stk-bg'); if(!svg) return;
+  const key=w+'x'+h+el.dataset.shape+el.dataset.c;
+  if(svg.__k===key&&svg.childElementCount) return;
+  svg.__k=key;
+  const m=STK_M; svg.setAttribute('viewBox',`0 0 ${w+2*m} ${h+2*m}`);svg.setAttribute('width',w+2*m);svg.setAttribute('height',h+2*m);
+  svg.innerHTML=stkSVG(el.dataset.shape,palOf(el.dataset.c),w,h,m);
+}
+const stkRO=('ResizeObserver' in window)?new ResizeObserver(es=>es.forEach(e=>paintStk(e.target))):null;
+function paintStickers(root){(root||document).querySelectorAll('.stk').forEach(el=>{paintStk(el);if(stkRO&&!el.__ro){el.__ro=1;stkRO.observe(el)}})}
+function pinsHTML(){
+  const items=state.pins.items.filter(i=>!i.hidden), und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
+  if(!items.length) return '';
+  let h=`<div class="sec-title">Закреплено</div>`;
+  if(und.length) h+=`<div class="stk-grid">${und.map(i=>stickerHTML(i)).join('')}</div>`;
+  if(dn.length){
+    const fk='pin:all', fo=isFolded(fk)?' folded':'';
+    h+=`<div class="card pin-done" style="--c:${ONE_COLOR}"><div class="dhead${fo}"><button class="dtoggle" data-a="fold" data-k="${fk}" aria-label="Свернуть или развернуть"><span class="chev-s">▾</span>Выполнено · ${dn.length}</button><button class="link" data-a="clearDone" data-k="pin" data-d="*">Очистить</button></div><div class="dwrap${fo}"><div class="dlist">${dn.map(i=>{const s=pinSrc(i);return `<div class="item done" data-id="${i.id}" style="--c:${s?s.color:ONE_COLOR}">
+      <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
+      <span class="iname" data-a="toggle" data-id="${i.id}">${esc(i.name)}</span>
+      <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`}).join('')}</div></div></div>`;
+  }
+  return h;
+}
+function lookSheet(id){
+  const f=findItem(id); if(!f) return; const it=f.it;
+  const cur=lookOf(it);
+  const shapeBtn=([k,n])=>`<button type="button" data-s="${k}" aria-label="${n}"><svg viewBox="0 0 156 108" width="60" height="42" aria-hidden="true"></svg><span>${n}</span></button>`;
+  sheet('Оформление карточки',`
+    <div class="lk-prev"></div>
+    <div class="field"><label class="t">Форма</label><div class="lk-shapes">${STK_SHAPES.map(shapeBtn).join('')}</div></div>
+    <div class="field"><label class="t">Цвет</label><div class="lk-cols">${STK_PAL.map(p=>`<button type="button" data-c="${p.k}" style="--bg:${p.bg};--line:${p.line}" aria-label="${p.n}"></button>`).join('')}</div></div>
+    <div class="field"><label class="t">Украшение</label><div class="lk-decos"><button type="button" data-d="none" class="none"><span>Без</span></button>${DECO_KEYS.map(k=>`<button type="button" data-d="${k}" aria-label="${DECO[k].n}"></button>`).join('')}</div></div>
+    <button class="btn soft" id="lk-rnd">Перемешать</button>
+    <button class="btn main" id="lk-ok">Готово</button>`,(el,close)=>{
+    const L={...cur};
+    const draw=()=>{
+      const P=palOf(L.c), tmp={...it,look:L};
+      el.querySelector('.lk-prev').innerHTML=stickerHTML(tmp,true);
+      requestAnimationFrame(()=>paintStickers(el.querySelector('.lk-prev')));
+      el.querySelectorAll('.lk-shapes button').forEach(b=>{b.classList.toggle('on',b.dataset.s===L.s);b.querySelector('svg').innerHTML=stkSVG(b.dataset.s,P,140,92,8)});
+      el.querySelectorAll('.lk-cols button').forEach(b=>b.classList.toggle('on',b.dataset.c===L.c));
+      el.querySelectorAll('.lk-decos button').forEach(b=>{b.classList.toggle('on',b.dataset.d===L.d);if(b.dataset.d!=='none'){b.style.setProperty('--bg',P.bg);b.innerHTML=decoSVG(b.dataset.d,P,'lk-d')}});
+    };
+    const apply=()=>{it.look={...L};save();draw();render()};
+    el.querySelectorAll('.lk-shapes button').forEach(b=>b.onclick=()=>{L.s=b.dataset.s;haptic('light');apply()});
+    el.querySelectorAll('.lk-cols button').forEach(b=>b.onclick=()=>{L.c=b.dataset.c;haptic('light');apply()});
+    el.querySelectorAll('.lk-decos button').forEach(b=>b.onclick=()=>{L.d=b.dataset.d;haptic('light');apply()});
+    el.querySelector('#lk-rnd').onclick=()=>{const r=n=>Math.floor(Math.random()*n);
+      let n;do{n={s:STK_SHAPES[r(STK_SHAPES.length)][0],c:STK_PAL[r(STK_PAL.length)].k,d:DECO_KEYS[r(DECO_KEYS.length)]}}while(n.s===L.s&&n.c===L.c&&n.d===L.d);
+      Object.assign(L,n);haptic('light');apply()};
+    el.querySelector('#lk-ok').onclick=close;
+    draw();
+  });
+}
+function sortableGrid(box,itemSel,done){
+  if(!box||box.__sortable) return; box.__sortable=1;
+  box.addEventListener('pointerdown',e=>{
+    if(e.button>0||e.target.closest('.tick,.more')) return;
+    const item=e.target.closest(itemSel); if(!item||item.parentElement!==box) return;
+    const items=()=>[...box.children].filter(x=>x.matches(itemSel));
+    if(items().length<2) return;
+    const sx=e.clientX, sy=e.clientY; let started=false, timer, bx=sx, by=sy;
+    const cleanup=()=>{clearTimeout(timer);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',cancel)};
+    const start=()=>{started=true;dragActive=true;item.classList.add('dragging');haptic('medium')};
+    const place=ev=>{item.style.transform=`translate(${ev.clientX-bx}px,${ev.clientY-by}px)`};
+    const move=ev=>{
+      if(!started){if(Math.abs(ev.clientX-sx)>8||Math.abs(ev.clientY-sy)>8)cleanup();return}
+      ev.preventDefault(); place(ev);
+      const list=items(), i=list.indexOf(item);
+      const tg=list.find(x=>{if(x===item)return false;const r=x.getBoundingClientRect();return ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom});
+      if(!tg) return;
+      const l0=item.offsetLeft, t0=item.offsetTop;
+      box.insertBefore(item,list.indexOf(tg)<i?tg:tg.nextSibling);
+      bx+=item.offsetLeft-l0; by+=item.offsetTop-t0; place(ev); haptic('light');
+    };
+    const finish=()=>{
+      cleanup(); if(!started) return;
+      dragActive=false; dragBlockUntil=Date.now()+400;
+      item.classList.add('drag-anim'); item.style.transform='';
+      setTimeout(()=>{item.classList.remove('dragging','drag-anim');done(items().map(x=>x.dataset.id))},190);
+    };
+    const up=()=>finish(), cancel=()=>{if(started)finish();else cleanup()};
+    timer=setTimeout(start,380);
+    window.addEventListener('pointermove',move,{passive:false});
+    window.addEventListener('pointerup',up);
+    window.addEventListener('pointercancel',cancel);
+  });
 }
 
 /* ================= экран «Статистика» ================= */
@@ -1227,7 +1540,9 @@ function itemMenu(id){
     : `<button class="opt" id="o-move"><span>Перенести на следующую неделю<small>Без пометок, просто переедет</small></span></button>
        <button class="opt" id="o-rep"><span>Заменить<small>На другое занятие или своё</small></span></button>
        <button class="opt" id="o-del"><span>Убрать из плана</span></button>`;
-  sheet(esc(it.name),`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
+  const look=f.kind==='pin'&&!it.done?`<button class="opt" id="o-look"><span>Оформление карточки<small>Форма, цвет и украшение</small></span></button>`:'';
+  sheet(esc(it.name),look+`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
+    const lk=el.querySelector('#o-look'); if(lk) lk.onclick=()=>{close();setTimeout(()=>lookSheet(id),280)};
     const mv=el.querySelector('#o-move'), rp=el.querySelector('#o-rep');
     if(mv) mv.onclick=()=>{L.items=L.items.filter(i=>i!==it);state.carry.push({dir:it.dir,name:it.name,prog:it.prog});save();close();render();toast('Переедет на следующую неделю')};
     if(rp) rp.onclick=()=>{close();setTimeout(()=>replaceSheet(id),280)};
@@ -1499,10 +1814,12 @@ const A={
   goJars:()=>goTab('jars'),
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
   sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
-  toggle:t=>toggleItem(t.dataset.id),
+  toggle:t=>{const s=t.closest('.stk'),id=t.dataset.id,f=findItem(id);
+    if(s&&f&&!f.it.done){if(s.classList.contains('bye'))return;s.classList.add('bye');haptic('light');setTimeout(()=>toggleItem(id),330);return}
+    toggleItem(id)},
   fold:t=>{const head=t.closest('.dhead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
   clearDone:t=>{const L=t.dataset.k==='day'?curDay():t.dataset.k==='pin'?state.pins:curWeek(), dId=t.dataset.d;
-    L.items.forEach(i=>{if(i.done&&(dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))))i.hidden=true});
+    L.items.forEach(i=>{if(i.done&&(dId==='*'?true:dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))))i.hidden=true});
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
   switch:t=>switchSheet(t.dataset.id),
@@ -1591,6 +1908,7 @@ function reorderIn(list,ids){
   pos.forEach((p,k)=>list.items[p]=moved[k]); return true;
 }
 function bindHomeDrag(){
+  sortableGrid(document.querySelector('.stk-grid'),'.stk',ids=>{if(reorderIn(state.pins,ids)){save();render()}});
   document.querySelectorAll('.ilist').forEach(box=>sortable(box,'.item','.item',ids=>{
     const list=box.dataset.k==='day'?curDay():box.dataset.k==='pin'?state.pins:curWeek();
     if(reorderIn(list,ids)){save();render()}
@@ -1623,7 +1941,7 @@ function render(){
   morph(box,tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():tab==='jars'?renderJars():renderLook());
   if(tab==='look') bindLook();
   if(tab==='progs') bindProgsDrag();
-  if(tab==='home') bindHomeDrag();
+  if(tab==='home'){paintStickers(box);bindHomeDrag()}
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   animNew=false;
 }
