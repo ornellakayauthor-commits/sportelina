@@ -677,6 +677,13 @@ function ensureDay(){
   while(ks.length>14) delete state.days[ks.shift()];
   save();
 }
+function unpinDone(){
+  if(!state.pins) return; const d=curDay(); if(!d) return;
+  const done=state.pins.items.filter(i=>i.done);
+  if(!done.length) return;
+  state.pins.items=state.pins.items.filter(i=>!i.done);
+  done.forEach(i=>{if(!i.hidden)d.items.push(i)});
+}
 function findItem(id){
   const pn=state.pins&&state.pins.items.find(i=>i.id===id);
   if(pn) return {it:pn,list:state.pins,kind:'pin'};
@@ -730,6 +737,7 @@ function toggleItem(id){
   else{removeStar(key,it.doneOn);it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
+  if(f.kind==='pin'&&it.done) unpinDone(); // выполненное само открепляется и уходит в «Сегодня» → «Выполнено»
   save();flip(render);
 }
 function isFolded(k){return !!(state.fold&&state.fold[k])}
@@ -2016,7 +2024,7 @@ try{
     TG.disableVerticalSwipes&&TG.disableVerticalSwipes();
   }
 }catch(e){}
-loadAll(s=>{state=normalize(s);applyTheme();ensureWeek();ensureDay();render();setTimeout(gcPinPhotos,1500)});
+loadAll(s=>{state=normalize(s);applyTheme();ensureWeek();ensureDay();if(state.pins&&state.pins.items.some(i=>i.done)){unpinDone();save()}render();setTimeout(gcPinPhotos,1500)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state){ensureWeek();ensureDay();render()}});
 </script>
 </body>
