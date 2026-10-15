@@ -377,6 +377,11 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .stk.bye .tick{background:var(--line)}
 @keyframes stkbye{0%{transform:none}35%{transform:scale(1.05) rotate(-2deg)}100%{transform:scale(.82) rotate(3deg);opacity:0}}
 .pin-done{margin-top:16px}
+.stk.has-ph .stk-name,.stk.has-ph .stk-src{text-shadow:0 0 2px rgba(255,255,255,.95),0 0 8px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.7)}
+.stk.has-ph .more{color:color-mix(in srgb,var(--line) 75%,#3E2C44)}
+.lk-phopts{margin-top:12px}
+.lk-sub{font-size:12px;color:var(--muted);font-weight:600;margin:10px 0 6px}
+.seg.sm button{padding:8px 4px;font-size:13px}
 .pin-done .dhead{margin-top:6px;border-top:0;padding-top:4px}
 
 /* шторка «Оформление карточки» */
@@ -1017,8 +1022,19 @@ const DECO_KEYS=Object.keys(DECO);
 function hashStr(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
 function lookOf(it){
   const L=it.look||{}, h=hashStr(it.id);
-  return {s:L.s||STK_SHAPES[h%STK_SHAPES.length][0], c:L.c||STK_PAL[(h>>>4)%STK_PAL.length].k, d:L.d||DECO_KEYS[(h>>>9)%DECO_KEYS.length]};
+  return {s:L.s||STK_SHAPES[h%STK_SHAPES.length][0], c:L.c||STK_PAL[(h>>>4)%STK_PAL.length].k, d:L.d||DECO_KEYS[(h>>>9)%DECO_KEYS.length],
+    p:L.p?1:0, v:L.v||'mid', y:L.y||'c'};
 }
+// фото на фоне карточки: хранится только на этом устройстве, как обложки копилок
+const PIN_PH='starjar-pinph-', pinPh={};
+function pinPhoto(id){if(!(id in pinPh)){try{pinPh[id]=localStorage.getItem(PIN_PH+id)||''}catch(e){pinPh[id]=''}}return pinPh[id]}
+function setPinPhoto(id,url){pinPh[id]=url||'';try{if(url)localStorage.setItem(PIN_PH+id,url);else localStorage.removeItem(PIN_PH+id)}catch(e){toast('Фото не сохранится после закрытия — оно слишком большое')}}
+function gcPinPhotos(){
+  try{const ids=new Set();[state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>ids.add(i.id)));
+    const dead=[];for(let k=0;k<localStorage.length;k++){const key=localStorage.key(k);if(key&&key.startsWith(PIN_PH)&&!ids.has(key.slice(PIN_PH.length)))dead.push(key)}
+    dead.forEach(k=>localStorage.removeItem(k))}catch(e){}
+}
+const VEIL={hi:.72,mid:.5,lo:.28}, PH_Y={t:'xMidYMin',c:'xMidYMid',b:'xMidYMax'};
 const palOf=k=>STK_PAL.find(p=>p.k===k)||STK_PAL[0];
 
 /* геометрия форм */
@@ -1061,10 +1077,12 @@ function stkShape(s,x,y,w,h,inn){
   if(s==='label')   return labelPath(X,Y,W,H,i?10:15,i?5:8,i?4:6);
   return rrPath(X,Y,W,H,Math.max(8,22-i*.85));
 }
-function stkSVG(s,P,w,h,m){
-  const inn=Math.min(7.5,Math.min(w,h)*.09);
-  return `<path d="${stkShape(s,m,m,w,h,0)}" fill="#fff" stroke="#fff" stroke-width="9" stroke-linejoin="round"/>
-    <path d="${stkShape(s,m,m,w,h,0)}" fill="${P.bg}"/>
+function stkSVG(s,P,w,h,m,ph,v,y){
+  const inn=Math.min(7.5,Math.min(w,h)*.09), sh=stkShape(s,m,m,w,h,0), cid='sc'+(++stkN).toString(36);
+  const photo=ph?`<clipPath id="${cid}"><path d="${sh}"/></clipPath><image href="${ph}" x="${m}" y="${m}" width="${w}" height="${h}" preserveAspectRatio="${PH_Y[y]||PH_Y.c} slice" clip-path="url(#${cid})"/>
+    <path d="${sh}" fill="${P.bg}" opacity="${VEIL[v]!=null?VEIL[v]:VEIL.mid}"/>`:'';
+  return `<path d="${sh}" fill="#fff" stroke="#fff" stroke-width="9" stroke-linejoin="round"/>
+    <path d="${sh}" fill="${P.bg}"/>${photo}
     <path d="${stkShape(s,m,m,w,h,inn)}" fill="none" stroke="${P.line}" stroke-width="1.5" stroke-dasharray="4.5 3.6" stroke-linecap="round" opacity=".95"/>`;
 }
 let stkN=0;
@@ -1073,7 +1091,8 @@ function decoSVG(key,P,cls){const D=DECO[key];if(!D)return '';const u=(++stkN).t
 function pinSrc(it){const j=it.jar&&jarById(it.jar);if(j)return {name:j.name,color:j.color};const d=it.dir&&dirById(it.dir);return d?{name:d.name,color:d.color}:null}
 function stickerHTML(it,preview){
   const L=lookOf(it), P=palOf(L.c), D=DECO[L.d], src=pinSrc(it), a=preview?'':` data-a="toggle" data-id="${it.id}"`;
-  return `<div class="stk${preview?' prev':' drag-item'}${D?' d-'+D.pos:''}"${preview?'':` data-id="${it.id}"`} data-shape="${L.s}" data-c="${L.c}" style="--bg:${P.bg};--line:${P.line};--c:${P.line}">
+  const raw=L.p?(preview&&it.look&&it.look._ph!=null?it.look._ph:pinPhoto(it.id)):'', ph=raw?srcOf(raw):'';
+  return `<div class="stk${preview?' prev':' drag-item'}${D?' d-'+D.pos:''}${ph?' has-ph':''}"${preview?'':` data-id="${it.id}"`} data-shape="${L.s}" data-c="${L.c}"${ph?` data-ph="${ph}" data-v="${L.v}" data-y="${L.y}"`:''} style="--bg:${P.bg};--line:${P.line};--c:${P.line}">
     <svg class="stk-bg" aria-hidden="true"></svg>${D?decoSVG(L.d,P):''}
     <div class="stk-in">
       <div class="stk-head">${src?`<span class="stk-src">${dot(src.color)}<span>${esc(src.name)}</span></span>`:'<span></span>'}
@@ -1097,11 +1116,11 @@ function fitName(el){
 function paintStk(el){
   const w=el.offsetWidth, h=el.offsetHeight; if(!w||!h) return;
   const svg=el.querySelector(':scope>.stk-bg'); if(!svg) return;
-  const key=w+'x'+h+el.dataset.shape+el.dataset.c;
+  const d=el.dataset, key=[w,h,d.shape,d.c,d.ph,d.v,d.y].join('|');
   if(svg.__k===key&&svg.childElementCount) return;
   svg.__k=key;
   const m=STK_M; svg.setAttribute('viewBox',`0 0 ${w+2*m} ${h+2*m}`);svg.setAttribute('width',w+2*m);svg.setAttribute('height',h+2*m);
-  svg.innerHTML=stkSVG(el.dataset.shape,palOf(el.dataset.c),w,h,m);
+  svg.innerHTML=stkSVG(d.shape,palOf(d.c),w,h,m,d.ph,d.v,d.y);
 }
 // раскладка сетки: подгоняем слова, затем последняя карточка без пары растягивается на всю ширину
 function layoutGrid(g){
@@ -1141,13 +1160,26 @@ function lookSheet(id){
   sheet('Оформление карточки',`
     <div class="lk-prev"></div>
     <div class="field"><label class="t">Форма</label><div class="lk-shapes">${STK_SHAPES.map(shapeBtn).join('')}</div></div>
-    <div class="field"><label class="t">Цвет</label><div class="lk-cols">${STK_PAL.map(p=>`<button type="button" data-c="${p.k}" style="--bg:${p.bg};--line:${p.line}" aria-label="${p.n}"></button>`).join('')}</div></div>
+    <div class="field"><label class="t">Фото на фоне</label><div id="lk-ph"></div><input type="file" id="lk-file" accept="image/*" hidden>
+      <div class="lk-phopts">
+        <div class="lk-sub">Дымка поверх фото</div><div class="seg sm" id="lk-veil"><button type="button" data-v="hi">Сильная</button><button type="button" data-v="mid">Средняя</button><button type="button" data-v="lo">Лёгкая</button></div>
+        <div class="lk-sub">Какая часть фото видна</div><div class="seg sm" id="lk-y"><button type="button" data-y="t">Верх</button><button type="button" data-y="c">Середина</button><button type="button" data-y="b">Низ</button></div>
+      </div></div>
+    <div class="field"><label class="t" id="lk-ctitle">Цвет</label><div class="lk-cols">${STK_PAL.map(p=>`<button type="button" data-c="${p.k}" style="--bg:${p.bg};--line:${p.line}" aria-label="${p.n}"></button>`).join('')}</div></div>
     <div class="field"><label class="t">Украшение</label><div class="lk-decos"><button type="button" data-d="none" class="none"><span>Без</span></button>${DECO_KEYS.map(k=>`<button type="button" data-d="${k}" aria-label="${DECO[k].n}"></button>`).join('')}</div></div>
     <button class="btn soft" id="lk-rnd">Перемешать</button>
     <button class="btn main" id="lk-ok">Готово</button>`,(el,close)=>{
-    const L={...cur};
+    const L={...cur}; let shownPh=null;
     const draw=()=>{
-      const P=palOf(L.c), tmp={...it,look:L};
+      const P=palOf(L.c), raw=L.p?pinPhoto(it.id):'', tmp={...it,look:{...L,_ph:raw}};
+      if(shownPh!==raw){shownPh=raw;
+        el.querySelector('#lk-ph').innerHTML=raw
+          ?`<div class="phrow"><span class="phthumb" style="background-image:url('${srcOf(raw)}')"></span><button type="button" class="btn soft" data-ph="pick">Заменить</button><button type="button" class="btn soft" data-ph="del">Убрать</button></div>`
+          :`<button type="button" class="phadd" data-ph="pick">+ Выбрать из галереи</button>`}
+      el.querySelector('.lk-phopts').hidden=!raw;
+      el.querySelector('#lk-ctitle').textContent=raw?'Оттенок дымки':'Цвет';
+      el.querySelectorAll('#lk-veil button').forEach(b=>b.classList.toggle('on',b.dataset.v===L.v));
+      el.querySelectorAll('#lk-y button').forEach(b=>b.classList.toggle('on',b.dataset.y===L.y));
       el.querySelector('.lk-prev').innerHTML=stickerHTML(tmp,true);
       requestAnimationFrame(()=>paintStickers(el.querySelector('.lk-prev')));
       el.querySelectorAll('.lk-shapes button').forEach(b=>{b.classList.toggle('on',b.dataset.s===L.s);b.querySelector('svg').innerHTML=stkSVG(b.dataset.s,P,140,92,8)});
@@ -1155,6 +1187,12 @@ function lookSheet(id){
       el.querySelectorAll('.lk-decos button').forEach(b=>{b.classList.toggle('on',b.dataset.d===L.d);if(b.dataset.d!=='none'){b.style.setProperty('--bg',P.bg);b.innerHTML=decoSVG(b.dataset.d,P,'lk-d')}});
     };
     const apply=()=>{it.look={...L};save();draw();render()};
+    const file=el.querySelector('#lk-file');
+    el.querySelector('#lk-ph').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;
+      if(b.dataset.ph==='pick')file.click();else{setPinPhoto(it.id,'');L.p=0;haptic('light');apply()}});
+    file.addEventListener('change',()=>{const f=file.files&&file.files[0];file.value='';if(f)readPhoto(f,u=>{setPinPhoto(it.id,u);L.p=1;haptic('light');apply()})});
+    el.querySelectorAll('#lk-veil button').forEach(b=>b.onclick=()=>{L.v=b.dataset.v;haptic('light');apply()});
+    el.querySelectorAll('#lk-y button').forEach(b=>b.onclick=()=>{L.y=b.dataset.y;haptic('light');apply()});
     el.querySelectorAll('.lk-shapes button').forEach(b=>b.onclick=()=>{L.s=b.dataset.s;haptic('light');apply()});
     el.querySelectorAll('.lk-cols button').forEach(b=>b.onclick=()=>{L.c=b.dataset.c;haptic('light');apply()});
     el.querySelectorAll('.lk-decos button').forEach(b=>b.onclick=()=>{L.d=b.dataset.d;haptic('light');apply()});
@@ -1979,7 +2017,7 @@ try{
     TG.disableVerticalSwipes&&TG.disableVerticalSwipes();
   }
 }catch(e){}
-loadAll(s=>{state=normalize(s);applyTheme();ensureWeek();ensureDay();render()});
+loadAll(s=>{state=normalize(s);applyTheme();ensureWeek();ensureDay();render();setTimeout(gcPinPhotos,1500)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state){ensureWeek();ensureDay();render()}});
 </script>
 </body>
