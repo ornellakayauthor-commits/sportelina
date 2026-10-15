@@ -347,8 +347,7 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 @media (prefers-reduced-motion:reduce){.drop,.spark,.rise{animation:none}}
 
 /* ---------- наклейки «Закреплено» ---------- */
-.stk-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px 16px;padding:14px 6px 6px}
-.stk-grid>.stk:last-child:nth-child(odd){grid-column:1/-1}
+.stk-grid{display:grid;grid-auto-flow:row dense;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px 16px;padding:14px 6px 6px}
 .stk{position:relative;min-width:0;min-height:124px;color:#5A4466;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .stk-bg{position:absolute;left:-8px;top:-8px;overflow:visible;pointer-events:none;
   filter:drop-shadow(0 4px 8px rgba(140,100,130,.16)) drop-shadow(0 1px 1.5px rgba(140,100,130,.12))}
@@ -367,10 +366,11 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .stk-src>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stk-src .dot{width:8px;height:8px;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
 .stk .more{color:color-mix(in srgb,var(--line) 70%,#fff);height:24px}
-.stk-name{flex:1;margin:6px 0 10px;font-weight:600;font-size:15px;line-height:1.35;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto;cursor:pointer}
+.stk-name{flex:1;margin:6px 0 10px;font-weight:600;font-size:15px;line-height:1.35;overflow-wrap:normal;word-break:normal;hyphens:manual;-webkit-hyphens:manual;cursor:pointer}
 .stk-foot{display:flex;align-items:center;min-height:30px}
 .stk .tick{background:rgba(255,255,255,.75);border-color:var(--line)}
 .stk.d-br .stk-name{margin-right:6px}
+.stk-grid>.stk.wide,.stk-grid>.stk.solo{grid-column:1/-1}
 .stk.dragging{z-index:5}
 .stk.dragging .stk-bg{filter:drop-shadow(0 14px 22px rgba(140,100,130,.28))}
 .stk.bye{animation:stkbye .36s cubic-bezier(.4,0,.6,1) forwards}
@@ -1078,11 +1078,22 @@ function stickerHTML(it,preview){
     <div class="stk-in">
       <div class="stk-head">${src?`<span class="stk-src">${dot(src.color)}<span>${esc(src.name)}</span></span>`:'<span></span>'}
         ${preview?'':`<button class="more" data-a="menu" data-id="${it.id}" aria-label="Ещё">●●●</button>`}</div>
-      <div class="stk-name"${a}>${esc(it.name)}</div>
+      <div class="stk-name"${a}>${esc(it.name).replace(/(^|\s)([А-Яа-яЁёA-Za-z]{1,2})\s+(?=\S)/g,'$1$2\u00A0')}</div>
       <div class="stk-foot"><button class="tick"${a} aria-label="Отметить" tabindex="${preview?-1:0}"></button></div>
     </div></div>`;
 }
 const STK_M=8;
+// длинное слово не рвём: сначала чуть уменьшаем шрифт, потом растягиваем карточку на всю ширину
+function fitName(el){
+  const n=el.querySelector(':scope>.stk-in>.stk-name'); if(!n||!el.offsetWidth) return;
+  const fits=()=>n.scrollWidth<=n.clientWidth+1, inGrid=el.parentElement&&el.parentElement.classList.contains('stk-grid');
+  n.style.fontSize='';n.style.overflowWrap='';el.classList.remove('wide');
+  if(fits()) return;
+  for(let fs=14.5;fs>=14;fs-=.5){n.style.fontSize=fs+'px';if(fits())return}
+  n.style.fontSize='';
+  if(inGrid){el.classList.add('wide');if(fits())return;for(let fs=14.5;fs>=13;fs-=.5){n.style.fontSize=fs+'px';if(fits())return}}
+  n.style.overflowWrap='anywhere'; // только если слово длиннее всей ширины экрана (например, ссылка)
+}
 function paintStk(el){
   const w=el.offsetWidth, h=el.offsetHeight; if(!w||!h) return;
   const svg=el.querySelector(':scope>.stk-bg'); if(!svg) return;
@@ -1092,8 +1103,23 @@ function paintStk(el){
   const m=STK_M; svg.setAttribute('viewBox',`0 0 ${w+2*m} ${h+2*m}`);svg.setAttribute('width',w+2*m);svg.setAttribute('height',h+2*m);
   svg.innerHTML=stkSVG(el.dataset.shape,palOf(el.dataset.c),w,h,m);
 }
-const stkRO=('ResizeObserver' in window)?new ResizeObserver(es=>es.forEach(e=>paintStk(e.target))):null;
-function paintStickers(root){(root||document).querySelectorAll('.stk').forEach(el=>{paintStk(el);if(stkRO&&!el.__ro){el.__ro=1;stkRO.observe(el)}})}
+// раскладка сетки: подгоняем слова, затем последняя карточка без пары растягивается на всю ширину
+function layoutGrid(g){
+  const cards=[...g.children].filter(x=>x.matches('.stk'));
+  cards.forEach(c=>{c.classList.remove('solo');fitName(c)});
+  const half=cards.filter(c=>!c.classList.contains('wide'));
+  if(half.length%2) half[half.length-1].classList.add('solo');
+  cards.forEach(c=>{const n=c.querySelector('.stk-name');if(n&&n.scrollWidth>n.clientWidth+1)fitName(c);paintStk(c)});
+}
+let stkBusy=false;
+const stkRO=('ResizeObserver' in window)?new ResizeObserver(es=>{if(stkBusy)return;stkBusy=true;
+  const gs=new Set();es.forEach(e=>{const g=e.target.closest('.stk-grid');if(g)gs.add(g);else{fitName(e.target);paintStk(e.target)}});
+  gs.forEach(layoutGrid);stkBusy=false}):null;
+function paintStickers(root){
+  const r=root||document;
+  r.querySelectorAll('.stk-grid').forEach(layoutGrid);
+  r.querySelectorAll('.stk').forEach(el=>{if(!el.closest('.stk-grid')){fitName(el);paintStk(el)}if(stkRO&&!el.__ro){el.__ro=1;stkRO.observe(el)}});
+}
 function pinsHTML(){
   const items=state.pins.items.filter(i=>!i.hidden), und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
   if(!items.length) return '';
