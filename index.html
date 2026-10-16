@@ -35,13 +35,6 @@ button{cursor:pointer;border:0;background:none}
 .gate>div{max-width:320px;text-align:center;padding:0 16px}
 .gate-t{font-family:var(--serif);font-style:italic;font-size:24px;color:var(--ink);margin-bottom:10px}
 .gate p{font-family:Manrope,sans-serif;font-style:normal;font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 6px}
-.sync-line{font-size:15px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
-.sync-line::before{content:'';width:8px;height:8px;border-radius:50%;background:#7FC1A6;flex:none}
-.sync-line.err::before{background:#E39AB3}
-.vers{margin-top:14px;border-top:1px solid rgba(255,255,255,.8);padding-top:10px}
-.vers-t{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
-.ver{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;font-size:14px;color:var(--ink)}
-.ver small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 
 /* ---------- заголовки ---------- */
 .top h1{font-family:var(--serif);font-style:italic;font-weight:600;font-size:38px;line-height:1}
@@ -558,8 +551,8 @@ function applyTheme(){
 // Облако проверяется при каждом открытии: если там версия новее, а на этом устройстве нет неотправленных
 // изменений, берётся облачная — поэтому старая копия больше не затирает новую.
 // В облаке четыре ячейки-версии и указатель «h». Новая версия пишется в свободную ячейку по одному куску,
-// указатель переключается только после полной записи. Прошлые версии можно вернуть в «Оформлении».
-const HEAD='h', SLOTS=4, CHUNK=3800, MAX_CHUNKS=240, SYNC_LS='starjar-sync';
+// указатель переключается только после полной записи. Три прошлые версии остаются в облаке как запас.
+const HEAD='h', SLOTS=4, CHUNK_BYTES=4000, MAX_CHUNKS=240, SYNC_LS='starjar-sync';
 let ready=false, head=null, baseRev=0, pending=false, cloudChecked=false, pushing=false, pushT=null, retryT=null,
     syncErr=false, lastSync=0, suppress=false, bootDirty=false, lsWarned=false;
 
@@ -577,10 +570,15 @@ async function cGetMany(keys){
   return out;
 }
 function withTimeout(p,ms){return Promise.race([p,new Promise((_,no)=>setTimeout(()=>no('timeout'),ms))])}
+// режем по байтам, а не по символам: русская буква занимает 2 байта, а сервер Telegram может считать лимит в байтах
 function splitChunks(str){
-  const out=[];let i=0;
-  while(i<str.length){let j=Math.min(i+CHUNK,str.length);const c=str.charCodeAt(j-1);if(j<str.length&&c>=0xD800&&c<=0xDBFF)j--;out.push(str.slice(i,j));i=j}
-  return out.length?out:[''];
+  const out=[]; let start=0, bytes=0;
+  for(let i=0;i<str.length;i++){
+    const c=str.charCodeAt(i), pair=c>=0xD800&&c<=0xDBFF&&i+1<str.length, b=c<0x80?1:c<0x800?2:pair?4:3;
+    if(bytes+b>CHUNK_BYTES){out.push(str.slice(start,i));start=i;bytes=0}
+    bytes+=b; if(pair) i++;
+  }
+  out.push(str.slice(start)); return out;
 }
 const ck=(slot,i)=>'s'+slot+'_'+i;
 const BROKEN='broken';
@@ -629,18 +627,17 @@ function writeLocal(){
 function save(){
   if(!ready||!state) return;
   if(suppress){bootDirty=true;return}
-  state.ts=Date.now(); pending=true; writeLocal(); setSync();
+  state.ts=Date.now(); pending=true; writeLocal();
   if(CLOUD&&cloudChecked){clearTimeout(pushT);pushT=setTimeout(push,600)}
 }
 async function push(){
   clearTimeout(pushT); clearTimeout(retryT);
   if(!CLOUD||!cloudChecked||pushing||!pending) return;
-  pushing=true; setSync();
+  pushing=true;
   const str=JSON.stringify(state), ch=splitChunks(str), startTs=state.ts;
   try{
     if(ch.length>MAX_CHUNKS) throw 'too-big';
     const h=(await withTimeout(readHead(),10000))||{cur:-1,rev:0,slots:{}};
-    const conflict=h.rev!==baseRev;
     const slot=((h.cur+1)%SLOTS+SLOTS)%SLOTS, old=h.slots[slot]; // никогда не пишем в текущую ячейку
     for(let i=0;i<ch.length;i++) await withTimeout(cSet(ck(slot,i),ch[i]),12000); // по одному куску — Telegram так надёжнее
     const now=Date.now(), rev=h.rev+1;
@@ -650,13 +647,12 @@ async function push(){
     head=nh; baseRev=rev; lastSync=now; syncErr=false;
     if(state.ts===startTs) pending=false; // пока отправляли, ничего не изменилось
     writeMeta();
-    if(conflict) toast('На другом устройстве тоже были изменения — их копия лежит в «Оформлении» → «Прошлые версии»');
   }catch(e){
     syncErr=true;
     if(e==='too-big') toast('Данных стало больше, чем вмещает облако Telegram — сохраняю только на устройстве');
     else retryT=setTimeout(push,8000);
   }
-  pushing=false; setSync();
+  pushing=false;
   if(pending&&!syncErr){clearTimeout(pushT);pushT=setTimeout(push,600)}
 }
 
@@ -668,7 +664,7 @@ function quietEnsure(){
 }
 function adopt(s,h,fallback){
   state=normalize(s); if(h){head=h;baseRev=h.rev} pending=false; ready=true; bootDirty=false;
-  writeLocal(); quietEnsure(); applyTheme(); render(); setSync();
+  writeLocal(); quietEnsure(); applyTheme(); render();
   if(bootDirty){bootDirty=false;save()}
   if(fallback) toast('Последняя версия в облаке повреждена — открыла предыдущую целую');
 }
@@ -690,10 +686,10 @@ async function reconcile(){
       else if(!state) adopt(null,null);
       pending=true; writeMeta();            // заводим указатель в облаке
     }
-    cloudChecked=true; syncErr=false; lastSync=Date.now(); setSync();
+    cloudChecked=true; syncErr=false; lastSync=Date.now();
     if(pending){clearTimeout(pushT);pushT=setTimeout(push,300)}
     return true;
-  }catch(e){syncErr=true;setSync();return false}
+  }catch(e){syncErr=true;return false}
 }
 function busyUI(){return !!document.querySelector('.overlay')||(typeof dragActive!=='undefined'&&dragActive)}
 // изменения, сделанные на другом устройстве
@@ -703,47 +699,11 @@ async function pull(){
   if(pushing||pending||busyUI()) return false;
   try{
     const h=await withTimeout(readHead(),10000);
-    if(!h||h.rev<=baseRev){lastSync=Date.now();syncErr=false;setSync();return false}
+    if(!h||h.rev<=baseRev){lastSync=Date.now();syncErr=false;return false}
     const r=await withTimeout(readBest(h),25000);
     if(pending||pushing||busyUI()) return false;
     adopt(r.s,h,r.fallback); return true;
-  }catch(e){syncErr=true;setSync();return false}
-}
-
-/* --- статус и прошлые версии --- */
-function syncText(){
-  if(!CLOUD) return 'Сохранено на этом устройстве';
-  if(pushing) return 'Сохранено · отправляю в облако…';
-  if(pending&&syncErr) return 'Сохранено на устройстве · в облако отправлю, когда будет связь';
-  if(pending) return 'Сохранено · отправляю в облако…';
-  if(syncErr) return 'Сохранено на устройстве · облако сейчас недоступно';
-  return 'Всё сохранено'+(lastSync?' · '+whenTxt(lastSync):'');
-}
-function whenTxt(ts){
-  const d=new Date(ts), hm=pad(d.getHours())+':'+pad(d.getMinutes());
-  if(ymd(d)===today()) return 'сегодня, '+hm;
-  const y=new Date();y.setDate(y.getDate()-1);
-  if(ymd(d)===ymd(y)) return 'вчера, '+hm;
-  return d.getDate()+' '+MON[d.getMonth()]+', '+hm;
-}
-function setSync(){
-  const el=document.getElementById('syncLine');
-  if(el){el.textContent=syncText();el.classList.toggle('err',syncErr)}
-}
-function versionsHTML(){
-  if(!CLOUD||!head||!head.slots) return '';
-  const list=Object.keys(head.slots).map(Number).filter(i=>i!==head.cur).map(i=>({i,...head.slots[i]})).sort((a,b)=>b.rev-a.rev);
-  if(!list.length) return '';
-  return `<div class="vers"><div class="vers-t">Прошлые версии</div>${list.map(v=>`<div class="ver"><span>${whenTxt(v.ts)}<small>${v.stars} ${pl(v.stars,'звёздочка','звёздочки','звёздочек')}</small></span><button class="link" data-v="${v.i}">Вернуть</button></div>`).join('')}</div>`;
-}
-async function restoreVersion(slot){
-  if(pending||pushing){toast('Секунду — отправляю в облако то, что на экране');push();return}
-  if(!head||!head.slots[slot]) return;
-  try{
-    const s=await withTimeout(readSlot(head,slot),25000);
-    state=normalize(s); state.jarReset1=1; applyTheme(); ensureWeek(); ensureDay(); save(); render();
-    toast('Версия возвращена. Та, что была на экране, осталась в «Прошлых версиях»'); haptic('medium');
-  }catch(e){toast(e===BROKEN?'Эта версия не читается — похоже, повреждена':'Нет связи с облаком — попробуй ещё раз')}
+  }catch(e){syncErr=true;return false}
 }
 
 /* ================= логика недели и дня ================= */
@@ -1495,7 +1455,6 @@ function renderLook(){
       <div class="preview-btn"><span class="fake">Кнопка</span><span class="fake2">+ Добавить</span></div></div></div>`;
   const TC=['#F4C26B','#E8A3B6','#F2BD98','#B8A4DE'];
   h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div></div>`;
-  h+=`<div class="sec-title">Синхронизация</div><div class="card sync-card"><div class="sync-line" id="syncLine">${syncText()}</div><div class="tiny" style="margin-top:6px">Каждое изменение сразу сохраняется на этом устройстве и следом уходит в облако Telegram — поэтому на всех устройствах всё одинаково. Фото фона и карточек остаются на том устройстве, где ты их выбрала.</div>${versionsHTML()}</div>`;
   h+=`<p class="tiny" style="text-align:center;margin-top:16px">Цвет звёздочек меняется в настройках каждого направления и ежедневной задачи.</p>`;
   return h;
 }
@@ -1505,7 +1464,6 @@ function bindLook(){
   const later=()=>{clearTimeout(lookSaveT);lookSaveT=setTimeout(save,400)};
   if(v.querySelector('[data-cf="bgc"]')) bindColor(v,'bgc',c=>{state.theme.bgColor=c;applyTheme();const i=v.querySelector('[data-k="plain"] i');if(i)i.style.background=c;later()});
   bindColor(v,'acc',c=>{state.theme.accent=c;applyTheme();later()});
-  v.querySelectorAll('[data-v]').forEach(b=>confirmBtn(b,'Точно вернуть?',()=>restoreVersion(+b.dataset.v)));
 }
 
 /* ================= выбор цвета ================= */
@@ -2215,7 +2173,7 @@ async function boot(){
   const L=readLocal(); baseRev=L.baseRev; pending=L.pending;
   if(L.s){
     // как в Designdar: сразу показываем то, что сохранено на устройстве, и следом сверяемся с облаком
-    state=normalize(L.s); ready=true; quietEnsure(); applyTheme(); render(); setSync();
+    state=normalize(L.s); ready=true; quietEnsure(); applyTheme(); render();
     await reconcile(); settle(); return;
   }
   if(!CLOUD){state=normalize(null); ready=true; quietEnsure(); applyTheme(); render(); settle(); return}
