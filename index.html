@@ -162,6 +162,7 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .dwrap>*{overflow:hidden;min-height:0}
 .dwrap.folded{grid-template-rows:0fr;opacity:0}
 .dtoggle{display:flex;align-items:center;gap:6px;font:inherit;color:inherit;padding:4px 0}
+.dtoggle{min-width:0;text-align:left}.dtoggle .chev-s{flex:none}.dlabel{min-width:0;overflow-wrap:anywhere}.dhead [data-a=clearDone]{flex:none;margin-left:12px}
 .chev-s{display:inline-block;font-size:10px;transition:transform .25s ease}
 .folded .chev-s{transform:rotate(-90deg)}
 .dhead [data-a=clearDone],#p-clear,#j-clear{transition:opacity .25s ease,visibility .25s}
@@ -1025,6 +1026,8 @@ function renderHome(){
   h+=soonHTML();
   return h;
 }
+// к какой программе относится выполненное дело ('' — дело вне программ)
+function doneBucket(i){return i.pid&&i.dir&&progOf(i.dir,i.pid)?i.pid:''}
 function groupHTML(d,items,w,kind,own){
   const color=d?d.color:ONE_COLOR;
   let head;
@@ -1041,8 +1044,17 @@ function groupHTML(d,items,w,kind,own){
       <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`;
   const und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
   let body=und.length?`<div class="ilist" data-k="${kind}">${und.map(row).join('')}</div>`:'';
-  const fk=kind+':'+(d?d.id:'misc'), fo=isFolded(fk)?' folded':'';
-  if(dn.length) body+=`<div class="dhead${fo}"><button class="dtoggle" data-a="fold" data-k="${fk}" aria-label="Свернуть или развернуть"><span class="chev-s">▾</span>Выполнено · ${dn.length}</button><button class="link" data-a="clearDone" data-k="${kind}" data-d="${d?d.id:''}">Очистить</button></div><div class="dwrap${fo}"><div class="dlist">${dn.map(row).join('')}</div></div>`;
+  // у каждой программы — свой список «Выполнено», чтобы дела разных книг не смешивались
+  const buckets=new Map();
+  if(d&&d.progs) d.progs.forEach(p=>buckets.set(p.id,[]));
+  buckets.set('',[]);
+  dn.forEach(i=>buckets.get(doneBucket(i)).push(i));
+  const used=[...buckets].filter(([,l])=>l.length), many=used.length>1;
+  used.forEach(([b,l])=>{
+    const pr=b&&progOf(d.id,b), label=pr?'Выполнено · '+esc(pr.name):many?'Выполнено · вне программ':'Выполнено';
+    const fk=kind+':'+(d?d.id:'misc')+(b?':'+b:''), fo=isFolded(fk)?' folded':'';
+    body+=`<div class="dhead${fo}"><button class="dtoggle" data-a="fold" data-k="${fk}" aria-label="Свернуть или развернуть"><span class="chev-s">▾</span><span class="dlabel">${label} · ${l.length}</span></button><button class="link" data-a="clearDone" data-k="${kind}" data-d="${d?d.id:''}" data-p="${b}">Очистить</button></div><div class="dwrap${fo}"><div class="dlist">${l.map(row).join('')}</div></div>`;
+  });
   if(d&&!items.length){
     if(own&&!w.progs[d.id]&&cyc(d).length&&!(kind==='day'&&datedFor(d,today()))){
       const nx=cyc(d)[(d.next||0)%cyc(d).length];
@@ -2018,7 +2030,8 @@ const A={
     toggleItem(id)},
   fold:t=>{const head=t.closest('.dhead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
   clearDone:t=>{const L=t.dataset.k==='day'?curDay():t.dataset.k==='pin'?state.pins:curWeek(), dId=t.dataset.d;
-    L.items.forEach(i=>{if(i.done&&(dId==='*'?true:dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))))i.hidden=true});
+    const pId=t.dataset.p; // у каждой программы свой «Очистить»
+    L.items.forEach(i=>{if(i.done&&(pId==null||doneBucket(i)===pId)&&(dId==='*'?true:dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))))i.hidden=true});
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
   switch:t=>switchSheet(t.dataset.id),
