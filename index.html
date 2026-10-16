@@ -697,7 +697,7 @@ async function restoreVersion(slot){
   if(!head||!head.slots[slot]) return;
   try{
     const s=await withTimeout(readSlot(head,slot),25000);
-    state=normalize(s); applyTheme(); ensureWeek(); ensureDay(); save(); render();
+    state=normalize(s); state.jarReset1=1; applyTheme(); ensureWeek(); ensureDay(); save(); render();
     toast('Версия возвращена. Та, что была на экране, осталась в «Прошлых версиях»'); haptic('medium');
   }catch(e){toast(e===BROKEN?'Эта версия не читается — похоже, повреждена':'Нет связи с облаком — попробуй ещё раз')}
 }
@@ -2150,6 +2150,12 @@ try{
     TG.disableVerticalSwipes&&TG.disableVerticalSwipes();
   }
 }catch(e){}
+// разовое обнуление банки 17 октября 2026: в данных остаётся отметка jarReset1, поэтому второй раз не повторится —
+// ни на другом устройстве, ни после возврата прошлой версии через «Вернуть»
+function resetJarOnce(){
+  if(!state||state.jarReset1) return false;
+  state.jarReset1=1; state.seq=[]; return true;
+}
 function gate(title,text,retry){
   const v=document.getElementById('view');
   v.innerHTML=`<div class="loading gate"><div><div class="gate-t">${title}</div><p>${text}</p>${retry?'<button class="btn main" id="gateRetry">Попробовать ещё раз</button>':''}</div></div>`;
@@ -2162,12 +2168,13 @@ function boot(){
     return;
   }
   document.getElementById('view').innerHTML='<div class="loading">открываю банку…</div>';
-  withTimeout(cloudLoad(),20000).then(r=>{
+  withTimeout(cloudLoad(),20000).then(async r=>{
     state=normalize(r.s); ready=true; lastSync=Date.now();
+    if(r.migrate){dirty=true;await push()} // сначала данные как есть — чтобы обнуление можно было отменить через «Вернуть»
+    if(resetJarOnce())save();
     applyTheme(); ensureWeek(); ensureDay();
     if(state.pins&&state.pins.items.some(i=>i.done)){unpinDone();save()}
     render(); setTimeout(gcPinPhotos,1500);
-    if(r.migrate){dirty=true;push()}
     if(r.fallback) toast('Последняя версия в облаке повреждена — открыла предыдущую целую');
   }).catch(e=>{
     if(e==='all-broken') gate('Не могу прочитать данные','Данные в облаке повреждены. Я ничего не перезаписывала — напиши мне, разберёмся.',true);
