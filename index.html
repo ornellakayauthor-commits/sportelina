@@ -552,14 +552,16 @@ function applyTheme(){
   try{TG&&TG.setHeaderColor&&TG.setHeaderColor(head);TG&&TG.setBackgroundColor&&TG.setBackgroundColor(head)}catch(e){}
 }
 
-/* ================= хранение: только облако Telegram ================= */
-// Данные живут только в облаке Telegram и одинаковы на всех устройствах.
-// В облаке четыре ячейки с версиями (s0…s3) и указатель «h» на свежую.
-// Новая версия пишется в свободную ячейку, и только когда она записана целиком, указатель переключается —
-// поэтому оборванное сохранение не портит данные. Остальные ячейки — прошлые версии, их можно вернуть.
-// Приложение не открывает данные, пока не получит ответ облака: старая копия больше не может затереть новую.
-const HEAD='h', SLOTS=4, CHUNK=3800, MAX_CHUNKS=240;
-let ready=false, head=null, baseRev=0, dirty=false, pushing=false, pushT=null, retryT=null, syncErr=false, lastSync=0, errShown=false;
+/* ================= хранение: устройство + облако Telegram ================= */
+// Как в Designdar: каждое изменение сразу сохраняется на устройстве — мгновенно и без потерь при закрытии,
+// а следом уходит в облако Telegram, чтобы данные были одинаковыми на всех устройствах.
+// Облако проверяется при каждом открытии: если там версия новее, а на этом устройстве нет неотправленных
+// изменений, берётся облачная — поэтому старая копия больше не затирает новую.
+// В облаке четыре ячейки-версии и указатель «h». Новая версия пишется в свободную ячейку по одному куску,
+// указатель переключается только после полной записи. Прошлые версии можно вернуть в «Оформлении».
+const HEAD='h', SLOTS=4, CHUNK=3800, MAX_CHUNKS=240, SYNC_LS='starjar-sync';
+let ready=false, head=null, baseRev=0, pending=false, cloudChecked=false, pushing=false, pushT=null, retryT=null,
+    syncErr=false, lastSync=0, suppress=false, bootDirty=false, lsWarned=false;
 
 const cs=()=>TG.CloudStorage;
 function cGet(k){return new Promise((ok,no)=>{try{cs().getItem(k,(e,v)=>e?no(e):ok(v))}catch(x){no(x)}})}
@@ -602,77 +604,120 @@ async function readBest(h){
   for(const i of order){try{return {s:await readSlot(h,i),fallback:i!==h.cur}}catch(e){if(e!==BROKEN)throw e}}
   throw 'all-broken';
 }
-// данные старого формата (до перехода на ячейки) — переносятся один раз; сами старые ключи не трогаем
+// облако самого первого формата (до ячеек) — читается один раз при переходе; сами старые ключи не трогаем
 async function readLegacy(){
   const n=parseInt(await cGet('n'),10); if(!n) return null;
   const keys=Array.from({length:n},(_,i)=>'c'+i), vals=await cGetMany(keys);
-  try{return JSON.parse(keys.map(k=>vals[k]||'').join(''))}catch(e){return null}
-}
-async function cloudLoad(){
-  const h=await readHead();
-  if(h){
-    const r=await readBest(h); head=h; baseRev=h.rev;
-    try{localStorage.removeItem(LS)}catch(e){}
-    return r;
-  }
-  let s=await readLegacy();
-  if(!s){try{s=JSON.parse(localStorage.getItem(LS))}catch(e){}}
-  head={cur:-1,rev:0,slots:{}}; baseRev=0;
-  return {s,migrate:true};
+  try{const s=JSON.parse(keys.map(k=>vals[k]||'').join(''));return s&&s.v===1?s:null}catch(e){return null}
 }
 
+/* --- устройство --- */
+function readLocal(){
+  let s=null, m={};
+  try{s=JSON.parse(localStorage.getItem(LS))}catch(e){}
+  try{m=JSON.parse(localStorage.getItem(SYNC_LS))||{}}catch(e){}
+  return {s:s&&s.v===1?s:null, baseRev:m.baseRev||0, pending:!!m.pending};
+}
+function writeMeta(){try{localStorage.setItem(SYNC_LS,JSON.stringify({baseRev,pending}))}catch(e){}}
+function writeLocal(){
+  try{localStorage.setItem(LS,JSON.stringify(state))}
+  catch(e){if(!lsWarned){lsWarned=true;toast(CLOUD?'Память устройства переполнена — сохраняю только в облако':'Память устройства переполнена — изменения могут не сохраниться')}}
+  writeMeta();
+}
+
+/* --- сохранение --- */
 function save(){
   if(!ready||!state) return;
-  state.ts=Date.now(); dirty=true; setSync();
-  clearTimeout(pushT); pushT=setTimeout(push,400);
+  if(suppress){bootDirty=true;return}
+  state.ts=Date.now(); pending=true; writeLocal(); setSync();
+  if(CLOUD&&cloudChecked){clearTimeout(pushT);pushT=setTimeout(push,600)}
 }
 async function push(){
   clearTimeout(pushT); clearTimeout(retryT);
-  if(pushing||!dirty) return;
-  pushing=true; dirty=false; setSync();
-  const str=JSON.stringify(state), ch=splitChunks(str);
-  let ok=false;
+  if(!CLOUD||!cloudChecked||pushing||!pending) return;
+  pushing=true; setSync();
+  const str=JSON.stringify(state), ch=splitChunks(str), startTs=state.ts;
   try{
     if(ch.length>MAX_CHUNKS) throw 'too-big';
     const h=(await withTimeout(readHead(),10000))||{cur:-1,rev:0,slots:{}};
     const conflict=h.rev!==baseRev;
     const slot=((h.cur+1)%SLOTS+SLOTS)%SLOTS, old=h.slots[slot]; // никогда не пишем в текущую ячейку
-    await withTimeout(Promise.all(ch.map((c,i)=>cSet(ck(slot,i),c))),25000);
+    for(let i=0;i<ch.length;i++) await withTimeout(cSet(ck(slot,i),ch[i]),12000); // по одному куску — Telegram так надёжнее
     const now=Date.now(), rev=h.rev+1;
     const nh={cur:slot,rev,ts:now,slots:Object.assign({},h.slots,{[slot]:{n:ch.length,len:str.length,rev,ts:now,stars:(state.seq||[]).length}})};
-    await withTimeout(cSet(HEAD,JSON.stringify(nh)),10000);
+    await withTimeout(cSet(HEAD,JSON.stringify(nh)),12000);
     if(old&&old.n>ch.length) cDel(Array.from({length:old.n-ch.length},(_,i)=>ck(slot,ch.length+i))).catch(()=>{});
-    head=nh; baseRev=rev; lastSync=now; syncErr=false; errShown=false; ok=true;
-    try{localStorage.removeItem(LS)}catch(e){}
+    head=nh; baseRev=rev; lastSync=now; syncErr=false;
+    if(state.ts===startTs) pending=false; // пока отправляли, ничего не изменилось
+    writeMeta();
     if(conflict) toast('На другом устройстве тоже были изменения — их копия лежит в «Оформлении» → «Прошлые версии»');
   }catch(e){
-    dirty=true; syncErr=true;
-    if(e==='too-big') toast('Данных стало больше, чем вмещает облако Telegram');
-    else if(!errShown){errShown=true;toast('Нет связи с облаком — сохраню, как только появится. Не закрывай приложение')}
-    retryT=setTimeout(push,5000);
+    syncErr=true;
+    if(e==='too-big') toast('Данных стало больше, чем вмещает облако Telegram — сохраняю только на устройстве');
+    else retryT=setTimeout(push,8000);
   }
   pushing=false; setSync();
-  if(ok&&dirty) push();
+  if(pending&&!syncErr){clearTimeout(pushT);pushT=setTimeout(push,600)}
+}
+
+/* --- синхронизация --- */
+function quietEnsure(){
+  suppress=true;
+  try{ensureWeek();ensureDay();if(state.pins&&state.pins.items.some(i=>i.done)){unpinDone();bootDirty=true}}
+  finally{suppress=false}
+}
+function adopt(s,h,fallback){
+  state=normalize(s); if(h){head=h;baseRev=h.rev} pending=false; ready=true; bootDirty=false;
+  writeLocal(); quietEnsure(); applyTheme(); render(); setSync();
+  if(bootDirty){bootDirty=false;save()}
+  if(fallback) toast('Последняя версия в облаке повреждена — открыла предыдущую целую');
+}
+// сверка с облаком при открытии: чья версия главнее
+async function reconcile(){
+  if(!CLOUD) return false;
+  try{
+    const h=await withTimeout(readHead(),10000);
+    if(h){
+      if(!state||(h.rev>baseRev&&!pending)){
+        const r=await withTimeout(readBest(h),25000);
+        if(state&&pending) head=h;          // пока загружалось, ты что-то изменила — твоё главнее
+        else adopt(r.s,h,r.fallback);
+      } else head=h;
+    } else {
+      head={cur:-1,rev:0,slots:{}}; baseRev=0;
+      const legacy=await withTimeout(readLegacy(),20000);
+      if(legacy&&(!state||(!pending&&(legacy.ts||0)>(state.ts||0)))) adopt(legacy,null);
+      else if(!state) adopt(null,null);
+      pending=true; writeMeta();            // заводим указатель в облаке
+    }
+    cloudChecked=true; syncErr=false; lastSync=Date.now(); setSync();
+    if(pending){clearTimeout(pushT);pushT=setTimeout(push,300)}
+    return true;
+  }catch(e){syncErr=true;setSync();return false}
 }
 function busyUI(){return !!document.querySelector('.overlay')||(typeof dragActive!=='undefined'&&dragActive)}
-// забираем изменения, сделанные на другом устройстве
+// изменения, сделанные на другом устройстве
 async function pull(){
-  if(!ready||pushing||dirty||busyUI()) return false;
+  if(!ready||!CLOUD) return false;
+  if(!cloudChecked){await reconcile();return false}
+  if(pushing||pending||busyUI()) return false;
   try{
     const h=await withTimeout(readHead(),10000);
     if(!h||h.rev<=baseRev){lastSync=Date.now();syncErr=false;setSync();return false}
     const r=await withTimeout(readBest(h),25000);
-    if(dirty||pushing||busyUI()) return false; // пока загружалось, ты что-то изменила — твоё важнее
-    state=normalize(r.s); head=h; baseRev=h.rev; lastSync=Date.now(); syncErr=false;
-    applyTheme(); ensureWeek(); ensureDay(); render(); setSync();
-    return true;
+    if(pending||pushing||busyUI()) return false;
+    adopt(r.s,h,r.fallback); return true;
   }catch(e){syncErr=true;setSync();return false}
 }
+
+/* --- статус и прошлые версии --- */
 function syncText(){
-  if(pushing||dirty) return syncErr?'Нет связи — жду интернет, чтобы сохранить':'Сохраняю в облако…';
-  if(syncErr) return 'Нет связи с облаком';
-  if(!lastSync) return 'Всё в облаке';
-  return 'Всё в облаке · '+whenTxt(lastSync);
+  if(!CLOUD) return 'Сохранено на этом устройстве';
+  if(pushing) return 'Сохранено · отправляю в облако…';
+  if(pending&&syncErr) return 'Сохранено на устройстве · в облако отправлю, когда будет связь';
+  if(pending) return 'Сохранено · отправляю в облако…';
+  if(syncErr) return 'Сохранено на устройстве · облако сейчас недоступно';
+  return 'Всё сохранено'+(lastSync?' · '+whenTxt(lastSync):'');
 }
 function whenTxt(ts){
   const d=new Date(ts), hm=pad(d.getHours())+':'+pad(d.getMinutes());
@@ -684,16 +729,15 @@ function whenTxt(ts){
 function setSync(){
   const el=document.getElementById('syncLine');
   if(el){el.textContent=syncText();el.classList.toggle('err',syncErr)}
-  try{if(TG){if(dirty||pushing)TG.enableClosingConfirmation&&TG.enableClosingConfirmation();else TG.disableClosingConfirmation&&TG.disableClosingConfirmation()}}catch(e){}
 }
 function versionsHTML(){
-  if(!head||!head.slots) return '';
+  if(!CLOUD||!head||!head.slots) return '';
   const list=Object.keys(head.slots).map(Number).filter(i=>i!==head.cur).map(i=>({i,...head.slots[i]})).sort((a,b)=>b.rev-a.rev);
   if(!list.length) return '';
   return `<div class="vers"><div class="vers-t">Прошлые версии</div>${list.map(v=>`<div class="ver"><span>${whenTxt(v.ts)}<small>${v.stars} ${pl(v.stars,'звёздочка','звёздочки','звёздочек')}</small></span><button class="link" data-v="${v.i}">Вернуть</button></div>`).join('')}</div>`;
 }
 async function restoreVersion(slot){
-  if(dirty||pushing){toast('Секунду — сохраняю то, что на экране');return}
+  if(pending||pushing){toast('Секунду — отправляю в облако то, что на экране');push();return}
   if(!head||!head.slots[slot]) return;
   try{
     const s=await withTimeout(readSlot(head,slot),25000);
@@ -1451,7 +1495,7 @@ function renderLook(){
       <div class="preview-btn"><span class="fake">Кнопка</span><span class="fake2">+ Добавить</span></div></div></div>`;
   const TC=['#F4C26B','#E8A3B6','#F2BD98','#B8A4DE'];
   h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div></div>`;
-  h+=`<div class="sec-title">Синхронизация</div><div class="card sync-card"><div class="sync-line" id="syncLine">${syncText()}</div><div class="tiny" style="margin-top:6px">Данные хранятся в облаке Telegram — одни и те же на всех устройствах. Фото фона и карточек остаются на том устройстве, где ты их выбрала.</div>${versionsHTML()}</div>`;
+  h+=`<div class="sec-title">Синхронизация</div><div class="card sync-card"><div class="sync-line" id="syncLine">${syncText()}</div><div class="tiny" style="margin-top:6px">Каждое изменение сразу сохраняется на этом устройстве и следом уходит в облако Telegram — поэтому на всех устройствах всё одинаково. Фото фона и карточек остаются на том устройстве, где ты их выбрала.</div>${versionsHTML()}</div>`;
   h+=`<p class="tiny" style="text-align:center;margin-top:16px">Цвет звёздочек меняется в настройках каждого направления и ежедневной задачи.</p>`;
   return h;
 }
@@ -2161,33 +2205,36 @@ function gate(title,text,retry){
   v.innerHTML=`<div class="loading gate"><div><div class="gate-t">${title}</div><p>${text}</p>${retry?'<button class="btn main" id="gateRetry">Попробовать ещё раз</button>':''}</div></div>`;
   const b=document.getElementById('gateRetry'); if(b) b.onclick=boot;
 }
-function boot(){
-  if(!CLOUD){
-    if(TG&&TG.initData) gate('Обнови Telegram','Твои данные хранятся в облаке Telegram, а эта версия Telegram его не поддерживает. Обнови приложение и открой Sportelina снова.',false);
-    else gate('Открой Sportelina в Telegram','Твои данные хранятся в облаке Telegram, поэтому приложение работает только внутри Telegram — через бота.',false);
+function settle(){
+  if(bootDirty){bootDirty=false;save()}
+  if(resetJarOnce()){save();render()}
+  setTimeout(gcPinPhotos,1500);
+}
+async function boot(){
+  try{TG&&TG.disableClosingConfirmation&&TG.disableClosingConfirmation()}catch(e){}
+  const L=readLocal(); baseRev=L.baseRev; pending=L.pending;
+  if(L.s){
+    // как в Designdar: сразу показываем то, что сохранено на устройстве, и следом сверяемся с облаком
+    state=normalize(L.s); ready=true; quietEnsure(); applyTheme(); render(); setSync();
+    await reconcile(); settle(); return;
+  }
+  if(!CLOUD){state=normalize(null); ready=true; quietEnsure(); applyTheme(); render(); settle(); return}
+  // на этом устройстве ещё ничего нет — ждём облако, чтобы не начать с пустой банки поверх твоих данных
+  document.getElementById('view').innerHTML='<div class="loading">открываю банку…</div>';
+  if(!(await reconcile())){
+    gate('Нет связи с облаком','На этом устройстве ещё нет твоих данных, а облако Telegram сейчас не отвечает. Проверь интернет и попробуй ещё раз.',true);
     return;
   }
-  document.getElementById('view').innerHTML='<div class="loading">открываю банку…</div>';
-  withTimeout(cloudLoad(),20000).then(async r=>{
-    state=normalize(r.s); ready=true; lastSync=Date.now();
-    if(r.migrate){dirty=true;await push()} // сначала данные как есть — чтобы обнуление можно было отменить через «Вернуть»
-    if(resetJarOnce())save();
-    applyTheme(); ensureWeek(); ensureDay();
-    if(state.pins&&state.pins.items.some(i=>i.done)){unpinDone();save()}
-    render(); setTimeout(gcPinPhotos,1500);
-    if(r.fallback) toast('Последняя версия в облаке повреждена — открыла предыдущую целую');
-  }).catch(e=>{
-    if(e==='all-broken') gate('Не могу прочитать данные','Данные в облаке повреждены. Я ничего не перезаписывала — напиши мне, разберёмся.',true);
-    else gate('Нет связи с облаком','Без ответа облака я не открываю банку, чтобы старая копия не затёрла твои данные. Проверь интернет и попробуй ещё раз.',true);
-  });
+  settle();
 }
 boot();
 document.addEventListener('visibilitychange',()=>{
   if(!ready) return;
-  if(document.hidden){if(dirty)push();return}
+  if(document.hidden){push();return}
   const after=()=>{ensureWeek();ensureDay();render()};
-  if(dirty) {push();after()} else pull().then(changed=>{if(!changed)after()});
+  if(pending) {push();after()} else pull().then(changed=>{if(!changed)after()});
 });
+window.addEventListener('pagehide',()=>{if(ready)push()});
 setInterval(()=>{if(ready&&!document.hidden)pull()},15000);
 </script>
 </body>
