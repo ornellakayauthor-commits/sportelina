@@ -1030,13 +1030,26 @@ function renderHome(){
 function doneBucket(i){return i.pid&&i.dir&&progOf(i.dir,i.pid)?i.pid:''}
 function groupHTML(d,items,w,kind,own){
   const color=d?d.color:ONE_COLOR;
+  // включённая сейчас программа направления: на ней фокус — её название в заголовке и только её «Выполнено»
+  let fp=null;
+  if(d&&d.progs&&d.progs.length){
+    if(kind==='day') fp=dayProg(d,today())||null;
+    else if(kind==='week'&&own) fp=progOf(d.id,w.progs[d.id])||null;
+  }
   let head;
   if(d){
     const dp=kind==='day'&&datedFor(d,today());
     const p=progOf(d.id,w.progs[d.id]);
-    const right=dp?`<span class="tag">${esc(dp.name)} · до ${fmtD(dp.to)}</span>`
-      :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
-    head=`<div class="ghead"><span class="gname">${dot(color)}${esc(d.name)}</span>${right}</div>`;
+    let right;
+    if(fp){
+      right=dp?`<span class="tag">${esc(d.name)} · до ${fmtD(dp.to)}</span>`
+        :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${esc(d.name)} · сменить</button>`
+        :`<span class="tag">${esc(d.name)}</span>`);
+    } else {
+      right=dp?`<span class="tag">${esc(dp.name)} · до ${fmtD(dp.to)}</span>`
+        :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
+    }
+    head=`<div class="ghead"><span class="gname">${dot(color)}${esc(fp?fp.name:d.name)}</span>${right}</div>`;
   } else head=`<div class="ghead"><span class="gname">${dot(color)}Разное</span></div>`;
   const row=i=>`<div class="item${i.done?' done':' drag-item'}" data-id="${i.id}">
       <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
@@ -1049,7 +1062,8 @@ function groupHTML(d,items,w,kind,own){
   if(d&&d.progs) d.progs.forEach(p=>buckets.set(p.id,[]));
   buckets.set('',[]);
   dn.forEach(i=>buckets.get(doneBucket(i)).push(i));
-  const used=[...buckets].filter(([,l])=>l.length);
+  // когда программа включена — показываем только её выполненное (остальное не удаляется, просто не видно)
+  const used=[...buckets].filter(([b,l])=>l.length&&(!fp||b===fp.id));
   used.forEach(([b,l])=>{
     const label='Выполнено';
     const fk=kind+':'+(d?d.id:'misc')+(b?':'+b:''), fo=isFolded(fk)?' folded':'';
@@ -1060,7 +1074,7 @@ function groupHTML(d,items,w,kind,own){
       const nx=cyc(d)[(d.next||0)%cyc(d).length];
       body=`<div class="nodir">На этой неделе программы пока нет<br><button class="pill" data-a="startNext" data-id="${d.id}">Начать «${esc(nx.name)}»</button></div>`;
     } else body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
-  }
+  } else if(d&&!body) body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
   return `<div class="group" style="--c:${color}">${head}${body}</div>`;
 }
 
