@@ -727,13 +727,35 @@ function datedFor(d,date){return d.progs.find(p=>isDated(p)&&p.from<=date&&date<
 function fmtD(k){const [y,m,dd]=k.split('-').map(Number);return dd+' '+MON[m-1]}
 function skipOf(d){const w=curWeek();return (w.skip&&w.skip[d.id])||[]}
 function dayProg(d,date){const dp=datedFor(d,date);if(dp)return dp;if(isDaily(d))return progOf(d.id,curWeek().progs[d.id]);return null}
+// «Только несделанное»: выполненное живёт в самой программе и возвращается на главный при каждом её включении
+function restoreDone(list,d,p){
+  if(!list||!isOnce(p)) return;
+  p.items.forEach(x=>{
+    if(!x.doneAt) return;
+    if(list.items.some(i=>i.dir===d.id&&i.pid===p.id&&(i.pi?i.pi===x.id:i.name===x.name))) return;
+    const o=mkItem(d.id,x.name,1,p.id,x.id); o.done=true; o.doneOn=x.doneAt; list.items.push(o);
+  });
+}
+// выполненное, которое в программе вернули ↺ или очистили, уходит и с главного
+function dropStaleDone(list,d,p){
+  if(!list||!isOnce(p)) return;
+  list.items=list.items.filter(i=>!(i.dir===d.id&&i.pid===p.id&&i.done&&!i.hidden&&!(progItemFor(p,i)||{}).doneAt));
+}
+// убрать выполненное с главного = убрать его и из «Выполнено» программы (это один общий список)
+function forgetDone(i){
+  const x=linkedProgItem(i); if(!x||!x.doneAt) return;
+  const d=dirById(i.dir), p=d&&d.progs.find(q=>q.items.includes(x));
+  if(p) p.items=p.items.filter(y=>y!==x);
+}
 function progItems(d,p){const sk=skipOf(d);return active(p).filter(it=>!sk.includes(it.name)).map(it=>mkItem(d.id,it.name,1,p.id,it.id))}
 function refreshToday(d){
   const t=curDay(); if(!t) return;
   dropUndone(t,d.id);
   const p=dayProg(d,today()); if(!p) return;
+  dropStaleDone(t,d,p);
   const done=new Set(t.items.filter(i=>i.dir===d.id&&i.prog).map(i=>i.name));
   progItems(d,p).forEach(x=>{if(!done.has(x.name))t.items.push(x)});
+  restoreDone(t,d,p);
 }
 function startProgram(w,dir,idx,toToday){
   const list=cyc(dir), p=list[idx]; if(!p) return;
@@ -744,6 +766,7 @@ function startProgram(w,dir,idx,toToday){
     active(p).forEach(it=>{if(!has.has(it.name)){has.add(it.name);w.items.push(mkItem(dir.id,it.name,1,p.id,it.id))}});
     if(!isOnce(p)) (p.carry||[]).forEach(n=>{if(!has.has(n)){has.add(n);w.items.push(mkItem(dir.id,n,1,p.id))}});
     p.carry=[];
+    restoreDone(w,dir,p);
   }
   dir.next=(idx+1)%list.length;
 }
@@ -802,6 +825,7 @@ function ensureDay(){
   // запланированное из копилок на этот день (и на пропущенные дни)
   (state.jars||[]).forEach(j=>j.items.forEach(x=>{if(x.st==='plan'&&x.date<=key){items.push(mkJarItem(j,x));x.st='out';delete x.date}}));
   state.days[key]={items};
+  state.dirs.forEach(d=>{const p=dayProg(d,key); if(p) restoreDone(state.days[key],d,p)});
   const ks=Object.keys(state.days).sort();
   while(ks.length>14) delete state.days[ks.shift()];
   save();
@@ -833,9 +857,10 @@ function fixNext(d){
 function syncWeek(d){
   if(isDaily(d)) return;
   const w=curWeek(), p=progOf(d.id,w.progs[d.id]);
+  dropStaleDone(w,d,p);
   const done=new Set(w.items.filter(i=>i.dir===d.id&&i.prog&&i.done).map(i=>i.name));
   dropUndone(w,d.id);
-  if(p&&cyc(d).includes(p)) active(p).forEach(it=>{if(!done.has(it.name))w.items.push(mkItem(d.id,it.name,1,p.id,it.id))});
+  if(p&&cyc(d).includes(p)){active(p).forEach(it=>{if(!done.has(it.name))w.items.push(mkItem(d.id,it.name,1,p.id,it.id))});restoreDone(w,d,p)}
 }
 function changeFreq(d,f){
   if(d.freq===f) return;
@@ -1773,7 +1798,7 @@ function itemMenu(id){
     if(rp) rp.onclick=()=>{close();setTimeout(()=>replaceSheet(id),280)};
     const sk=el.querySelector('#o-skip');
     if(sk) sk.onclick=()=>{const w=curWeek();w.skip=w.skip||{};(w.skip[it.dir]=w.skip[it.dir]||[]).push(it.name);L.items=L.items.filter(i=>i!==it);save();close();render();toast('Убрано до воскресенья')};
-    el.querySelector('#o-del').onclick=()=>{if(it.done)it.hidden=true;else{if(it.jar)jarIdle(it);L.items=L.items.filter(i=>i!==it)}save();close();render()};
+    el.querySelector('#o-del').onclick=()=>{if(it.done){it.hidden=true;forgetDone(it)}else{if(it.jar)jarIdle(it);L.items=L.items.filter(i=>i!==it)}save();close();render()};
     el.querySelector('#o-edit').onclick=()=>{close();setTimeout(()=>editSheet(id),280)};
     const pn=el.querySelector('#o-pin'), up=el.querySelector('#o-unpin');
     if(pn) pn.onclick=()=>{L.items=L.items.filter(i=>i!==it);state.pins.items.push(it);save();close();render();toast('Закреплено на главном');haptic('medium')};
@@ -2045,7 +2070,7 @@ const A={
   fold:t=>{const head=t.closest('.dhead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
   clearDone:t=>{const L=t.dataset.k==='day'?curDay():t.dataset.k==='pin'?state.pins:curWeek(), dId=t.dataset.d;
     const pId=t.dataset.p; // у каждой программы свой «Очистить»
-    L.items.forEach(i=>{if(i.done&&(pId==null||doneBucket(i)===pId)&&(dId==='*'?true:dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))))i.hidden=true});
+    L.items.forEach(i=>{if(i.done&&(pId==null||doneBucket(i)===pId)&&(dId==='*'?true:dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar)))){i.hidden=true;forgetDone(i)}});
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
   switch:t=>switchSheet(t.dataset.id),
