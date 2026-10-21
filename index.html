@@ -1786,6 +1786,14 @@ function prMark(it,x,amount){
   const k='j:'+it.jar, d=today();
   pr.n=n; pr.last={a,k,d}; addFunStar(k,d); haptic('light'); return true;
 }
+// дошла до конца — идея сама отмечается выполненной и уходит в «Выполнено»
+function prFinishIfDone(it,x){
+  if(!prDone(x.pr)) return false;
+  const id=it.id; render();
+  const el=document.querySelector(`.stk[data-id="${id}"]`); if(el) el.classList.add('bye');
+  setTimeout(()=>{toggleItem(id);toast((x.pr.u==='s'?'Досмотрела':'Дочитала')+' до конца — идея в «Выполнено»')},el?330:0);
+  return true;
+}
 function prAddSheet(id){
   const f=findItem(id); if(!f) return; const it=f.it, x=jarItemOf(it); if(!x||!x.pr) return;
   let mode='add';
@@ -1807,7 +1815,7 @@ function prAddSheet(id){
         else if(v<x.pr.n){x.pr.n=v;delete x.pr.last;save();close();render();toast('Теперь '+prText(x.pr));return}
         else return close();
       }
-      save();close();render();toast(prText(x.pr)+' · звезда в баночку копилок');
+      save();close();if(!prFinishIfDone(it,x)){render();toast(prText(x.pr)+' · звезда в баночку копилок')}
     };
     el.querySelector('#pa-ok').onclick=ok;
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ok()}});
@@ -1832,7 +1840,7 @@ function prSheet(id){
       const t=num(el.querySelector('#pr-t').value)||null; let n=num(el.querySelector('#pr-n').value)||0;
       if(t&&n>t) n=t;
       const pr=x.pr||{}; pr.u=dr.u; pr.t=t; if(pr.n!==n){pr.n=n;delete pr.last} x.pr=pr;
-      save();close();render();haptic('medium');
+      save();close();haptic('medium');if(!prFinishIfDone(it,x)) render();
     };
     const un=el.querySelector('#pr-undo');
     if(un) un.onclick=()=>{const L=x.pr.last;removeFunStar(L.k,L.d);x.pr.n=Math.max(0,x.pr.n-L.a);delete x.pr.last;save();close();render();toast('Отметка отменена · '+prText(x.pr))};
@@ -2179,7 +2187,7 @@ const A={
   menu:t=>itemMenu(t.dataset.id),
   prPlus:t=>{const f=findItem(t.dataset.id);if(!f)return;const x=jarItemOf(f.it);if(!x||!x.pr||prDone(x.pr))return;
     if(x.pr.u==='p') return prAddSheet(f.it.id);
-    if(prMark(f.it,x,1)){save();render();toast(prText(x.pr)+' · звезда в баночку копилок')}},
+    if(prMark(f.it,x,1)){save();if(!prFinishIfDone(f.it,x)){render();toast(prText(x.pr)+' · звезда в баночку копилок')}}},
   switch:t=>switchSheet(t.dataset.id),
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
   addOne:()=>addOneSheet(),
