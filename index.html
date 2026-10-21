@@ -2325,6 +2325,20 @@ function resetJarOnce(){
   if(!state||state.jarReset1) return false;
   state.jarReset1=1; state.seq=[]; return true;
 }
+// разовый перенос 21 октября 2026: звёзды за идеи из копилок переезжают из основной банки в баночку копилок.
+// Отметка funMove1 остаётся в данных, поэтому второй раз перенос не повторится — ни здесь, ни на другом устройстве
+function moveJarStarsOnce(){
+  if(!state||state.funMove1) return false;
+  state.funMove1=1;
+  const isJ=k=>String(k).startsWith('j:'), F=state.fun;
+  F.seq=state.seq.filter(isJ).concat(F.seq); state.seq=state.seq.filter(k=>!isJ(k));
+  for(const d in state.log){const o=state.log[d];
+    for(const k in o){if(!isJ(k))continue;const t=F.log[d]||(F.log[d]={});t[k]=(t[k]||0)+o[k];delete o[k]}
+    if(!Object.keys(o).length) delete state.log[d]}
+  // уже выполненные идеи: если снять с них отметку, звезда уйдёт из баночки копилок
+  [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.jar&&i.done)i.fs=1}));
+  return true;
+}
 function gate(title,text,retry){
   const v=document.getElementById('view');
   v.innerHTML=`<div class="loading gate"><div><div class="gate-t">${title}</div><p>${text}</p>${retry?'<button class="btn main" id="gateRetry">Попробовать ещё раз</button>':''}</div></div>`;
@@ -2333,6 +2347,7 @@ function gate(title,text,retry){
 function settle(){
   if(bootDirty){bootDirty=false;save()}
   if(resetJarOnce()){save();render()}
+  if(moveJarStarsOnce()){save();render()}
   setTimeout(gcPinPhotos,1500);
 }
 async function boot(){
