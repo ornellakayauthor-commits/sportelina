@@ -1772,10 +1772,10 @@ function jarEdit(id,cb){
 /* ================= прогресс идей из копилок ================= */
 // Хранится в самой идее копилки (x.pr): единица, сколько уже и (по желанию) сколько всего.
 // Никаких дат и подсчёта дней — только где ты сейчас. За каждую отметку — одна звезда в баночку копилок.
+// Хранится в самой идее копилки (x.pr). Единицы: страницы и серии.
 const PR_U={p:{n:'Страницы',w:'стр.',all:'Всего страниц',now:'Уже прочитано страниц'},
-            s:{n:'Серии',w:'серия',all:'Всего серий',now:'Уже просмотрено серий'},
-            c:{n:'Главы',w:'глава',all:'Всего глав',now:'Уже прочитано глав'}};
-function prU(pr){return PR_U[pr.u]||PR_U.p}
+            s:{n:'Серии',w:'серия',all:'Всего серий',now:'Уже просмотрено серий'}};
+function prU(pr){return PR_U[pr.u]||PR_U.p} // счётчик глав убран — если где-то остался, он считается страницами
 function prDone(pr){return !!(pr.t&&pr.n>=pr.t)}
 function prText(pr){return prU(pr).w+' '+pr.n+(pr.t?' из '+pr.t:'')}
 function prSmall(i){const x=i.jar&&jarItemOf(i);return x&&x.pr?` <small class="ipr">· ${esc(prText(x.pr))}</small>`:''}
@@ -1823,7 +1823,7 @@ function prAddSheet(id){
 }
 function prSheet(id){
   const f=findItem(id); if(!f) return; const it=f.it, x=jarItemOf(it); if(!x) return;
-  const had=!!x.pr, dr={u:had?x.pr.u:'p'};
+  const had=!!x.pr, dr={u:had&&PR_U[x.pr.u]?x.pr.u:'p'};
   sheet('Прогресс',`
     <div class="field"><label class="t">Что считать</label><div class="seg" id="pr-u">${Object.entries(PR_U).map(([k,u])=>`<button type="button" data-u="${k}">${u.n}</button>`).join('')}</div></div>
     <div class="field"><label class="t" id="pr-tl"></label><input type="text" inputmode="numeric" id="pr-t" placeholder="Можно не указывать" autocomplete="off" value="${had&&x.pr.t?x.pr.t:''}"></div>
@@ -1901,7 +1901,7 @@ function itemMenu(id){
        <button class="opt" id="o-del"><span>Убрать из плана</span></button>`;
   const look=f.kind==='pin'&&!it.done?`<button class="opt" id="o-look"><span>Оформление карточки<small>Форма, цвет и украшение</small></span></button>`:'';
   const PX=J&&f.kind==='pin'&&!it.done?jarItemOf(it):null;
-  const prOpt=PX?`<button class="opt" id="o-pr"><span>${PX.pr?'Прогресс':'Отмечать прогресс'}<small>${PX.pr?esc(prText(PX.pr))+' · изменить или убрать':'Страницы, серии или главы — за каждую отметку звезда'}</small></span></button>`:'';
+  const prOpt=PX?`<button class="opt" id="o-pr"><span>${PX.pr?'Прогресс':'Отмечать прогресс'}<small>${PX.pr?esc(prText(PX.pr))+' · изменить или убрать':'Страницы или серии — за каждую отметку звезда'}</small></span></button>`:'';
   sheet(esc(it.name),look+prOpt+`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
     const lk=el.querySelector('#o-look'); if(lk) lk.onclick=()=>{close();setTimeout(()=>lookSheet(id),280)};
     const po=el.querySelector('#o-pr'); if(po) po.onclick=()=>{close();setTimeout(()=>prSheet(id),280)};
@@ -2186,7 +2186,7 @@ const A={
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
   prPlus:t=>{const f=findItem(t.dataset.id);if(!f)return;const x=jarItemOf(f.it);if(!x||!x.pr||prDone(x.pr))return;
-    if(x.pr.u==='p') return prAddSheet(f.it.id);
+    if(x.pr.u!=='s') return prAddSheet(f.it.id);
     if(prMark(f.it,x,1)){save();if(!prFinishIfDone(f.it,x)){render();toast(prText(x.pr)+' · звезда в баночку копилок')}}},
   switch:t=>switchSheet(t.dataset.id),
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
