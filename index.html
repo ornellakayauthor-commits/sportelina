@@ -50,6 +50,9 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 .count-big b{font-size:42px;font-weight:700;margin-right:4px}
 .shelf{display:flex;align-items:center;gap:3px;color:var(--muted);font-size:13px;margin-top:6px}
 .shelf span{margin-left:6px}
+svg.jar.sm{width:min(46vw,170px)}
+.count-big.sm{font-size:19px}.count-big.sm b{font-size:32px}
+.jar-cap{font-size:12.5px;color:var(--muted);margin-top:1px}
 .drop{animation:drop .85s cubic-bezier(.35,1.3,.6,1)}
 @keyframes drop{from{transform:translateY(-240px)}to{transform:none}}
 .spark{animation:tw 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
@@ -371,7 +374,11 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .stk-src .dot{width:8px;height:8px;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
 .stk .more{color:color-mix(in srgb,var(--line) 70%,#fff);height:24px}
 .stk-name{flex:1;margin:6px 0 10px;font-weight:600;font-size:15px;line-height:1.35;overflow-wrap:normal;word-break:normal;hyphens:manual;-webkit-hyphens:manual;cursor:pointer}
-.stk-foot{display:flex;align-items:center;min-height:30px}
+.stk-foot{display:flex;align-items:center;gap:8px;min-height:30px}
+.stk-pr{margin:-4px 0 10px;font-size:12.5px;font-weight:700;color:color-mix(in srgb,var(--line) 62%,#3E2C44);font-variant-numeric:tabular-nums}
+.stk-plus{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:19px;font-weight:600;line-height:1;color:#fff;background:var(--line);box-shadow:0 0 0 2px rgba(255,255,255,.85);transition:transform .12s}
+.stk-plus:active{transform:scale(.88)}
+.ipr{color:var(--muted);font-weight:500;font-size:12.5px}
 .stk .tick{background:rgba(255,255,255,.75);border-color:var(--line)}
 .stk.d-br .stk-name{margin-right:6px}
 .stk-grid>.stk.wide,.stk-grid>.stk.solo{grid-column:1/-1}
@@ -469,16 +476,17 @@ const MON = ['янв','фев','мар','апр','мая','июн','июл','а�
 const STABLE_COLOR = '#F4C26B', ONE_COLOR = '#F2BD98';
 const TICK = '<svg viewBox="0 0 20 20"><path d="M10 1Q11.4 8.6 19 10Q11.4 11.4 10 19Q8.6 11.4 1 10Q8.6 8.6 10 1Z" fill="#fff"/></svg>';
 
-let state = null, tab = 'home', animNew = false, photo = null;
+let state = null, tab = 'home', animNew = false, animFun = false, photo = null;
 try{photo=localStorage.getItem(PHOTO_LS)}catch(e){}
 
-function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],pins:{items:[]},
+function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],pins:{items:[]},fun:{seq:[],log:{}},
   theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic'}}}
 function normalize(s){
   if(!s || s.v!==1) return fresh();
   const f=fresh();
   for(const k in f) if(s[k]===undefined) s[k]=f[k];
   s.theme=Object.assign({},f.theme,s.theme||{});
+  s.fun=Object.assign({seq:[],log:{}},s.fun||{});
   if(!SHAPES[s.theme.jar]) s.theme.jar='classic';
   s.dirs.forEach(d=>{if(!d.freq)d.freq='week';d.progs.forEach(p=>{if(!p.status)p.status=(p.from&&p.to)?'dates':'queue';if(!p.mode)p.mode='repeat';p.items.forEach(it=>{if(!it.id)it.id=uid()})})});
   s.stable.forEach(x=>{if(!x.color)x.color=STABLE_COLOR});
@@ -884,11 +892,24 @@ function removeStar(key,date){
   const d=state.log[date];
   if(d&&d[key]){d[key]--; if(!d[key]) delete d[key]; if(!Object.keys(d).length) delete state.log[date];}
 }
+// вторая баночка — для идей из копилок
+function addFunStar(key,date){
+  const F=state.fun; F.seq.push(key);
+  const d=F.log[date]||(F.log[date]={}); d[key]=(d[key]||0)+1;
+  animFun=true;
+  if(F.seq.length%CAP===0) setTimeout(()=>toast('Баночка копилок полна! Следующая звезда начнёт новую'),900);
+}
+function removeFunStar(key,date){
+  const F=state.fun, i=F.seq.lastIndexOf(key); if(i>-1) F.seq.splice(i,1);
+  const d=F.log[date];
+  if(d&&d[key]){d[key]--; if(!d[key]) delete d[key]; if(!Object.keys(d).length) delete F.log[date];}
+}
 function toggleItem(id){
   const f=findItem(id); if(!f) return; const it=f.it;
   const key=it.dir||(it.jar?'j:'+it.jar:'one');
-  if(!it.done){it.done=true;it.doneOn=today();addStar(key,it.doneOn);haptic('light')}
-  else{removeStar(key,it.doneOn);it.done=false;it.doneOn=null}
+  // звёзды за идеи из копилок падают в свою баночку (во вкладке «Копилки»); старые — там, где лежали
+  if(!it.done){it.done=true;it.doneOn=today();if(it.jar&&jarById(it.jar)){addFunStar(key,it.doneOn);it.fs=1;toast('Звезда — в баночку копилок')}else addStar(key,it.doneOn);haptic('light')}
+  else{if(it.fs){removeFunStar(key,it.doneOn);delete it.fs}else removeStar(key,it.doneOn);it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
   if(f.kind==='pin'&&it.done) unpinDone(); // выполненное само открепляется и уходит в «Сегодня» → «Выполнено»
@@ -970,17 +991,17 @@ function starSlots(k){
 let jarUid=0;
 function jarSVG(n,total,opt){
   opt=opt||{}; const k=opt.shape||state.theme.jar, S=shapeOf(k), thumb=!!opt.thumb, id=(thumb?'jt'+k:'jm')+'-'+tab;
-  const slots=starSlots(k), start=total-n; let stars='';
+  const slots=starSlots(k), start=total-n, seq=opt.seq||state.seq, anim=opt.anim!==undefined?opt.anim:animNew; let stars='';
   for(let i=0;i<n;i++){
-    const s=slots[i], col=opt.colors?opt.colors[i%opt.colors.length]:colorOf(state.seq[start+i]);
-    stars+=`<g class="${!thumb&&animNew&&i===n-1?'drop':''}"><path d="${sparkle(s.x,s.y,s.r)}" fill="${col}"/><circle cx="${s.x}" cy="${s.y}" r="${f1(s.r*.24)}" fill="#fff"/></g>`;
+    const s=slots[i], col=opt.colors?opt.colors[i%opt.colors.length]:colorOf(seq[start+i]);
+    stars+=`<g class="${!thumb&&anim&&i===n-1?'drop':''}"><path d="${sparkle(s.x,s.y,s.r)}" fill="${col}"/><circle cx="${s.x}" cy="${s.y}" r="${f1(s.r*.24)}" fill="#fff"/></g>`;
   }
   const frac=n/CAP, [mx,my,mr]=S.mouth;
   const ns=(!thumb&&n)?Math.min(SPARKS.length,2+Math.ceil(n/4)):0;
   const sp=SPARKS.slice(0,ns).map((s,i)=>`<path class="spark" style="animation-delay:${(i*.43).toFixed(2)}s" d="${sparkle(f1(mx+(s[0]-130)*.9),f1(s[1]+my-58),s[2])}" fill="#FFD98A"/>`).join('');
   const rising=(!thumb&&n)?Array.from({length:Math.min(7,1+Math.ceil(n/6))},(_,i)=>`<path class="rise" style="animation-delay:${(i*.65).toFixed(2)}s" d="${sparkle(f1(mx-mr*.6+rnd(i,11)*mr*1.2),f1(my-14+rnd(i,12)*12),f1(2.2+rnd(i,13)*2.4))}" fill="#FFE7A8"/>`).join(''):'';
   const dots=(!thumb&&n)?Array.from({length:Math.min(26,4+n)},(_,i)=>{const s=slots[(i*7)%Math.max(n,1)];return `<circle class="spark" style="animation-delay:${(i*.37).toFixed(2)}s" cx="${f1(s.x+(rnd(i,7)-.5)*40)}" cy="${f1(s.y-rnd(i,8)*30)}" r="${f1(1+rnd(i,9)*1.6)}"/>`}).join(''):'';
-  return `<svg class="${thumb?'':'jar'}" viewBox="${thumb?'30 40 200 250':'0 -54 260 350'}" ${thumb?'aria-hidden="true"':`role="img" aria-label="Банка: ${n} ${pl(n,'звезда','звезды','звёзд')}"`}>
+  return `<svg class="${thumb?'':(opt.cls||'jar')}" viewBox="${thumb?'30 40 200 250':'0 -54 260 350'}" ${thumb?'aria-hidden="true"':`role="img" aria-label="Банка: ${n} ${pl(n,'звезда','звезды','звёзд')}"`}>
   <defs>
     <clipPath id="${id}Clip"><path d="${S.body}"/></clipPath>
     <linearGradient id="${id}Glass" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".22" stop-color="#F4E8F4" stop-opacity=".38"/><stop offset=".72" stop-color="#E6DAF3" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".65"/></linearGradient>
@@ -1078,7 +1099,7 @@ function groupHTML(d,items,w,kind,own){
   } else head=`<div class="ghead"><span class="gname">${dot(color)}Разное</span></div>`;
   const row=i=>`<div class="item${i.done?' done':' drag-item'}" data-id="${i.id}">
       <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
-      <span class="iname" data-a="toggle" data-id="${i.id}">${esc(i.name)}</span>
+      <span class="iname" data-a="toggle" data-id="${i.id}">${esc(i.name)}${prSmall(i)}</span>
       <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`;
   const und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
   let body=und.length?`<div class="ilist" data-k="${kind}">${und.map(row).join('')}</div>`:'';
@@ -1277,6 +1298,7 @@ function decoSVG(key,P,cls){const D=DECO[key];if(!D)return '';const u=(++stkN).t
 function pinSrc(it){const j=it.jar&&jarById(it.jar);if(j)return {name:j.name,color:j.color};const d=it.dir&&dirById(it.dir);return d?{name:d.name,color:d.color}:null}
 function stickerHTML(it,preview){
   const L=lookOf(it), P=palOf(L.c), D=DECO[L.d], src=pinSrc(it), a=preview?'':` data-a="toggle" data-id="${it.id}"`;
+  const X=jarItemOf(it), pr=X&&X.pr, fin=pr&&prDone(pr);
   const raw=L.p?(preview&&it.look&&it.look._ph!=null?it.look._ph:pinPhoto(it.id)):'', ph=raw?srcOf(raw):'';
   return `<div class="stk${preview?' prev':' drag-item'}${D?' d-'+D.pos:''}${ph?' has-ph':''}"${preview?'':` data-id="${it.id}"`} data-shape="${L.s}" data-c="${L.c}"${ph?` data-ph="${ph}" data-v="${L.v}" data-y="${L.y}"`:''} style="--bg:${P.bg};--line:${P.line};--c:${P.line}">
     <svg class="stk-bg" aria-hidden="true"></svg>${D?decoSVG(L.d,P):''}
@@ -1284,7 +1306,8 @@ function stickerHTML(it,preview){
       <div class="stk-head">${src?`<span class="stk-src">${dot(src.color)}<span>${esc(src.name)}</span></span>`:'<span></span>'}
         ${preview?'':`<button class="more" data-a="menu" data-id="${it.id}" aria-label="Ещё">●●●</button>`}</div>
       <div class="stk-name"${a}>${esc(it.name).replace(/(^|\s)([А-Яа-яЁёA-Za-z]{1,2})\s+(?=\S)/g,'$1$2\u00A0')}</div>
-      <div class="stk-foot"><button class="tick"${a} aria-label="Отметить" tabindex="${preview?-1:0}"></button></div>
+      ${pr?`<div class="stk-pr">${fin?'готово · ':''}${esc(prText(pr))}</div>`:''}
+      <div class="stk-foot"><button class="tick"${a} aria-label="Отметить" tabindex="${preview?-1:0}"></button>${pr&&!fin?`<button class="stk-plus"${preview?' tabindex="-1"':` data-a="prPlus" data-id="${it.id}"`} aria-label="Отметить прогресс">+</button>`:''}</div>
     </div></div>`;
 }
 const STK_M=8;
@@ -1392,7 +1415,7 @@ function lookSheet(id){
 function sortableGrid(box,itemSel,done){
   if(!box||box.__sortable) return; box.__sortable=1;
   box.addEventListener('pointerdown',e=>{
-    if(e.button>0||e.target.closest('.tick,.more')) return;
+    if(e.button>0||e.target.closest('.tick,.more,.stk-plus')) return;
     const item=e.target.closest(itemSel); if(!item||item.parentElement!==box) return;
     const items=()=>[...box.children].filter(x=>x.matches(itemSel));
     if(items().length<2) return;
@@ -1427,7 +1450,7 @@ function sortableGrid(box,itemSel,done){
 /* ================= экран «Статистика» ================= */
 function renderStats(){
   const total=state.seq.length, full=Math.floor(total/CAP), wk=weekKey(), t=today(), mo=t.slice(0,7);
-  const sum=(pred,key)=>{let s=0;for(const d in state.log){if(!pred(d))continue;const o=state.log[d];if(key)s+=o[key]||0;else for(const k in o)s+=o[k]}return s};
+  const sum=(pred,key,log)=>{let s=0;const L=log||state.log;for(const d in L){if(!pred(d))continue;const o=L[d];if(key)s+=o[key]||0;else for(const k in o)s+=o[k]}return s};
   const inWeek=d=>d>=wk&&d<=t, inMonth=d=>d.slice(0,7)===mo, all=()=>true;
   let h=`<header class="top"><h1>Статистика</h1><div class="date">Здесь считается только то, что сделано</div></header>`;
   h+=`<div class="sec-title">Звёзды</div><div class="tiles">
@@ -1436,7 +1459,7 @@ function renderStats(){
     <div class="card"><div class="tile-v">${sum(inWeek)}</div><div class="tile-l">на этой неделе</div></div>
     <div class="card"><div class="tile-v">${sum(inMonth)}</div><div class="tile-l">в этом месяце</div></div></div>`;
   const rows=state.dirs.map(d=>({name:d.name,c:d.color,all:sum(all,d.id),m:sum(inMonth,d.id)}));
-  state.jars.forEach(j=>{const a=sum(all,'j:'+j.id);if(a)rows.push({name:j.name,c:j.color,all:a,m:sum(inMonth,'j:'+j.id)})});
+  state.jars.forEach(j=>{const k='j:'+j.id,a=sum(all,k)+sum(all,k,state.fun.log);if(a)rows.push({name:j.name,c:j.color,all:a,m:sum(inMonth,k)+sum(inMonth,k,state.fun.log)})});
   const oneAll=sum(all,'one'); if(oneAll) rows.push({name:'Разное',c:ONE_COLOR,all:oneAll,m:sum(inMonth,'one')});
   if(rows.length){
     const max=Math.max(1,...rows.map(r=>r.all));
@@ -1605,6 +1628,12 @@ function soonHTML(){
 }
 function renderJars(){
   let h=`<header class="top"><h1>Копилки</h1><div class="date">Идеи на свободное время — достань, когда захочется</div></header>`;
+  const fs=state.fun.seq.length, ff=fs>0?Math.floor((fs-1)/CAP):0, fin=fs-ff*CAP;
+  h+=`<div class="jarzone">${jarSVG(fin,fs,{seq:state.fun.seq,anim:animFun,cls:'jar sm'})}
+      <div class="count-big sm"><b>${fs}</b>${pl(fs,'звезда','звезды','звёзд')}</div>
+      <div class="jar-cap">за идеи из копилок</div>
+      ${ff?`<div class="shelf">${miniJars(ff)}<span>${ff} ${pl(ff,'полная банка','полные банки','полных банок')}</span></div>`:''}
+    </div>`;
   h+=`<div class="jars">${state.jars.map(j=>jarCard(j)).join('')}<button class="jcard add" data-a="addJar">+ Новая копилка</button></div>`;
   const plans=[];state.jars.forEach(j=>j.items.forEach(x=>{if(x.st==='plan')plans.push({j,x})}));
   if(plans.length){
@@ -1635,13 +1664,13 @@ function jarSheet(id){
     const draw=()=>{
       const xs=st=>j.items.filter(x=>x.st===st);
       const id_=xs('idle');
-      idle.innerHTML=id_.length?id_.map(x=>`<li class="drag-item" data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span>
+      idle.innerHTML=id_.length?id_.map(x=>`<li class="drag-item" data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}${x.pr?`<small>${esc(prText(x.pr))}</small>`:''}</span>
           <button type="button" class="pull">Достать</button><button type="button" class="x" aria-label="Удалить">×</button></div>
           <div class="pullbox"><button type="button" data-to="day">Сегодня</button><button type="button" data-to="week">На неделю</button>
           <label class="jdate">В день…<input type="date" min="${t}"></label><button type="button" data-to="pin">Закрепить</button></div></li>`).join('')
         :`<div class="ex-empty">${j.items.length?'Все идеи уже в деле ✨':'Пока пусто — запиши первую идею'}</div>`;
       el.querySelector('#j-plan').innerHTML=sec('Запланировано',xs('plan').sort((a,b)=>a.date<b.date?-1:1).map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}<small>${dayLabel(x.date)}</small></span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`));
-      el.querySelector('#j-out').innerHTML=sec('Уже в списках',xs('out').map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}<small>${placeOf(x)}</small></span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`));
+      el.querySelector('#j-out').innerHTML=sec('Уже в списках',xs('out').map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}<small>${placeOf(x)}${x.pr?' · '+esc(prText(x.pr)):''}</small></span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`));
       const dn=xs('done');
       el.querySelector('#j-donebox').style.display=dn.length?'':'none';
       el.querySelector('#j-dcnt').textContent='Выполнено · '+dn.length;
@@ -1740,6 +1769,78 @@ function jarEdit(id,cb){
   });
 }
 
+/* ================= прогресс идей из копилок ================= */
+// Хранится в самой идее копилки (x.pr): единица, сколько уже и (по желанию) сколько всего.
+// Никаких дат и подсчёта дней — только где ты сейчас. За каждую отметку — одна звезда в баночку копилок.
+const PR_U={p:{n:'Страницы',w:'стр.',all:'Всего страниц',now:'Уже прочитано страниц'},
+            s:{n:'Серии',w:'серия',all:'Всего серий',now:'Уже просмотрено серий'},
+            c:{n:'Главы',w:'глава',all:'Всего глав',now:'Уже прочитано глав'}};
+function prU(pr){return PR_U[pr.u]||PR_U.p}
+function prDone(pr){return !!(pr.t&&pr.n>=pr.t)}
+function prText(pr){return prU(pr).w+' '+pr.n+(pr.t?' из '+pr.t:'')}
+function prSmall(i){const x=i.jar&&jarItemOf(i);return x&&x.pr?` <small class="ipr">· ${esc(prText(x.pr))}</small>`:''}
+function num(v){const n=parseInt(String(v).replace(/\D/g,''),10);return isNaN(n)?null:n}
+function prMark(it,x,amount){
+  const pr=x.pr, before=pr.n; let n=before+amount; if(pr.t) n=Math.min(n,pr.t);
+  const a=n-before; if(a<=0) return false;
+  const k='j:'+it.jar, d=today();
+  pr.n=n; pr.last={a,k,d}; addFunStar(k,d); haptic('light'); return true;
+}
+function prAddSheet(id){
+  const f=findItem(id); if(!f) return; const it=f.it, x=jarItemOf(it); if(!x||!x.pr) return;
+  let mode='add';
+  sheet(esc(it.name),`
+    <div class="field"><div class="seg" id="pa-m"><button type="button" data-m="add" class="on">Прочитала</button><button type="button" data-m="at">Я на странице</button></div></div>
+    <div class="field"><input type="text" inputmode="numeric" id="pa-v" placeholder="Сколько страниц" autocomplete="off"><div class="explain" id="pa-x"></div></div>
+    <button class="btn main" id="pa-ok">Отметить</button>`,(el,close)=>{
+    const inp=el.querySelector('#pa-v'), ex=el.querySelector('#pa-x');
+    const upd=()=>{el.querySelectorAll('#pa-m button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));
+      inp.placeholder=mode==='add'?'Сколько страниц':'Номер страницы';
+      ex.textContent='Сейчас: '+prText(x.pr)};
+    upd(); setTimeout(()=>inp.focus(),320);
+    el.querySelectorAll('#pa-m button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;upd();inp.focus();haptic('light')});
+    const ok=()=>{
+      const v=num(inp.value); if(v===null) return inp.focus();
+      if(mode==='add'){if(!v)return inp.focus(); if(!prMark(it,x,v)) return close()}
+      else{
+        if(v>x.pr.n){if(!prMark(it,x,v-x.pr.n)) return close()}
+        else if(v<x.pr.n){x.pr.n=v;delete x.pr.last;save();close();render();toast('Теперь '+prText(x.pr));return}
+        else return close();
+      }
+      save();close();render();toast(prText(x.pr)+' · звезда в баночку копилок');
+    };
+    el.querySelector('#pa-ok').onclick=ok;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ok()}});
+  });
+}
+function prSheet(id){
+  const f=findItem(id); if(!f) return; const it=f.it, x=jarItemOf(it); if(!x) return;
+  const had=!!x.pr, dr={u:had?x.pr.u:'p'};
+  sheet('Прогресс',`
+    <div class="field"><label class="t">Что считать</label><div class="seg" id="pr-u">${Object.entries(PR_U).map(([k,u])=>`<button type="button" data-u="${k}">${u.n}</button>`).join('')}</div></div>
+    <div class="field"><label class="t" id="pr-tl"></label><input type="text" inputmode="numeric" id="pr-t" placeholder="Можно не указывать" autocomplete="off" value="${had&&x.pr.t?x.pr.t:''}"></div>
+    <div class="field"><label class="t" id="pr-nl"></label><input type="text" inputmode="numeric" id="pr-n" placeholder="0" autocomplete="off" value="${had&&x.pr.n?x.pr.n:''}">
+      <div class="explain">Звезда в баночку копилок — за каждую отметку на карточке, сколько бы ты ни прочитала или ни посмотрела. Здесь цифры просто поправляются, звёзд за это нет.</div></div>
+    <button class="btn main" id="pr-ok">${had?'Сохранить':'Начать отмечать'}</button>
+    ${had&&x.pr.last?`<button class="btn soft" id="pr-undo">Отменить последнюю отметку (+${x.pr.last.a})</button>`:''}
+    ${had?'<button class="btn danger" id="pr-del">Убрать прогресс</button>':''}`,(el,close)=>{
+    const upd=()=>{el.querySelectorAll('#pr-u button').forEach(b=>b.classList.toggle('on',b.dataset.u===dr.u));
+      el.querySelector('#pr-tl').textContent=PR_U[dr.u].all; el.querySelector('#pr-nl').textContent=PR_U[dr.u].now};
+    upd();
+    el.querySelectorAll('#pr-u button').forEach(b=>b.onclick=()=>{dr.u=b.dataset.u;upd();haptic('light')});
+    el.querySelector('#pr-ok').onclick=()=>{
+      const t=num(el.querySelector('#pr-t').value)||null; let n=num(el.querySelector('#pr-n').value)||0;
+      if(t&&n>t) n=t;
+      const pr=x.pr||{}; pr.u=dr.u; pr.t=t; if(pr.n!==n){pr.n=n;delete pr.last} x.pr=pr;
+      save();close();render();haptic('medium');
+    };
+    const un=el.querySelector('#pr-undo');
+    if(un) un.onclick=()=>{const L=x.pr.last;removeFunStar(L.k,L.d);x.pr.n=Math.max(0,x.pr.n-L.a);delete x.pr.last;save();close();render();toast('Отметка отменена · '+prText(x.pr))};
+    const del=el.querySelector('#pr-del');
+    if(del) confirmBtn(del,'Нажми ещё раз — счётчик пропадёт, звёзды останутся',()=>{delete x.pr;save();close();render()});
+  });
+}
+
 /* ================= шторки ================= */
 /* ===== клавиатура: шторка всегда в видимой части экрана, фон под ней не ездит ===== */
 const VV=window.visualViewport;
@@ -1791,8 +1892,11 @@ function itemMenu(id){
        <button class="opt" id="o-rep"><span>Заменить<small>На другое занятие или своё</small></span></button>
        <button class="opt" id="o-del"><span>Убрать из плана</span></button>`;
   const look=f.kind==='pin'&&!it.done?`<button class="opt" id="o-look"><span>Оформление карточки<small>Форма, цвет и украшение</small></span></button>`:'';
-  sheet(esc(it.name),look+`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
+  const PX=J&&f.kind==='pin'&&!it.done?jarItemOf(it):null;
+  const prOpt=PX?`<button class="opt" id="o-pr"><span>${PX.pr?'Прогресс':'Отмечать прогресс'}<small>${PX.pr?esc(prText(PX.pr))+' · изменить или убрать':'Страницы, серии или главы — за каждую отметку звезда'}</small></span></button>`:'';
+  sheet(esc(it.name),look+prOpt+`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
     const lk=el.querySelector('#o-look'); if(lk) lk.onclick=()=>{close();setTimeout(()=>lookSheet(id),280)};
+    const po=el.querySelector('#o-pr'); if(po) po.onclick=()=>{close();setTimeout(()=>prSheet(id),280)};
     const mv=el.querySelector('#o-move'), rp=el.querySelector('#o-rep');
     if(mv) mv.onclick=()=>{L.items=L.items.filter(i=>i!==it);state.carry.push({dir:it.dir,name:it.name,prog:it.prog});save();close();render();toast('Переедет на следующую неделю')};
     if(rp) rp.onclick=()=>{close();setTimeout(()=>replaceSheet(id),280)};
@@ -2073,6 +2177,9 @@ const A={
     L.items.forEach(i=>{if(i.done&&(pId==null||doneBucket(i)===pId)&&(dId==='*'?true:dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar)))){i.hidden=true;forgetDone(i)}});
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
+  prPlus:t=>{const f=findItem(t.dataset.id);if(!f)return;const x=jarItemOf(f.it);if(!x||!x.pr||prDone(x.pr))return;
+    if(x.pr.u==='p') return prAddSheet(f.it.id);
+    if(prMark(f.it,x,1)){save();render();toast(prText(x.pr)+' · звезда в баночку копилок')}},
   switch:t=>switchSheet(t.dataset.id),
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
   addOne:()=>addOneSheet(),
@@ -2194,7 +2301,7 @@ function render(){
   if(tab==='progs') bindProgsDrag();
   if(tab==='home'){paintStickers(box);bindHomeDrag()}
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
-  animNew=false;
+  animNew=false; animFun=false;
 }
 
 /* ================= запуск ================= */
