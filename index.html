@@ -397,6 +397,16 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .ghead.folded .gcnt{display:inline}
 .ghead.folded{margin-bottom:0}
 .gwrap:not(.folded)>*{overflow:visible}
+.lock-title .link{font-family:Manrope,sans-serif;font-style:normal;font-size:12.5px;font-weight:600;flex-shrink:0;max-width:50%}
+.lock-title span{min-width:0;overflow-wrap:anywhere}
+.frow{display:flex;align-items:center;gap:12px;padding:14px 0}
+.frow+.frow{border-top:1px dashed rgba(200,170,200,.45)}
+.ftxt{flex:1;min-width:0}
+.fname{font-weight:600;overflow-wrap:anywhere}
+.frow .link{padding:0;text-align:left}
+.fstars{flex-shrink:0;text-align:center;min-width:52px}
+.fstars b{display:block;font-family:var(--serif);font-style:italic;font-weight:700;font-size:28px;line-height:1}
+.fstars span{font-size:11.5px;color:var(--muted)}
 .more.sminus{width:40px;height:40px;font-size:24px;letter-spacing:0;color:var(--muted)}
 .stk .tick{background:rgba(255,255,255,.75);border-color:var(--line)}
 .stk.d-br .stk-name{margin-right:6px}
@@ -940,8 +950,8 @@ function toggleItem(id){
   const f=findItem(id); if(!f) return; const it=f.it;
   const key=it.dir||(it.jar?'j:'+it.jar:'one');
   // звёзды за идеи из копилок падают в свою баночку (во вкладке «Копилки»); старые — там, где лежали
-  if(!it.done){it.done=true;it.doneOn=today();if(it.jar&&jarById(it.jar)){addFunStar(key,it.doneOn);it.fs=1;toast('Звезда — в баночку копилок')}else addStar(key,it.doneOn);haptic('light')}
-  else{if(it.fs){removeFunStar(key,it.doneOn);delete it.fs}else removeStar(key,it.doneOn);it.done=false;it.doneOn=null}
+  if(!it.done){it.done=true;it.doneOn=today();if(it.jar&&jarById(it.jar)){addFunStar(key,it.doneOn);it.fs=1;toast('Звезда — в баночку копилок')}else addStar(key,it.doneOn);if(it.pid&&!it.fs){const P=state.pstars||(state.pstars={});P[it.pid]=(P[it.pid]||0)+1;it.ps=1}haptic('light')}
+  else{if(it.fs){removeFunStar(key,it.doneOn);delete it.fs}else removeStar(key,it.doneOn);if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;delete it.ps}it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
   if(f.kind==='pin'&&it.done) unpinDone(); // выполненное само открепляется и уходит в «Сегодня» → «Выполнено»
@@ -1085,6 +1095,7 @@ function renderHome(){
       const items=list.items.filter(i=>i.dir===d.id&&!i.hidden);
       if(kind==='pin'){if(items.length)g.push(groupHTML(d,items,w,kind,false));return} // в «Закреплено» — только закреплённое
       const own=(kind==='day')===isDaily(d);
+      const lk=own&&lockOf(d); if(lk&&w.progs[d.id]===lk.id){locked.push({d,items,kind});return} // закреплённая — своим разделом
       if(items.length||(own&&cyc(d).length)||(kind==='day'&&datedFor(d,today()))) g.push(groupHTML(d,items,w,kind,own));
     });
     state.jars.forEach(j=>{const it=list.items.filter(i=>i.jar===j.id&&!i.hidden);if(it.length)g.push(groupHTML(jarAsDir(j),it,w,kind,false))});
@@ -1092,9 +1103,11 @@ function renderHome(){
     if(misc.length) g.push(groupHTML(null,misc,w,kind,false));
     return g;
   };
+  const locked=[];
   const dg=build('day',day), wg=build('week',w), pg=build('pin',state.pins);
   h+=pinsHTML();
-  if(!sg&&!dg.length&&!wg.length&&!pg.length){
+  locked.forEach(({d,items,kind})=>{const lk=lockOf(d);h+=`<div class="sec-title lock-title"><span>${esc(lk.name)}</span><button class="link" data-a="switch" data-id="${d.id}">${esc(d.name)} · сменить</button></div><div class="card">${groupHTML(d,items,w,kind,true,true)}</div>`});
+  if(!sg&&!locked.length&&!dg.length&&!wg.length&&!pg.length){
     h+=`<div class="sec-title">Сегодня</div><div class="card"><div class="hint-empty">Пока здесь пусто.<br>Заведи направления и программы во вкладке «Программы» — и план соберётся сам.</div></div>`;
   }
   if(sg||dg.length) h+=`<div class="sec-title">Сегодня</div><div class="card">${sg}${dg.join('')}</div>`;
@@ -1105,7 +1118,7 @@ function renderHome(){
 }
 // к какой программе относится выполненное дело ('' — дело вне программ)
 function doneBucket(i){return i.pid&&i.dir&&progOf(i.dir,i.pid)?i.pid:''}
-function groupHTML(d,items,w,kind,own){
+function groupHTML(d,items,w,kind,own,noHead){
   const color=d?d.color:ONE_COLOR;
   // включённая сейчас программа направления: на ней фокус — её название в заголовке и только её «Выполнено»
   let fp=null;
@@ -1153,6 +1166,7 @@ function groupHTML(d,items,w,kind,own){
     } else body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
   } else if(d&&!body) body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
   // тап по названию сворачивает список группы; состояние хранится вместе с остальными свёрнутыми списками
+  if(noHead) return `<div class="group" style="--c:${color}">${body}</div>`; // заголовок уже стоит над карточкой
   const gk='grp:'+kind+':'+(d?d.id:'misc'), gf=isFolded(gk)?' folded':'';
   const head=`<div class="ghead${gf}"><button class="gname gtoggle" data-a="gfold" data-k="${gk}" aria-label="Свернуть или развернуть">${dot(color)}<span class="gtitle">${gtitle}</span><span class="gcnt">${und.length?'· '+und.length:''}</span><span class="chev-s">▾</span></button>${gright}</div>`;
   return `<div class="group" style="--c:${color}">${head}<div class="dwrap gwrap${gf}"><div>${body}</div></div></div>`;
@@ -1507,6 +1521,11 @@ function renderStats(){
       <div class="bar"><i style="width:${r.all?Math.max(4,r.all/max*100):0}%"></i></div>
       <div class="bar-sub">в этом месяце — ${r.m}</div></div>`).join('')+`</div>`;
   }
+  const fin=[];state.dirs.forEach(d=>d.progs.forEach(p=>{if(p.status==='done')fin.push({d,p})}));
+  if(fin.length){
+    fin.sort((a,b)=>(a.p.doneOn||'')<(b.p.doneOn||'')?1:-1);
+    h+=`<div class="sec-title">Завершённые программы</div><div class="card">`+fin.map(({d,p})=>{const n=(state.pstars||{})[p.id]||0;return `<div class="frow">${dot(d.color)}<div class="ftxt"><div class="fname">${esc(p.name)}</div><div class="small">${esc(d.name)} · <button class="link" data-a="unfinish" data-d="${d.id}" data-p="${p.id}">вернуть</button></div></div><div class="fstars"><b>${n}</b><span>${pl(n,'звезда','звезды','звёзд')}</span></div></div>`}).join('')+`</div>`;
+  }
   h+=`<p class="note">каждая звёздочка остаётся с тобой</p>`;
   return h;
 }
@@ -1515,6 +1534,7 @@ function renderStats(){
 function progStatus(d,p){
   const t=today(), w=curWeek(), st=p.status||'queue';
   if(st==='off') return {txt:'на паузе',cls:'off'};
+  if(st==='done') return {txt:'завершена',cls:'off'};
   if(st==='dates'){
     if(!p.from||!p.to) return {txt:'даты не выбраны',cls:'off'};
     if(p.from<=t&&t<=p.to) return {txt:'сейчас · до '+fmtD(p.to),cls:'now'};
@@ -1537,7 +1557,7 @@ function renderProgs(){
     h+=`<div class="card dir drag-item" data-id="${d.id}" style="--c:${d.color}">
       <div class="dir-head" data-a="editDir" data-id="${d.id}">${dot(d.color,1)}
         <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
-      <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}${isOnce(p)&&p.items.length&&!active(p).length?'<small>всё выполнено ✓</small>':''}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
+      <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.filter(p=>p.status!=='done').map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}${isOnce(p)&&p.items.length&&!active(p).length?'<small>всё выполнено ✓</small>':''}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
       <button class="ghost" data-a="addProg" data-id="${d.id}">+ Программа</button></div>`;
   });
   h+=`</div>`;
@@ -2087,7 +2107,7 @@ function progSheet(dId,pId){
       <div class="seg"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="off">Пауза</button></div>
       <div class="explain" id="p-ex"></div></div>
     <button class="btn main" id="p-save">Сохранить</button>
-    ${isNew?'':'<button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
+    ${isNew?'':'<button class="btn soft" id="p-fin">Завершить программу</button><button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
     const list=el.querySelector('#p-list');
     const nameEl=el.querySelector('#p-name'); grow(nameEl);
     nameEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('#p-new').focus()}});
@@ -2164,6 +2184,7 @@ function progSheet(dId,pId){
       const p=orig||{id:uid()};
       if(dr.mode!=='once') dr.items.forEach(x=>delete x.doneAt);
       p.name=dr.name; p.items=dr.items; p.status=dr.status; p.mode=dr.mode;
+      if(p.status==='done'){p.doneOn=today();if(d.lock===p.id)delete d.lock}else delete p.doneOn;
       delete p.from;delete p.to;
       if(isNew) d.progs.push(p);
       if(w.progs[d.id]===p.id&&p.status!=='queue') delete w.progs[d.id];
@@ -2173,6 +2194,8 @@ function progSheet(dId,pId){
       syncWeek(d); refreshToday(d);
       save();close();render();
     };
+    const fin=el.querySelector('#p-fin');
+    if(fin) confirmBtn(fin,'Нажми ещё раз — программа уйдёт в завершённые',()=>{dr.status='done';el.querySelector('#p-save').click();toast('Программа завершена — она в «Статистике»')});
     const del=el.querySelector('#p-del');
     if(del) confirmBtn(del,'Нажми ещё раз — программа удалится',()=>{
       const w=curWeek();
@@ -2224,6 +2247,7 @@ const A={
     if(x.pr.u!=='s') return prAddSheet(f.it.id);
     if(prMark(f.it,x,1)){save();if(!prFinishIfDone(f.it,x)){render();toast(prText(x.pr)+' · звезда в баночку копилок')}}},
   switch:t=>switchSheet(t.dataset.id),
+  unfinish:t=>{const d=dirById(t.dataset.d),p=d&&d.progs.find(x=>x.id===t.dataset.p);if(!p)return;p.status='queue';delete p.doneOn;fixNext(d);save();render();toast('Программа вернулась в очередь')},
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
   addOne:()=>addOneSheet(),
   addDir:()=>dirSheet(null),
@@ -2297,7 +2321,7 @@ function bindProgsDrag(){
   });
   document.querySelectorAll('.plist').forEach(box=>sortable(box,'.prow','.prow',ids=>{
     const d=dirById(box.dataset.d); if(!d) return;
-    if(ids.join()===d.progs.map(p=>p.id).join()) return;
+    if(ids.join()===d.progs.filter(p=>p.status!=='done').map(p=>p.id).join()) return;
     d.progs.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); fixNext(d); save(); render();
   }));
 }
