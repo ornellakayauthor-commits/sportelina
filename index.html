@@ -385,6 +385,12 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .item.srep .ipr{font-size:13px}
 .item.srep.on .tick{background:var(--c)}
 .tnum{color:#fff;font-size:16px;font-weight:800;line-height:1}
+.gtoggle{text-align:left;padding:4px 0;min-height:32px;color:inherit}
+.gtoggle .chev-s{color:var(--muted)}
+.gcnt{display:none;color:var(--muted);font-weight:600;font-size:13px}
+.ghead.folded .gcnt{display:inline}
+.ghead.folded{margin-bottom:0}
+.gwrap:not(.folded)>*{overflow:visible}
 .more.sminus{width:40px;height:40px;font-size:24px;letter-spacing:0;color:var(--muted)}
 .stk .tick{background:rgba(255,255,255,.75);border-color:var(--line)}
 .stk.d-br .stk-name{margin-right:6px}
@@ -1088,7 +1094,7 @@ function groupHTML(d,items,w,kind,own){
     if(kind==='day') fp=dayProg(d,today())||null;
     else if(kind==='week'&&own) fp=progOf(d.id,w.progs[d.id])||null;
   }
-  let head;
+  let gtitle, gright='';
   if(d){
     const dp=kind==='day'&&datedFor(d,today());
     const p=progOf(d.id,w.progs[d.id]);
@@ -1101,8 +1107,8 @@ function groupHTML(d,items,w,kind,own){
       right=dp?`<span class="tag">${esc(dp.name)} · до ${fmtD(dp.to)}</span>`
         :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
     }
-    head=`<div class="ghead"><span class="gname">${dot(color)}${esc(fp?fp.name:d.name)}</span>${right}</div>`;
-  } else head=`<div class="ghead"><span class="gname">${dot(color)}Разное</span></div>`;
+    gtitle=esc(fp?fp.name:d.name); gright=right;
+  } else gtitle='Разное';
   const row=i=>`<div class="item${i.done?' done':' drag-item'}" data-id="${i.id}">
       <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
       <span class="iname" data-a="toggle" data-id="${i.id}">${esc(i.name)}${prSmall(i)}</span>
@@ -1127,7 +1133,10 @@ function groupHTML(d,items,w,kind,own){
       body=`<div class="nodir">На этой неделе программы пока нет<br><button class="pill" data-a="startNext" data-id="${d.id}">Начать «${esc(nx.name)}»</button></div>`;
     } else body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
   } else if(d&&!body) body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
-  return `<div class="group" style="--c:${color}">${head}${body}</div>`;
+  // тап по названию сворачивает список группы; состояние хранится вместе с остальными свёрнутыми списками
+  const gk='grp:'+kind+':'+(d?d.id:'misc'), gf=isFolded(gk)?' folded':'';
+  const head=`<div class="ghead${gf}"><button class="gname gtoggle" data-a="gfold" data-k="${gk}" aria-label="Свернуть или развернуть">${dot(color)}<span class="gtitle">${gtitle}</span><span class="gcnt">${und.length?'· '+und.length:''}</span><span class="chev-s">▾</span></button>${gright}</div>`;
+  return `<div class="group" style="--c:${color}">${head}<div class="dwrap gwrap${gf}"><div>${body}</div></div></div>`;
 }
 
 
@@ -2185,6 +2194,7 @@ const A={
   toggle:t=>{const s=t.closest('.stk'),id=t.dataset.id,f=findItem(id);
     if(s&&f&&!f.it.done){if(s.classList.contains('bye'))return;s.classList.add('bye');haptic('light');setTimeout(()=>toggleItem(id),330);return}
     toggleItem(id)},
+  gfold:t=>{const head=t.closest('.ghead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
   fold:t=>{const head=t.closest('.dhead'),f=setFold(t.dataset.k);head.classList.toggle('folded',f);head.nextElementSibling.classList.toggle('folded',f);haptic('light')},
   clearDone:t=>{const L=t.dataset.k==='day'?curDay():t.dataset.k==='pin'?state.pins:curWeek(), dId=t.dataset.d;
     const pId=t.dataset.p; // у каждой программы свой «Очистить»
