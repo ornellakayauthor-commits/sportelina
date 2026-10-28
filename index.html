@@ -342,6 +342,12 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .btn.danger{color:#C27389}
 .opt{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border-radius:16px;background:#fff;margin-bottom:8px;text-align:left;font-weight:600}
 .opt.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.optrow{display:flex;align-items:stretch;gap:8px;margin-bottom:8px}
+.optrow .opt{margin-bottom:0;flex:1;min-width:0}
+.pinb{width:48px;flex-shrink:0;border-radius:16px;background:#fff;color:var(--soft);display:grid;place-items:center}
+.pinb.on{color:var(--acc-text);box-shadow:inset 0 0 0 2px var(--acc)}
+.gpin{display:inline-flex;vertical-align:-2px;margin-left:6px;color:var(--acc-text)}
+.gpin svg{width:14px;height:14px}
 .opt span{min-width:0;overflow-wrap:anywhere}
 .nodir .pill{max-width:100%;overflow-wrap:anywhere}
 .opt small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:2px}
@@ -487,6 +493,7 @@ const BGS = {
 const LETTERS = 'АБВГДЕЖЗИКЛМНОПРСТ';
 const MON = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 const STABLE_COLOR = '#F4C26B', ONE_COLOR = '#F2BD98';
+const PIN = f=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 5 3 3v2H7v-2l3-3z"/><path d="M12 14v6" fill="none"/></svg>`;
 const TICK = '<svg viewBox="0 0 20 20"><path d="M10 1Q11.4 8.6 19 10Q11.4 11.4 10 19Q8.6 11.4 1 10Q8.6 8.6 10 1Z" fill="#fff"/></svg>';
 
 let state = null, tab = 'home', animNew = false, animFun = false, photo = null;
@@ -744,6 +751,8 @@ function linkedProgItem(i){
 function curDay(){return state.days[today()]}
 function isDated(p){return !!(p&&p.status==='dates'&&p.from&&p.to)}
 function cyc(d){return d.progs.filter(p=>(p.status||'queue')==='queue')}
+// закреплённая программа направления: включается каждую неделю, очередь при этом стоит на месте
+function lockOf(d){return (d&&d.lock&&cyc(d).find(p=>p.id===d.lock))||null}
 function datedFor(d,date){return d.progs.find(p=>isDated(p)&&p.from<=date&&date<=p.to)}
 function fmtD(k){const [y,m,dd]=k.split('-').map(Number);return dd+' '+MON[m-1]}
 function skipOf(d){const w=curWeek();return (w.skip&&w.skip[d.id])||[]}
@@ -820,6 +829,8 @@ function ensureWeek(){
   state.weeks[key]=w;
   state.dirs.forEach(dir=>{
     const list=cyc(dir); if(!list.length) return;
+    const lk=lockOf(dir);
+    if(lk){const nx=dir.next;startProgram(w,dir,list.indexOf(lk),false);dir.next=nx;return}
     let idx=(dir.next||0)%list.length;
     for(let k=0;k<list.length;k++){const q=list[(idx+k)%list.length];if(!isOnce(q)||active(q).length){idx=(idx+k)%list.length;break}}
     startProgram(w,dir,idx,false);
@@ -1107,7 +1118,7 @@ function groupHTML(d,items,w,kind,own){
       right=dp?`<span class="tag">${esc(dp.name)} · до ${fmtD(dp.to)}</span>`
         :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
     }
-    gtitle=esc(fp?fp.name:d.name); gright=right;
+    gtitle=esc(fp?fp.name:d.name)+(fp&&d.lock===fp.id?`<span class="gpin" title="Закреплена">${PIN(1)}</span>`:''); gright=right;
   } else gtitle='Разное';
   const row=i=>`<div class="item${i.done?' done':' drag-item'}" data-id="${i.id}">
       <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
@@ -1502,7 +1513,9 @@ function progStatus(d,p){
     if(p.to<t) return {txt:'даты прошли',cls:'off'};
     return {txt:fmtD(p.from)+' — '+fmtD(p.to),cls:''};
   }
-  if(w.progs[d.id]===p.id&&!datedFor(d,t)) return {txt:'сейчас',cls:'now'};
+  const lk=lockOf(d);
+  if(w.progs[d.id]===p.id&&!datedFor(d,t)) return {txt:lk===p?'сейчас · закреплена':'сейчас',cls:'now'};
+  if(lk) return {txt:lk===p?'закреплена':'по очереди',cls:''};
   const cl=cyc(d), nx=cl.length?cl[(d.next||0)%cl.length]:null;
   return {txt:nx===p?'следующая':'по очереди',cls:''};
 }
@@ -1976,8 +1989,13 @@ function switchSheet(id){
   const d=dirById(id), cur=curWeek().progs[id];
   sheet(esc(d.name),
     `<div class="explain" style="margin:-6px 0 14px">${isDaily(d)?'Программа на эту неделю — будет повторяться каждый день до воскресенья. Сегодняшнее несделанное заменится, сделанное останется.':'Программа на эту неделю. Несделанное из текущей заменится, сделанное останется.'} Дальше очередь пойдёт от выбранной.</div>`+
-    cyc(d).map((p,i)=>`<button class="opt${p.id===cur?' on':''}" data-i="${i}" style="--c:${d.color}"><span>${esc(p.name)}<small>${active(p).map(x=>esc(x.name)).join(' · ')||(isOnce(p)&&p.items.length?'всё выполнено ✓':'пока пусто')}</small></span></button>`).join(''),
-    (el,close)=>{el.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{switchProgram(d,+b.dataset.i);save();close();render();haptic('medium')})});
+    cyc(d).map((p,i)=>{const lk=d.lock===p.id;return `<div class="optrow"><button class="opt${p.id===cur?' on':''}" data-i="${i}" style="--c:${d.color}"><span>${esc(p.name)}<small>${active(p).map(x=>esc(x.name)).join(' · ')||(isOnce(p)&&p.items.length?'всё выполнено ✓':'пока пусто')}</small></span></button><button class="pinb${lk?' on':''}" data-pin="${i}" aria-pressed="${lk}" aria-label="${lk?'Открепить программу':'Закрепить программу'}">${PIN(lk)}</button></div>`}).join('')+
+    `<div class="explain">Булавка закрепляет программу: она будет включаться каждую неделю, пока не открепишь. Очередь на это время замирает и потом продолжится с того же места.</div>`,
+    (el,close)=>{el.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{switchProgram(d,+b.dataset.i);save();close();render();haptic('medium')});
+      el.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const i=+b.dataset.pin,p=cyc(d)[i];if(!p)return;
+        if(d.lock===p.id) delete d.lock;
+        else{d.lock=p.id;if(curWeek().progs[d.id]!==p.id){const nx=d.next;switchProgram(d,i);d.next=nx}}
+        save();close();render();haptic('medium')})});
 }
 function addOneSheet(){
   let sel=null, when='day', newColor=COLORS[state.dirs.length%COLORS.length];
