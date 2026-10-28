@@ -508,7 +508,10 @@ function normalize(s){
   s.theme=Object.assign({},f.theme,s.theme||{});
   s.fun=Object.assign({seq:[],log:{}},s.fun||{});
   if(!SHAPES[s.theme.jar]) s.theme.jar='classic';
-  s.dirs.forEach(d=>{if(!d.freq)d.freq='week';d.progs.forEach(p=>{if(!p.status)p.status=(p.from&&p.to)?'dates':'queue';if(!p.mode)p.mode='repeat';p.items.forEach(it=>{if(!it.id)it.id=uid()})})});
+  // программ «в даты» больше нет: они становятся обычными «по очереди», а та, чьи даты идут сейчас, закрепляется
+  const tk=today();
+  s.dirs.forEach(d=>d.progs.forEach(p=>{if(p.status==='dates'||(!p.status&&p.from&&p.to)){const now=p.from&&p.to&&p.from<=tk&&tk<=p.to;p.status='queue';delete p.from;delete p.to;if(now&&!d.lock){d.lock=p.id;(s.relock=s.relock||[]).push(d.id)}}}));
+  s.dirs.forEach(d=>{if(!d.freq)d.freq='week';d.progs.forEach(p=>{if(!p.status)p.status='queue';if(!p.mode)p.mode='repeat';p.items.forEach(it=>{if(!it.id)it.id=uid()})})});
   s.stable.forEach(x=>{if(!x.color)x.color=STABLE_COLOR});
   return s;
 }
@@ -688,7 +691,7 @@ async function push(){
 /* --- синхронизация --- */
 function quietEnsure(){
   suppress=true;
-  try{ensureWeek();ensureDay();if(state.pins&&state.pins.items.some(i=>i.done)){unpinDone();bootDirty=true}}
+  try{ensureWeek();ensureDay();applyRelock();if(state.pins&&state.pins.items.some(i=>i.done)){unpinDone();bootDirty=true}}
   finally{suppress=false}
 }
 function adopt(s,h,fallback){
@@ -841,6 +844,11 @@ function ensureWeek(){
   const keys=Object.keys(state.weeks).sort();
   while(keys.length>8) delete state.weeks[keys.shift()];
   save();
+}
+function applyRelock(){
+  if(!state.relock) return;
+  state.relock.forEach(id=>{const d=dirById(id),lk=lockOf(d);if(lk&&curWeek().progs[d.id]!==lk.id){const nx=d.next;switchProgram(d,cyc(d).indexOf(lk));d.next=nx}});
+  delete state.relock; save();
 }
 function ensureDay(){
   const key=today();
@@ -2065,8 +2073,7 @@ function progSheet(dId,pId){
   const orig=pId?progOf(dId,pId):null, isNew=!orig;
   const dr={name:orig?orig.name:'',items:orig?orig.items.map(x=>({...x,id:x.id||uid()})):[],status:orig?(orig.status||'queue'):'queue',mode:orig&&orig.mode||'repeat',from:orig&&orig.from||'',to:orig&&orig.to||''};
   const ex={queue:'Программы «по очереди» сменяют друг друга каждый понедельник.',
-            dates:'Включится сама в эти даты и заменит обычную программу. Потом снова выключится — даты можно поменять в любой момент.',
-            off:'Программа сохранена, но не включается. Верни её «по очереди» или поставь даты, когда понадобится.'};
+            off:'Программа сохранена, но не включается. Верни её «по очереди», когда понадобится.'};
   sheet(isNew?'Новая программа':'Программа',`
     <div class="field"><label class="t">Название</label><textarea id="p-name" class="grow" rows="1" placeholder="Название программы" enterkeyhint="next">${esc(dr.name)}</textarea></div>
     <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
@@ -2077,8 +2084,7 @@ function progSheet(dId,pId){
       <div class="seg"><button type="button" data-m="repeat">Целиком</button><button type="button" data-m="once">Только несделанное</button></div>
       <div class="explain" id="p-mex"></div></div>
     <div class="field"><label class="t">Когда включать</label>
-      <div class="seg seg3"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="dates">В даты</button><button type="button" data-s="off">Пауза</button></div>
-      <div id="p-datebox"><div class="dates"><label>С<input type="date" id="p-from" value="${dr.from}"></label><label>По<input type="date" id="p-to" value="${dr.to}"></label></div></div>
+      <div class="seg"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="off">Пауза</button></div>
       <div class="explain" id="p-ex"></div></div>
     <button class="btn main" id="p-save">Сохранить</button>
     ${isNew?'':'<button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
@@ -2147,23 +2153,18 @@ function progSheet(dId,pId){
     addBtn.onclick=add;
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});
     const segs=el.querySelectorAll('[data-s]');
-    const setS=v=>{dr.status=v;segs.forEach(b=>b.classList.toggle('on',b.dataset.s===v));el.querySelector('#p-datebox').style.display=v==='dates'?'':'none';el.querySelector('#p-ex').textContent=ex[v]};
+    const setS=v=>{dr.status=v;segs.forEach(b=>b.classList.toggle('on',b.dataset.s===v));el.querySelector('#p-ex').textContent=ex[v]};
     setS(dr.status); segs.forEach(b=>b.onclick=()=>setS(b.dataset.s));
     if(isNew) setTimeout(()=>el.querySelector('#p-name').focus(),320);
     el.querySelector('#p-save').onclick=()=>{
       const nm=el.querySelector('#p-name');
       dr.name=nm.value.replace(/\s*\n+\s*/g,' ').trim(); if(!dr.name){nm.focus();return}
       if(inp.value.trim()) add();
-      if(dr.status==='dates'){
-        dr.from=el.querySelector('#p-from').value; dr.to=el.querySelector('#p-to').value;
-        if(!dr.from||!dr.to){toast('Выбери обе даты');return}
-        if(dr.from>dr.to){toast('Дата начала позже даты конца');return}
-      }
       const w=curWeek();
       const p=orig||{id:uid()};
       if(dr.mode!=='once') dr.items.forEach(x=>delete x.doneAt);
       p.name=dr.name; p.items=dr.items; p.status=dr.status; p.mode=dr.mode;
-      if(dr.status==='dates'){p.from=dr.from;p.to=dr.to} else {delete p.from;delete p.to}
+      delete p.from;delete p.to;
       if(isNew) d.progs.push(p);
       if(w.progs[d.id]===p.id&&p.status!=='queue') delete w.progs[d.id];
       fixNext(d);
@@ -2405,7 +2406,7 @@ boot();
 document.addEventListener('visibilitychange',()=>{
   if(!ready) return;
   if(document.hidden){push();return}
-  const after=()=>{ensureWeek();ensureDay();render()};
+  const after=()=>{ensureWeek();ensureDay();applyRelock();render()};
   if(pending) {push();after()} else pull().then(changed=>{if(!changed)after()});
 });
 window.addEventListener('pagehide',()=>{if(ready)push()});
