@@ -379,6 +379,9 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .stk-plus{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:19px;font-weight:600;line-height:1;color:#fff;background:var(--line);box-shadow:0 0 0 2px rgba(255,255,255,.85);transition:transform .12s}
 .stk-plus:active{transform:scale(.88)}
 .ipr{color:var(--muted);font-weight:500;font-size:12.5px}
+.item.srep.on .tick{background:var(--c)}
+.tnum{color:#fff;font-size:13px;font-weight:800;line-height:1}
+.more.sminus{font-size:20px;letter-spacing:0;color:var(--muted)}
 .stk .tick{background:rgba(255,255,255,.75);border-color:var(--line)}
 .stk.d-br .stk-name{margin-right:6px}
 .stk-grid>.stk.wide,.stk-grid>.stk.solo{grid-column:1/-1}
@@ -1040,13 +1043,12 @@ function renderHome(){
       <div class="count-big"><b>${total}</b>${pl(total,'звезда','звезды','звёзд')}</div>
       ${full?`<div class="shelf">${miniJars(full)}<span>${full} ${pl(full,'полная банка','полные банки','полных банок')}</span></div>`:''}
     </div>`;
-  if(state.stable.length){
-    h+=`<div class="sec-title">Каждый день</div><div class="card">`+state.stable.map(s=>`
-      <div class="srow">${dot(s.color)}<span class="sname">${esc(s.name)}</span>
-      <span class="snum">${tl[s.id]||0}</span>
-      <button class="rb minus" data-a="sMinus" data-id="${s.id}" aria-label="Убрать">−</button>
-      <button class="rb plus" data-a="sPlus" data-id="${s.id}" aria-label="Добавить">+</button></div>`).join('')+`</div>`;
-  }
+  // ежедневные задачи живут в «Сегодня»: каждое нажатие — ещё одна отметка и звезда, число отметок — внутри кружка
+  const sg=state.stable.length?`<div class="group">`+state.stable.map(s=>{const n=tl[s.id]||0;return `
+      <div class="item srep${n?' on':''}" style="--c:${s.color}">
+      <button class="tick" data-a="sPlus" data-id="${s.id}" aria-label="Отметить ещё раз">${n?`<b class="tnum">${n}</b>`:''}</button>
+      <span class="iname" data-a="sPlus" data-id="${s.id}">${esc(s.name)}<small class="ipr"> · каждый день</small></span>
+      ${n?`<button class="more sminus" data-a="sMinus" data-id="${s.id}" aria-label="Убрать одну отметку">−</button>`:''}</div>`}).join('')+`</div>`:'';
   const day=curDay();
   const build=(kind,list)=>{
     const g=[];
@@ -1063,10 +1065,10 @@ function renderHome(){
   };
   const dg=build('day',day), wg=build('week',w), pg=build('pin',state.pins);
   h+=pinsHTML();
-  if(!dg.length&&!wg.length&&!pg.length){
+  if(!sg&&!dg.length&&!wg.length&&!pg.length){
     h+=`<div class="sec-title">Сегодня</div><div class="card"><div class="hint-empty">Пока здесь пусто.<br>Заведи направления и программы во вкладке «Программы» — и план соберётся сам.</div></div>`;
   }
-  if(dg.length) h+=`<div class="sec-title">Сегодня</div><div class="card">${dg.join('')}</div>`;
+  if(sg||dg.length) h+=`<div class="sec-title">Сегодня</div><div class="card">${sg}${dg.join('')}</div>`;
   if(wg.length) h+=`<div class="sec-title">Эта неделя <small>${weekLabel()}</small></div><div class="card">${wg.join('')}</div>`;
   h+=`<button class="add-btn" data-a="addOne">+ Добавить дело</button>`;
   h+=soonHTML();
@@ -1493,6 +1495,8 @@ function progStatus(d,p){
 }
 function renderProgs(){
   let h=`<header class="top"><h1>Программы</h1><div class="date">Чтобы поменять порядок, зажми направление или программу и перетащи</div></header>`;
+  h+=`<div class="sec-title">Каждый день</div><div class="card">${state.stable.map(s=>`<div class="srow" data-a="editStable" data-id="${s.id}" style="cursor:pointer">${dot(s.color,1)}<span class="sname">${esc(s.name)}</span><span class="chev">›</span></div>`).join('')||'<div class="hint-empty">Пока ничего</div>'}</div>
+     <button class="add-btn" data-a="addStable">+ Ежедневная задача</button>`;
   h+=`<div class="sec-title">Направления</div>`;
   h+=`<div id="dirlist">`;
   state.dirs.forEach(d=>{
@@ -1504,8 +1508,6 @@ function renderProgs(){
   });
   h+=`</div>`;
   h+=`<button class="add-btn" data-a="addDir">+ Новое направление</button>`;
-  h+=`<div class="sec-title">Каждый день</div><div class="card">${state.stable.map(s=>`<div class="srow" data-a="editStable" data-id="${s.id}" style="cursor:pointer">${dot(s.color,1)}<span class="sname">${esc(s.name)}</span><span class="chev">›</span></div>`).join('')||'<div class="hint-empty">Пока ничего</div>'}</div>
-     <button class="add-btn" data-a="addStable">+ Ежедневная задача</button>`;
   return h;
 }
 
