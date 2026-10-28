@@ -1487,6 +1487,11 @@ function renderStats(){
   const sum=(pred,key,log)=>{let s=0;const L=log||state.log;for(const d in L){if(!pred(d))continue;const o=L[d];if(key)s+=o[key]||0;else for(const k in o)s+=o[k]}return s};
   const inWeek=d=>d>=wk&&d<=t, inMonth=d=>d.slice(0,7)===mo, all=()=>true;
   let h=`<header class="top"><h1>Статистика</h1><div class="date">Здесь считается только то, что сделано</div></header>`;
+  if(state.stable.length){
+    h+=`<div class="sec-title">Каждый день</div>`+state.stable.map(s=>`<div class="card" style="padding:14px 16px">
+      <div class="gname">${dot(s.color)}${esc(s.name)}</div>
+      <div class="mini3"><div><b>${sum(inWeek,s.id)}</b><span>за неделю</span></div><div><b>${sum(inMonth,s.id)}</b><span>за месяц</span></div><div><b>${sum(all,s.id)}</b><span>всего</span></div></div></div>`).join('');
+  }
   h+=`<div class="sec-title">Звёзды</div><div class="tiles">
     <div class="card"><div class="tile-v">${total}</div><div class="tile-l">всего</div></div>
     <div class="card"><div class="tile-v">${full}</div><div class="tile-l">${pl(full,'полная банка','полные банки','полных банок')}</div></div>
@@ -1501,11 +1506,6 @@ function renderStats(){
       <div class="bar-row" style="--c:${r.c}"><div class="bar-top"><span>${esc(r.name)}</span><span>${r.all}</span></div>
       <div class="bar"><i style="width:${r.all?Math.max(4,r.all/max*100):0}%"></i></div>
       <div class="bar-sub">в этом месяце — ${r.m}</div></div>`).join('')+`</div>`;
-  }
-  if(state.stable.length){
-    h+=`<div class="sec-title">Каждый день</div>`+state.stable.map(s=>`<div class="card" style="padding:14px 16px">
-      <div class="gname">${dot(s.color)}${esc(s.name)}</div>
-      <div class="mini3"><div><b>${sum(inWeek,s.id)}</b><span>за неделю</span></div><div><b>${sum(inMonth,s.id)}</b><span>за месяц</span></div><div><b>${sum(all,s.id)}</b><span>всего</span></div></div></div>`).join('');
   }
   h+=`<p class="note">каждая звёздочка остаётся с тобой</p>`;
   return h;
