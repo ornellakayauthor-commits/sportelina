@@ -393,8 +393,6 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .tnum{color:#fff;font-size:16px;font-weight:800;line-height:1}
 .gtoggle{text-align:left;padding:4px 0;min-height:32px;color:inherit}
 .gtoggle .chev-s{color:var(--muted)}
-.gcnt{display:none;color:var(--muted);font-weight:600;font-size:13px}
-.ghead.folded .gcnt{display:inline}
 .ghead.folded{margin-bottom:0}
 .gwrap:not(.folded)>*{overflow:visible}
 .card.lock-card{margin-top:18px}
@@ -1168,7 +1166,7 @@ function groupHTML(d,items,w,kind,own,noHead){
   // тап по названию сворачивает список группы; состояние хранится вместе с остальными свёрнутыми списками
   if(noHead) return `<div class="group" style="--c:${color}">${body}</div>`; // заголовок уже стоит над карточкой
   const gk='grp:'+kind+':'+(d?d.id:'misc'), gf=isFolded(gk)?' folded':'';
-  const head=`<div class="ghead${gf}"><button class="gname gtoggle" data-a="gfold" data-k="${gk}" aria-label="Свернуть или развернуть">${dot(color)}<span class="gtitle">${gtitle}</span><span class="gcnt">${und.length?'· '+und.length:''}</span><span class="chev-s">▾</span></button>${gright}</div>`;
+  const head=`<div class="ghead${gf}"><button class="gname gtoggle" data-a="gfold" data-k="${gk}" aria-label="Свернуть или развернуть">${dot(color)}<span class="gtitle">${gtitle}</span><span class="chev-s">▾</span></button>${gright}</div>`;
   return `<div class="group" style="--c:${color}">${head}<div class="dwrap gwrap${gf}"><div>${body}</div></div></div>`;
 }
 
