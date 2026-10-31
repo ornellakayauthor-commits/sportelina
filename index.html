@@ -193,6 +193,8 @@ svg.jar.sm{width:min(46vw,170px)}
 .mini3 b{display:block;font-family:var(--serif);font-style:italic;font-size:26px;line-height:1.1}
 .mini3 span{font-size:11.5px;color:var(--muted)}
 .note{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--muted);text-align:center;margin-top:22px}
+.st-reset{text-align:center;margin-top:10px}
+.st-reset .link{text-align:center;color:var(--muted);font-weight:500;padding:8px 12px}
 
 /* программы */
 .dir{padding:14px 16px}
@@ -1494,10 +1496,33 @@ function sortableGrid(box,itemSel,done){
 }
 
 /* ================= экран «Статистика» ================= */
+// Обнуление статистики ничего не стирает: в state.cut запоминается день обнуления и сколько звёзд
+// к этому моменту уже было в тот день. Статистика считает только то, что появилось после, а банки не трогаются.
+// Поэтому статистику можно вернуть целиком — достаточно убрать state.cut.
+function statsCut(){
+  state.cut={d:today(),l:Object.assign({},state.log[today()]),f:Object.assign({},state.fun.log[today()]),p:Object.assign({},state.pstars)};
+}
+function cutLabel(){const [y,m,d]=state.cut.d.split('-');return +d+' '+['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][+m-1]}
+function statsResetSheet(){
+  const C=state.cut;
+  sheet('Обнулить статистику',`
+    <div class="explain">Все цифры в «Статистике» начнутся с нуля — с этой минуты. Звёзды в банке и в баночке копилок останутся на месте. Старые отметки не удаляются, поэтому статистику можно будет вернуть.</div>
+    ${C?`<div class="explain">Сейчас статистика считается с ${cutLabel()}.</div>`:''}
+    <button class="btn danger" id="st-reset">Обнулить статистику</button>
+    ${C?'<button class="btn soft" id="st-back">Вернуть всю статистику</button>':''}`,(el,close)=>{
+    confirmBtn(el.querySelector('#st-reset'),'Нажми ещё раз — цифры начнутся с нуля',()=>{statsCut();save();close();render();haptic('medium');toast('Статистика обнулена')});
+    const b=el.querySelector('#st-back');
+    if(b) b.onclick=()=>{delete state.cut;save();close();render();toast('Вся статистика вернулась')};
+  });
+}
 function renderStats(){
-  const total=state.seq.length, full=Math.floor(total/CAP), wk=weekKey(), t=today(), mo=t.slice(0,7);
-  const sum=(pred,key,log)=>{let s=0;const L=log||state.log;for(const d in L){if(!pred(d))continue;const o=L[d];if(key)s+=o[key]||0;else for(const k in o)s+=o[k]}return s};
+  const wk=weekKey(), t=today(), mo=t.slice(0,7), C=state.cut;
+  // после обнуления: дни до него не считаются, а в сам день вычитается то, что было до обнуления
+  const sum=(pred,key,log)=>{let s=0;const L=log||state.log, B=C?((L===state.log?C.l:C.f)||{}):{};
+    for(const d in L){if(!pred(d)||(C&&d<C.d))continue;const o=L[d],b=C&&d===C.d?B:{},v=k=>Math.max(0,(o[k]||0)-(b[k]||0));
+      if(key)s+=v(key);else for(const k in o)s+=v(k)}return s};
   const inWeek=d=>d>=wk&&d<=t, inMonth=d=>d.slice(0,7)===mo, all=()=>true;
+  const total=sum(all), full=Math.floor(total/CAP);
   let h=`<header class="top"><h1>Статистика</h1><div class="date">Здесь считается только то, что сделано</div></header>`;
   h+=`<div class="sec-title">Звёзды</div><div class="tiles">
     <div class="card"><div class="tile-v">${total}</div><div class="tile-l">всего</div></div>
@@ -1522,9 +1547,10 @@ function renderStats(){
   const fin=[];state.dirs.forEach(d=>d.progs.forEach(p=>{if(p.status==='done')fin.push({d,p})}));
   if(fin.length){
     fin.sort((a,b)=>(a.p.doneOn||'')<(b.p.doneOn||'')?1:-1);
-    h+=`<div class="sec-title">Завершённые программы</div><div class="card">`+fin.map(({d,p})=>{const n=(state.pstars||{})[p.id]||0;return `<div class="frow">${dot(d.color)}<div class="ftxt"><div class="fname">${esc(p.name)}</div><div class="small">${esc(d.name)} · <button class="link" data-a="unfinish" data-d="${d.id}" data-p="${p.id}">вернуть</button></div></div><div class="fstars"><b>${n}</b><span>${pl(n,'звезда','звезды','звёзд')}</span></div></div>`}).join('')+`</div>`;
+    h+=`<div class="sec-title">Завершённые программы</div><div class="card">`+fin.map(({d,p})=>{const n=Math.max(0,((state.pstars||{})[p.id]||0)-(C&&C.p&&C.p[p.id]||0));return `<div class="frow">${dot(d.color)}<div class="ftxt"><div class="fname">${esc(p.name)}</div><div class="small">${esc(d.name)} · <button class="link" data-a="unfinish" data-d="${d.id}" data-p="${p.id}">вернуть</button></div></div><div class="fstars"><b>${n}</b><span>${pl(n,'звезда','звезды','звёзд')}</span></div></div>`}).join('')+`</div>`;
   }
   h+=`<p class="note">каждая звёздочка остаётся с тобой</p>`;
+  h+=`<div class="st-reset"><button class="link" data-a="statsReset">${C?'статистика с '+cutLabel()+' · изменить':'обнулить статистику'}</button></div>`;
   return h;
 }
 
@@ -2245,6 +2271,7 @@ const A={
     if(x.pr.u!=='s') return prAddSheet(f.it.id);
     if(prMark(f.it,x,1)){save();if(!prFinishIfDone(f.it,x)){render();toast(prText(x.pr)+' · звезда в баночку копилок')}}},
   switch:t=>switchSheet(t.dataset.id),
+  statsReset:()=>statsResetSheet(),
   unfinish:t=>{const d=dirById(t.dataset.d),p=d&&d.progs.find(x=>x.id===t.dataset.p);if(!p)return;p.status='queue';delete p.doneOn;fixNext(d);save();render();toast('Программа вернулась в очередь')},
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
   addOne:()=>addOneSheet(),
