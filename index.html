@@ -60,6 +60,9 @@ body.bg-photo .sec-title,body.bg-photo .note,body.bg-photo .st-reset .link,body.
   text-shadow:var(--tshadow)} /* тень настраивается в «Оформлении»: светлая, тёмная или без неё, и её сила */
 body.bg-photo svg.jar .jcl-a{fill:var(--acc);opacity:.55}
 body.bg-photo svg.jar .jcl-b{fill:var(--acc-mist);opacity:.5}
+/* облачко своего цвета (выбирается в «Оформлении») — на любом фоне */
+body.cloud-own svg.jar .jcl-a{fill:var(--cloud)}
+body.cloud-own svg.jar .jcl-b{fill:var(--cloud-mist)}
 .drop{animation:drop .85s cubic-bezier(.35,1.3,.6,1)}
 @keyframes drop{from{transform:translateY(-240px)}to{transform:none}}
 .spark{animation:tw 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
@@ -499,6 +502,7 @@ const COLORS = ['#E8A3B6','#B8A4DE','#9DBFE3','#F2BD98','#A8D5C0','#E3B86E','#D5
 const INK_COLORS = ['#5A4466','#2E2233','#3D3A5C','#5B4636','#7A3E5E','#2F4F6B','#FFFFFF'];
 const HEAD_COLORS = ['#5A4466','#2E2233','#A0679A','#C27389','#7B6FB5','#4F86B8','#C98A3E','#FFFFFF'];
 const SMALL_COLORS = ['#9C8798','#7D6E7A','#8A8FA8','#A08A78','#B98AA6','#5A4466','#FFFFFF'];
+const CLOUD_COLORS = ['#C9A4DA','#E9A8C0','#F4C26B','#8FB3E0','#7FC1A6','#E7A982','#A08AA8','#FFFFFF'];
 const ACCENTS = ['#D49BC4','#E8A0B4','#B39DDB','#8FB3E0','#E7A982','#7FC1A6','#C9A45C','#A08AA8'];
 const BG_COLORS = ['#FBF3EF','#F8EEF3','#F3EFFA','#EEF3FA','#F1F7F2','#FBF4E8','#F6F1EA','#EFE9F1'];
 const BGS = {
@@ -586,6 +590,8 @@ function applyTheme(){
   const sp=[1,2,3].includes(t.shadowPow)?t.shadowPow:2, sc=t.shadow==='dark'?'35,22,40':'255,255,255';
   const SH={1:[.35,.22,4],2:[.6,.38,7],3:[.85,.6,10]}[sp], dk=t.shadow==='dark'?.55:1;
   root.setProperty('--tshadow',t.shadow==='none'?'none':`0 1px 2px rgba(${sc},${(SH[0]*dk).toFixed(2)}),0 0 ${SH[2]}px rgba(${sc},${(SH[1]*dk).toFixed(2)})`);
+  document.body.classList.toggle('cloud-own',!!t.cloud);
+  if(t.cloud){root.setProperty('--cloud',t.cloud);root.setProperty('--cloud-mist',mix(t.cloud,'#ffffff',.35))}
   // цвета текста выбираются вручную в «Оформлении» и от цвета кнопок не зависят
   root.setProperty('--ink',t.textColor||'#5A4466');
   root.setProperty('--head',t.headColor||'#5A4466');
@@ -1673,7 +1679,8 @@ function renderLook(){
       ${sh!=='none'?`<div class="seg" style="margin-top:8px">${[[1,'Слегка'],[2,'Средне'],[3,'Сильно']].map(([k,n])=>`<button data-a="tshp" data-k="${k}" class="${sp===k?'on':''}">${n}</button>`).join('')}</div>`:''}</div>`;
   }
   const TC=['#F4C26B','#E8A3B6','#F2BD98','#B8A4DE'];
-  h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div></div>`;
+  h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div>
+    <div class="look-row"><div class="lbl">Облачко под баночкой${t.cloud?' · <button class="link" data-a="cloudReset">как было</button>':''}</div>${colorField('cl',t.cloud,CLOUD_COLORS)}</div></div>`;
   h+=`<p class="tiny" style="text-align:center;margin-top:16px">Цвет звёздочек меняется в настройках каждого направления и ежедневной задачи.</p>`;
   return h;
 }
@@ -1683,6 +1690,9 @@ function bindLook(){
   const later=()=>{clearTimeout(lookSaveT);lookSaveT=setTimeout(save,400)};
   if(v.querySelector('[data-cf="bgc"]')) bindColor(v,'bgc',c=>{state.theme.bgColor=c;applyTheme();const i=v.querySelector('[data-k="plain"] i');if(i)i.style.background=c;later()});
   bindColor(v,'acc',c=>{state.theme.accent=c;applyTheme();later()});
+  bindColor(v,'cl',c=>{state.theme.cloud=c;applyTheme();later();
+    const l=v.querySelector('[data-cf="cl"]').previousElementSibling; // «как было» появляется сразу, без перерисовки — чтобы не закрыть палитру
+    if(l&&!l.querySelector('[data-a="cloudReset"]')) l.insertAdjacentHTML('beforeend',' · <button class="link" data-a="cloudReset">как было</button>')});
   bindColor(v,'hc',c=>{state.theme.headColor=c;applyTheme();later()});
   bindColor(v,'tc',c=>{state.theme.textColor=c;applyTheme();later()});
   bindColor(v,'sc',c=>{state.theme.smallColor=c;applyTheme();later()});
@@ -1690,9 +1700,9 @@ function bindLook(){
 
 /* ================= выбор цвета ================= */
 function colorField(id,val,list){
-  const custom=!list.map(x=>x.toLowerCase()).includes(String(val).toLowerCase());
+  const custom=!!val&&!list.map(x=>x.toLowerCase()).includes(String(val).toLowerCase());
   return `<div class="swatches" data-cf="${id}">${list.map(c=>`<button type="button" data-c="${c}" style="--c:${c}" class="${c.toLowerCase()===String(val).toLowerCase()?'on':''}" aria-label="Цвет"></button>`).join('')}
-    <label class="sw-own${custom?' on':''}" style="--c:${custom?val:'#ffffff'}" aria-label="Свой цвет"><input type="color" value="${esc(val)}"></label></div>`;
+    <label class="sw-own${custom?' on':''}" style="--c:${custom?val:'#ffffff'}" aria-label="Свой цвет"><input type="color" value="${esc(val||'#ffffff')}"></label></div>`;
 }
 function bindColor(el,id,cb){
   const box=el.querySelector(`[data-cf="${id}"]`); if(!box) return;
@@ -2354,6 +2364,7 @@ const A={
   unplan:t=>{const j=jarById(t.dataset.j),x=j&&j.items.find(y=>y.id===t.dataset.x);if(x){x.st='idle';delete x.date;save();render();haptic('light')}},
   pickPhoto:()=>document.getElementById('photoIn').click(),
   jar:t=>{state.theme.jar=t.dataset.k;save();render();haptic('light')},
+  cloudReset:()=>{delete state.theme.cloud;applyTheme();save();render()},
   tsh:t=>{state.theme.shadow=t.dataset.k;applyTheme();save();render();haptic('light')},
   tshp:t=>{state.theme.shadowPow=+t.dataset.k;applyTheme();save();render();haptic('light')}
 };
