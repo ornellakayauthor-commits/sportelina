@@ -53,8 +53,8 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 svg.jar.sm{width:min(46vw,170px)}
 .count-big.sm{font-size:19px}.count-big.sm b{font-size:32px}
 .jar-cap{font-size:12.5px;color:var(--muted);margin-top:1px}
-/* своё фото на фоне: цифра звёзд, облачко под банкой и «Закреплено» — в цвет кнопок */
-body.bg-photo .jarzone .count-big,body.bg-photo .pin-title{color:var(--acc-ink);text-shadow:0 1px 12px rgba(255,255,255,.75)}
+/* своё фото на фоне: название, дата, цифра звёзд, облачко под банкой и «Закреплено» — в цвет кнопок */
+body.bg-photo .jarzone .count-big,body.bg-photo .pin-title,body.bg-photo .top.home h1,body.bg-photo .top.home .date{color:var(--acc-ink)}
 body.bg-photo svg.jar .jcl-a{fill:var(--acc);opacity:.55}
 body.bg-photo svg.jar .jcl-b{fill:var(--acc-mist);opacity:.5}
 .drop{animation:drop .85s cubic-bezier(.35,1.3,.6,1)}
@@ -953,8 +953,9 @@ function addFunStar(key,date){
   animFun=true;
   if(F.seq.length%CAP===0) setTimeout(()=>toast('Баночка копилок полна! Следующая звезда начнёт новую'),900);
 }
-function removeFunStar(key,date){
-  const F=state.fun, i=F.seq.lastIndexOf(key); if(i>-1) F.seq.splice(i,1);
+// keepJar — звезда получена до обнуления баночки: в баночке её уже нет, она лежит в запасе F.cutS
+function removeFunStar(key,date,keepJar){
+  const F=state.fun, L=keepJar?(F.cutS||[]):F.seq, i=L.lastIndexOf(key); if(i>-1) L.splice(i,1);
   const d=F.log[date];
   if(d&&d[key]){d[key]--; if(!d[key]) delete d[key]; if(!Object.keys(d).length) delete F.log[date];}
 }
@@ -963,7 +964,7 @@ function toggleItem(id){
   const key=it.dir||(it.jar?'j:'+it.jar:'one');
   // звёзды за идеи из копилок падают в свою баночку (во вкладке «Копилки»); старые — там, где лежали
   if(!it.done){it.done=true;it.doneOn=today();if(it.jar&&jarById(it.jar)){addFunStar(key,it.doneOn);it.fs=1;toast('Звезда — в баночку копилок')}else addStar(key,it.doneOn);if(it.pid&&!it.fs){const P=state.pstars||(state.pstars={});P[it.pid]=(P[it.pid]||0)+1;it.ps=1}haptic('light')}
-  else{if(it.fs){removeFunStar(key,it.doneOn);delete it.fs}else removeStar(key,it.doneOn,it.cz);delete it.cz;if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;delete it.ps}it.done=false;it.doneOn=null}
+  else{if(it.fs){removeFunStar(key,it.doneOn,it.fz);delete it.fs;delete it.fz}else removeStar(key,it.doneOn,it.cz);delete it.cz;if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;delete it.ps}it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
   if(f.kind==='pin'&&it.done) unpinDone(); // выполненное само открепляется и уходит в «Сегодня» → «Выполнено»
@@ -1089,7 +1090,7 @@ function renderHome(){
   const full=total>0?Math.floor((total-1)/CAP):0, inJar=total-full*CAP;
   const tl=state.log[today()]||{};
   const date=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
-  let h=`<header class="top"><h1>Sportelina</h1><div class="date">${esc(date)}</div></header>`;
+  let h=`<header class="top home"><h1>Sportelina</h1><div class="date">${esc(date)}</div></header>`;
   h+=`<div class="jarzone">${jarSVG(inJar,total)}
       <div class="count-big"><b>${total}</b>${pl(total,'звезда','звезды','звёзд')}</div>
       ${full?`<div class="shelf">${miniJars(full)}<span>${full} ${pl(full,'полная банка','полные банки','полных банок')}</span></div>`:''}
@@ -1519,6 +1520,26 @@ function statsCut(){
   // звёзды за уже отмеченные дела ушли вместе с банкой: если снять отметку, новую звезду из банки не забираем
   [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&!i.fs)i.cz=1}));
 }
+// обнуление баночки копилок: звёзды уходят в запас F.cutS, откуда их можно вернуть
+function funCut(){
+  const F=state.fun; F.cutS=(F.cutS||[]).concat(F.seq); F.seq=[];
+  [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&i.fs)i.fz=1}));
+  state.jars.forEach(j=>j.items.forEach(x=>{if(x.pr&&x.pr.last)x.pr.last.z=1}));
+}
+function funBack(){
+  const F=state.fun; if(!F.cutS) return;
+  F.seq=F.cutS.concat(F.seq); delete F.cutS;
+}
+function funResetSheet(){
+  const F=state.fun;
+  sheet('Обнулить баночку копилок',`
+    <button class="btn danger" id="fj-reset">Обнулить баночку</button>
+    ${F.cutS?'<button class="btn soft" id="fj-back">Вернуть звёзды в баночку</button>':''}`,(el,close)=>{
+    confirmBtn(el.querySelector('#fj-reset'),'Нажми ещё раз',()=>{funCut();save();close();render();haptic('medium');toast('Баночка копилок обнулена')});
+    const b=el.querySelector('#fj-back');
+    if(b) b.onclick=()=>{funBack();save();close();render();toast('Звёзды вернулись в баночку')};
+  });
+}
 function statsBack(){
   const C=state.cut; if(!C) return;
   state.seq=(C.s||[]).concat(state.seq); delete state.cut;
@@ -1732,6 +1753,7 @@ function renderJars(){
       <div class="count-big sm"><b>${fs}</b>${pl(fs,'звезда','звезды','звёзд')}</div>
       <div class="jar-cap">за идеи из копилок</div>
       ${ff?`<div class="shelf">${miniJars(ff)}<span>${ff} ${pl(ff,'полная банка','полные банки','полных банок')}</span></div>`:''}
+      <div class="st-reset"><button class="link" data-a="funReset">обнулить баночку</button></div>
     </div>`;
   h+=`<div class="jars">${state.jars.map(j=>jarCard(j)).join('')}<button class="jcard add" data-a="addJar">+ Новая копилка</button></div>`;
   const plans=[];state.jars.forEach(j=>j.items.forEach(x=>{if(x.st==='plan')plans.push({j,x})}));
@@ -1942,7 +1964,7 @@ function prSheet(id){
       save();close();haptic('medium');if(!prFinishIfDone(it,x)) render();
     };
     const un=el.querySelector('#pr-undo');
-    if(un) un.onclick=()=>{const L=x.pr.last;removeFunStar(L.k,L.d);x.pr.n=Math.max(0,x.pr.n-L.a);delete x.pr.last;save();close();render();toast('Отметка отменена · '+prText(x.pr))};
+    if(un) un.onclick=()=>{const L=x.pr.last;removeFunStar(L.k,L.d,L.z);x.pr.n=Math.max(0,x.pr.n-L.a);delete x.pr.last;save();close();render();toast('Отметка отменена · '+prText(x.pr))};
     const del=el.querySelector('#pr-del');
     if(del) confirmBtn(del,'Нажми ещё раз — счётчик пропадёт, звёзды останутся',()=>{delete x.pr;save();close();render()});
   });
@@ -2291,6 +2313,7 @@ const A={
     if(prMark(f.it,x,1)){save();if(!prFinishIfDone(f.it,x)){render();toast(prText(x.pr)+' · звезда в баночку копилок')}}},
   switch:t=>switchSheet(t.dataset.id),
   statsReset:()=>statsResetSheet(),
+  funReset:()=>funResetSheet(),
   unfinish:t=>{const d=dirById(t.dataset.d),p=d&&d.progs.find(x=>x.id===t.dataset.p);if(!p)return;p.status='queue';delete p.doneOn;fixNext(d);save();render();toast('Программа вернулась в очередь')},
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
   addOne:()=>addOneSheet(),
