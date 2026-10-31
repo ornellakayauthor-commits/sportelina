@@ -53,6 +53,10 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 svg.jar.sm{width:min(46vw,170px)}
 .count-big.sm{font-size:19px}.count-big.sm b{font-size:32px}
 .jar-cap{font-size:12.5px;color:var(--muted);margin-top:1px}
+/* своё фото на фоне: цифра звёзд, облачко под банкой и «Закреплено» — в цвет кнопок */
+body.bg-photo .jarzone .count-big,body.bg-photo .pin-title{color:var(--acc-ink);text-shadow:0 1px 12px rgba(255,255,255,.75)}
+body.bg-photo svg.jar .jcl-a{fill:var(--acc);opacity:.55}
+body.bg-photo svg.jar .jcl-b{fill:var(--acc-mist);opacity:.5}
 .drop{animation:drop .85s cubic-bezier(.35,1.3,.6,1)}
 @keyframes drop{from{transform:translateY(-240px)}to{transform:none}}
 .spark{animation:tw 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
@@ -568,8 +572,12 @@ function applyTheme(){
   root.setProperty('--acc-line',rgba(a,.6));
   root.setProperty('--acc-glow',rgba(a,.38));
   root.setProperty('--grad',`linear-gradient(135deg,${mix(a,'#ffffff',.3)},${a})`);
+  // на своём фото подпись под банкой, облачко под ней и «Закреплено» берут цвет кнопок
+  root.setProperty('--acc-ink',lum(a)>.72?mix(a,'#3B2343',.42):mix(a,'#3B2343',.18));
+  root.setProperty('--acc-mist',mix(a,'#ffffff',.35));
   const paint=document.getElementById('paint'), svg=paint.querySelector('svg'), paper=document.getElementById('paper');
   let bg=t.bg; if(bg==='photo'&&!photo) bg='rose';
+  document.body.classList.toggle('bg-photo',bg==='photo');
   let head;
   if(BGS[bg]&&BGS[bg].c){
     const p=BGS[bg];
@@ -1052,8 +1060,8 @@ function jarSVG(n,total,opt){
     ${thumb?'':`<filter id="${id}Blot" x="-40%" y="-200%" width="180%" height="500%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="4" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="20" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="1.6"/></filter>`}
   </defs>
   ${thumb?'':`<ellipse cx="130" cy="180" rx="135" ry="130" fill="url(#${id}Halo)" opacity="${(.15+.6*frac).toFixed(2)}"/>
-  <ellipse cx="130" cy="282" rx="112" ry="15" fill="#C9A4DA" opacity=".38" filter="url(#${id}Blot)"/>
-  <ellipse cx="130" cy="280" rx="78" ry="8" fill="#E9A8C0" opacity=".35" filter="url(#${id}Blot)"/>`}
+  <ellipse class="jcl-a" cx="130" cy="282" rx="112" ry="15" fill="#C9A4DA" opacity=".38" filter="url(#${id}Blot)"/>
+  <ellipse class="jcl-b" cx="130" cy="280" rx="78" ry="8" fill="#E9A8C0" opacity=".35" filter="url(#${id}Blot)"/>`}
   <g filter="url(#${id}Glow)">${sp}${rising}</g>
   <path d="${S.body}" fill="${G(id)}"/>
   <path d="${S.body}" fill="url(#${id}Inner)" opacity="${(n?.4+.6*frac:.12).toFixed(2)}"/>
@@ -1399,7 +1407,7 @@ function paintStickers(root){
 function pinsHTML(){
   const items=state.pins.items.filter(i=>!i.hidden), und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
   if(!items.length) return '';
-  let h=`<div class="sec-title">Закреплено</div>`;
+  let h=`<div class="sec-title pin-title">Закреплено</div>`;
   if(und.length) h+=`<div class="stk-grid">${und.map(i=>stickerHTML(i)).join('')}</div>`;
   if(dn.length){
     const fk='pin:all', fo=isFolded(fk)?' folded':'';
