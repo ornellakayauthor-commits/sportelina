@@ -936,8 +936,13 @@ function addStar(key,date){
   animNew=true;
   if(state.seq.length%CAP===0) setTimeout(()=>toast('Банка полна! Следующая звезда начнёт новую'),900);
 }
-function removeStar(key,date){
-  const i=state.seq.lastIndexOf(key); if(i>-1) state.seq.splice(i,1);
+// keepJar — звезда отмечена до обнуления: в банке её уже нет, она лежит в запасе обнуления (state.cut)
+function removeStar(key,date,keepJar){
+  const C=state.cut;
+  if(keepJar&&C){
+    const j=(C.s||[]).lastIndexOf(key); if(j>-1) C.s.splice(j,1);
+    if(date===C.d&&C.l[key]){C.l[key]--; if(!C.l[key]) delete C.l[key];}
+  } else {const i=state.seq.lastIndexOf(key); if(i>-1) state.seq.splice(i,1);}
   const d=state.log[date];
   if(d&&d[key]){d[key]--; if(!d[key]) delete d[key]; if(!Object.keys(d).length) delete state.log[date];}
 }
@@ -958,7 +963,7 @@ function toggleItem(id){
   const key=it.dir||(it.jar?'j:'+it.jar:'one');
   // звёзды за идеи из копилок падают в свою баночку (во вкладке «Копилки»); старые — там, где лежали
   if(!it.done){it.done=true;it.doneOn=today();if(it.jar&&jarById(it.jar)){addFunStar(key,it.doneOn);it.fs=1;toast('Звезда — в баночку копилок')}else addStar(key,it.doneOn);if(it.pid&&!it.fs){const P=state.pstars||(state.pstars={});P[it.pid]=(P[it.pid]||0)+1;it.ps=1}haptic('light')}
-  else{if(it.fs){removeFunStar(key,it.doneOn);delete it.fs}else removeStar(key,it.doneOn);if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;delete it.ps}it.done=false;it.doneOn=null}
+  else{if(it.fs){removeFunStar(key,it.doneOn);delete it.fs}else removeStar(key,it.doneOn,it.cz);delete it.cz;if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;delete it.ps}it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
   if(f.kind==='pin'&&it.done) unpinDone(); // выполненное само открепляется и уходит в «Сегодня» → «Выполнено»
@@ -1508,19 +1513,27 @@ function sortableGrid(box,itemSel,done){
 // к этому моменту уже было в тот день. Статистика считает только то, что появилось после, а банки не трогаются.
 // Поэтому статистику можно вернуть целиком — достаточно убрать state.cut.
 function statsCut(){
-  state.cut={d:today(),l:Object.assign({},state.log[today()]),f:Object.assign({},state.fun.log[today()]),p:Object.assign({},state.pstars)};
+  const old=(state.cut&&state.cut.s)||[];
+  state.cut={d:today(),l:Object.assign({},state.log[today()]),f:Object.assign({},state.fun.log[today()]),p:Object.assign({},state.pstars),s:old.concat(state.seq)};
+  state.seq=[];
+  // звёзды за уже отмеченные дела ушли вместе с банкой: если снять отметку, новую звезду из банки не забираем
+  [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&!i.fs)i.cz=1}));
+}
+function statsBack(){
+  const C=state.cut; if(!C) return;
+  state.seq=(C.s||[]).concat(state.seq); delete state.cut;
 }
 function cutLabel(){const [y,m,d]=state.cut.d.split('-');return +d+' '+['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][+m-1]}
 function statsResetSheet(){
   const C=state.cut;
   sheet('Обнулить статистику',`
-    <div class="explain">Все цифры в «Статистике» начнутся с нуля — с этой минуты. Звёзды в банке и в баночке копилок останутся на месте. Старые отметки не удаляются, поэтому статистику можно будет вернуть.</div>
+    <div class="explain">Все цифры в «Статистике» и банка начнутся с нуля — с этой минуты. Баночка копилок останется как есть. Старые отметки и звёзды не удаляются насовсем, поэтому всё можно будет вернуть.</div>
     ${C?`<div class="explain">Сейчас статистика считается с ${cutLabel()}.</div>`:''}
-    <button class="btn danger" id="st-reset">Обнулить статистику</button>
-    ${C?'<button class="btn soft" id="st-back">Вернуть всю статистику</button>':''}`,(el,close)=>{
-    confirmBtn(el.querySelector('#st-reset'),'Нажми ещё раз — цифры начнутся с нуля',()=>{statsCut();save();close();render();haptic('medium');toast('Статистика обнулена')});
+    <button class="btn danger" id="st-reset">Обнулить статистику и банку</button>
+    ${C?'<button class="btn soft" id="st-back">Вернуть всю статистику и звёзды в банку</button>':''}`,(el,close)=>{
+    confirmBtn(el.querySelector('#st-reset'),'Нажми ещё раз — статистика и банка начнутся с нуля',()=>{statsCut();save();close();render();haptic('medium');toast('Статистика и банка обнулены')});
     const b=el.querySelector('#st-back');
-    if(b) b.onclick=()=>{delete state.cut;save();close();render();toast('Вся статистика вернулась')};
+    if(b) b.onclick=()=>{statsBack();save();close();render();toast('Статистика и звёзды вернулись')};
   });
 }
 function renderStats(){
@@ -2264,7 +2277,7 @@ const A={
   addJar:()=>jarEdit(null),
   goJars:()=>goTab('jars'),
   sPlus:t=>{addStar(t.dataset.id,today());haptic('light');save();render()},
-  sMinus:t=>{const c=(state.log[today()]||{})[t.dataset.id]||0;if(!c)return;removeStar(t.dataset.id,today());save();render()},
+  sMinus:t=>{const id=t.dataset.id,c=(state.log[today()]||{})[id]||0;if(!c)return;const C=state.cut,b=C&&C.d===today()?(C.l[id]||0):0;removeStar(id,today(),c<=b);save();render()},
   toggle:t=>{const s=t.closest('.stk'),id=t.dataset.id,f=findItem(id);
     if(s&&f&&!f.it.done){if(s.classList.contains('bye'))return;s.classList.add('bye');haptic('light');setTimeout(()=>toggleItem(id),330);return}
     toggleItem(id)},
