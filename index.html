@@ -499,9 +499,7 @@ const TG = window.Telegram && window.Telegram.WebApp;
 const CLOUD = !!(TG && TG.initData && TG.CloudStorage && (!TG.isVersionAtLeast || TG.isVersionAtLeast('6.9')));
 const LS = 'starjar-v1', PHOTO_LS = 'starjar-photo', CAP = 50;
 const COLORS = ['#E8A3B6','#B8A4DE','#9DBFE3','#F2BD98','#A8D5C0','#E3B86E','#D59BC8','#F4C26B'];
-const INK_COLORS = ['#5A4466','#2E2233','#3D3A5C','#5B4636','#7A3E5E','#2F4F6B','#FFFFFF'];
 const HEAD_COLORS = ['#5A4466','#2E2233','#A0679A','#C27389','#7B6FB5','#4F86B8','#C98A3E','#FFFFFF'];
-const SMALL_COLORS = ['#9C8798','#7D6E7A','#8A8FA8','#A08A78','#B98AA6','#5A4466','#FFFFFF'];
 const CLOUD_COLORS = ['#C9A4DA','#E9A8C0','#F4C26B','#8FB3E0','#7FC1A6','#E7A982','#A08AA8','#FFFFFF'];
 const ACCENTS = ['#D49BC4','#E8A0B4','#B39DDB','#8FB3E0','#E7A982','#7FC1A6','#C9A45C','#A08AA8'];
 const BG_COLORS = ['#FBF3EF','#F8EEF3','#F3EFFA','#EEF3FA','#F1F7F2','#FBF4E8','#F6F1EA','#EFE9F1'];
@@ -524,7 +522,7 @@ let state = null, tab = 'home', animNew = false, animFun = false, photo = null;
 try{photo=localStorage.getItem(PHOTO_LS)}catch(e){}
 
 function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],pins:{items:[]},fun:{seq:[],log:{}},
-  theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic',shadow:'light',shadowPow:2,textColor:'#5A4466',headColor:'#5A4466',smallColor:'#9C8798'}}}
+  theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic',shadow:'light',shadowPow:2,headColor:'#5A4466'}}}
 function normalize(s){
   if(!s || s.v!==1) return fresh();
   const f=fresh();
@@ -593,9 +591,7 @@ function applyTheme(){
   document.body.classList.toggle('cloud-own',!!t.cloud);
   if(t.cloud){root.setProperty('--cloud',t.cloud);root.setProperty('--cloud-mist',mix(t.cloud,'#ffffff',.35))}
   // цвета текста выбираются вручную в «Оформлении» и от цвета кнопок не зависят
-  root.setProperty('--ink',t.textColor||'#5A4466');
-  root.setProperty('--head',t.headColor||'#5A4466');
-  root.setProperty('--muted',t.smallColor||'#9C8798');
+  root.setProperty('--head',t.headColor||'#5A4466'); // текст и мелкий текст — постоянных цветов из :root
   const paint=document.getElementById('paint'), svg=paint.querySelector('svg'), paper=document.getElementById('paper');
   let bg=t.bg; if(bg==='photo'&&!photo) bg='rose';
   document.body.classList.toggle('bg-photo',bg==='photo');
@@ -1671,8 +1667,7 @@ function renderLook(){
       <div class="preview-btn"><span class="fake">Кнопка</span><span class="fake2">+ Добавить</span></div></div></div>`;
   h+=`<div class="sec-title">Цвет текста</div><div class="card">
       <div class="look-row"><div class="lbl">Заголовки</div>${colorField('hc',t.headColor,HEAD_COLORS)}</div>
-      <div class="look-row"><div class="lbl">Текст</div>${colorField('tc',t.textColor,INK_COLORS)}</div>
-      <div class="look-row"><div class="lbl">Мелкий текст</div>${colorField('sc',t.smallColor,SMALL_COLORS)}</div></div>`;
+</div>`;
   if(t.bg==='photo'&&photo){
     const sh=t.shadow||'light', sp=t.shadowPow||2;
     h+=`<div class="sec-title">Тень у текста</div><div class="card"><div class="seg">${[['light','Светлая'],['dark','Тёмная'],['none','Без тени']].map(([k,n])=>`<button data-a="tsh" data-k="${k}" class="${sh===k?'on':''}">${n}</button>`).join('')}</div>
@@ -1692,8 +1687,6 @@ function bindLook(){
   bindColor(v,'acc',c=>{state.theme.accent=c;applyTheme();later()});
   bindColor(v,'cl',c=>{state.theme.cloud=c;applyTheme();later()});
   bindColor(v,'hc',c=>{state.theme.headColor=c;applyTheme();later()});
-  bindColor(v,'tc',c=>{state.theme.textColor=c;applyTheme();later()});
-  bindColor(v,'sc',c=>{state.theme.smallColor=c;applyTheme();later()});
 }
 
 /* ================= выбор цвета ================= */
