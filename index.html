@@ -53,8 +53,8 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 svg.jar.sm{width:min(46vw,170px)}
 .count-big.sm{font-size:19px}.count-big.sm b{font-size:32px}
 .jar-cap{font-size:12.5px;color:var(--muted);margin-top:1px}
-/* своё фото на фоне: на главном и в «Копилках» название, дата, цифра звёзд, облачко под банкой и «Закреплено» — в цвет кнопок */
-body.bg-photo .jarzone .count-big,body.bg-photo .pin-title,body.bg-photo .top.tint h1,body.bg-photo .top.tint .date,body.bg-photo .jarzone .jar-cap{color:var(--acc-ink)}
+/* своё фото на фоне: заголовок и строка под ним на всех вкладках, цифра звёзд, облачко под банкой и «Закреплено» — в цвет кнопок */
+body.bg-photo .jarzone .count-big,body.bg-photo .pin-title,body.bg-photo .top h1,body.bg-photo .top .date,body.bg-photo .jarzone .jar-cap{color:var(--acc-ink)}
 body.bg-photo svg.jar .jcl-a{fill:var(--acc);opacity:.55}
 body.bg-photo svg.jar .jcl-b{fill:var(--acc-mist);opacity:.5}
 .drop{animation:drop .85s cubic-bezier(.35,1.3,.6,1)}
@@ -1091,7 +1091,7 @@ function renderHome(){
   const full=total>0?Math.floor((total-1)/CAP):0, inJar=total-full*CAP;
   const tl=state.log[today()]||{};
   const date=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
-  let h=`<header class="top tint"><h1>Sportelina</h1><div class="date">${esc(date)}</div></header>`;
+  let h=`<header class="top"><h1>Sportelina</h1><div class="date">${esc(date)}</div></header>`;
   h+=`<div class="jarzone">${jarSVG(inJar,total)}
       <div class="count-big"><b>${total}</b>${pl(total,'звезда','звезды','звёзд')}</div>
       ${full?`<div class="shelf">${miniJars(full)}<span>${full} ${pl(full,'полная банка','полные банки','полных банок')}</span></div>`:''}
@@ -1749,7 +1749,7 @@ function soonHTML(){
     (list.length>4?`<div class="smore">и ещё ${list.length-4}</div>`:'')+`</div>`;
 }
 function renderJars(){
-  let h=`<header class="top tint"><h1>Копилки</h1><div class="date">Идеи на свободное время — достань, когда захочется</div></header>`;
+  let h=`<header class="top"><h1>Копилки</h1><div class="date">Идеи на свободное время — достань, когда захочется</div></header>`;
   const fs=state.fun.seq.length, ff=fs>0?Math.floor((fs-1)/CAP):0, fin=fs-ff*CAP;
   h+=`<div class="jarzone">${jarSVG(fin,fs,{seq:state.fun.seq,anim:animFun,cls:'jar sm'})}
       <div class="count-big sm"><b>${fs}</b>${pl(fs,'звезда','звезды','звёзд')}</div>
