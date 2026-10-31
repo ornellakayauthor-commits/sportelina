@@ -1680,7 +1680,7 @@ function renderLook(){
   }
   const TC=['#F4C26B','#E8A3B6','#F2BD98','#B8A4DE'];
   h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div>
-    <div class="look-row"><div class="lbl">Облачко под баночкой${t.cloud?' · <button class="link" data-a="cloudReset">как было</button>':''}</div>${colorField('cl',t.cloud,CLOUD_COLORS)}</div></div>`;
+    <div class="look-row"><div class="lbl">Облачко под баночкой</div>${colorField('cl',t.cloud,CLOUD_COLORS)}</div></div>`;
   h+=`<p class="tiny" style="text-align:center;margin-top:16px">Цвет звёздочек меняется в настройках каждого направления и ежедневной задачи.</p>`;
   return h;
 }
@@ -1690,9 +1690,7 @@ function bindLook(){
   const later=()=>{clearTimeout(lookSaveT);lookSaveT=setTimeout(save,400)};
   if(v.querySelector('[data-cf="bgc"]')) bindColor(v,'bgc',c=>{state.theme.bgColor=c;applyTheme();const i=v.querySelector('[data-k="plain"] i');if(i)i.style.background=c;later()});
   bindColor(v,'acc',c=>{state.theme.accent=c;applyTheme();later()});
-  bindColor(v,'cl',c=>{state.theme.cloud=c;applyTheme();later();
-    const l=v.querySelector('[data-cf="cl"]').previousElementSibling; // «как было» появляется сразу, без перерисовки — чтобы не закрыть палитру
-    if(l&&!l.querySelector('[data-a="cloudReset"]')) l.insertAdjacentHTML('beforeend',' · <button class="link" data-a="cloudReset">как было</button>')});
+  bindColor(v,'cl',c=>{state.theme.cloud=c;applyTheme();later()});
   bindColor(v,'hc',c=>{state.theme.headColor=c;applyTheme();later()});
   bindColor(v,'tc',c=>{state.theme.textColor=c;applyTheme();later()});
   bindColor(v,'sc',c=>{state.theme.smallColor=c;applyTheme();later()});
@@ -2364,7 +2362,6 @@ const A={
   unplan:t=>{const j=jarById(t.dataset.j),x=j&&j.items.find(y=>y.id===t.dataset.x);if(x){x.st='idle';delete x.date;save();render();haptic('light')}},
   pickPhoto:()=>document.getElementById('photoIn').click(),
   jar:t=>{state.theme.jar=t.dataset.k;save();render();haptic('light')},
-  cloudReset:()=>{delete state.theme.cloud;applyTheme();save();render()},
   tsh:t=>{state.theme.shadow=t.dataset.k;applyTheme();save();render();haptic('light')},
   tshp:t=>{state.theme.shadowPow=+t.dataset.k;applyTheme();save();render();haptic('light')}
 };
