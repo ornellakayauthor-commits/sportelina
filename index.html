@@ -1514,7 +1514,7 @@ function sortableGrid(box,itemSel,done){
 // Поэтому статистику можно вернуть целиком — достаточно убрать state.cut.
 function statsCut(){
   const old=(state.cut&&state.cut.s)||[];
-  state.cut={d:today(),l:Object.assign({},state.log[today()]),f:Object.assign({},state.fun.log[today()]),p:Object.assign({},state.pstars),s:old.concat(state.seq)};
+  state.cut={d:today(),l:Object.assign({},state.log[today()]),f:Object.assign({},state.fun.log[today()]),s:old.concat(state.seq)};
   state.seq=[];
   // звёзды за уже отмеченные дела ушли вместе с банкой: если снять отметку, новую звезду из банки не забираем
   [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&!i.fs)i.cz=1}));
@@ -1527,7 +1527,7 @@ function cutLabel(){const [y,m,d]=state.cut.d.split('-');return +d+' '+['янв�
 function statsResetSheet(){
   const C=state.cut;
   sheet('Обнулить статистику',`
-    <div class="explain">Все цифры в «Статистике» и банка начнутся с нуля — с этой минуты. Баночка копилок останется как есть. Старые отметки и звёзды не удаляются насовсем, поэтому всё можно будет вернуть.</div>
+    <div class="explain">Цифры в «Статистике» и банка начнутся с нуля — с этой минуты. Звёзды у завершённых программ и баночка копилок останутся как есть. Старые отметки и звёзды не удаляются насовсем, поэтому всё можно будет вернуть.</div>
     ${C?`<div class="explain">Сейчас статистика считается с ${cutLabel()}.</div>`:''}
     <button class="btn danger" id="st-reset">Обнулить статистику и банку</button>
     ${C?'<button class="btn soft" id="st-back">Вернуть всю статистику и звёзды в банку</button>':''}`,(el,close)=>{
@@ -1568,7 +1568,7 @@ function renderStats(){
   const fin=[];state.dirs.forEach(d=>d.progs.forEach(p=>{if(p.status==='done')fin.push({d,p})}));
   if(fin.length){
     fin.sort((a,b)=>(a.p.doneOn||'')<(b.p.doneOn||'')?1:-1);
-    h+=`<div class="sec-title">Завершённые программы</div><div class="card">`+fin.map(({d,p})=>{const n=Math.max(0,((state.pstars||{})[p.id]||0)-(C&&C.p&&C.p[p.id]||0));return `<div class="frow">${dot(d.color)}<div class="ftxt"><div class="fname">${esc(p.name)}</div><div class="small">${esc(d.name)} · <button class="link" data-a="unfinish" data-d="${d.id}" data-p="${p.id}">вернуть</button></div></div><div class="fstars"><b>${n}</b><span>${pl(n,'звезда','звезды','звёзд')}</span></div></div>`}).join('')+`</div>`;
+    h+=`<div class="sec-title">Завершённые программы</div><div class="card">`+fin.map(({d,p})=>{const n=(state.pstars||{})[p.id]||0;return `<div class="frow">${dot(d.color)}<div class="ftxt"><div class="fname">${esc(p.name)}</div><div class="small">${esc(d.name)} · <button class="link" data-a="unfinish" data-d="${d.id}" data-p="${p.id}">вернуть</button></div></div><div class="fstars"><b>${n}</b><span>${pl(n,'звезда','звезды','звёзд')}</span></div></div>`}).join('')+`</div>`;
   }
   h+=`<p class="note">каждая звёздочка остаётся с тобой</p>`;
   h+=`<div class="st-reset"><button class="link" data-a="statsReset">${C?'статистика с '+cutLabel()+' · изменить':'обнулить статистику'}</button></div>`;
