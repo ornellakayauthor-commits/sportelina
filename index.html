@@ -1527,8 +1527,6 @@ function cutLabel(){const [y,m,d]=state.cut.d.split('-');return +d+' '+['янв�
 function statsResetSheet(){
   const C=state.cut;
   sheet('Обнулить статистику',`
-    <div class="explain">Старые отметки и звёзды не удаляются насовсем, поэтому всё можно будет вернуть.</div>
-    ${C?`<div class="explain">Сейчас статистика считается с ${cutLabel()}.</div>`:''}
     <button class="btn danger" id="st-reset">Обнулить статистику и банку</button>
     ${C?'<button class="btn soft" id="st-back">Вернуть всю статистику и звёзды в банку</button>':''}`,(el,close)=>{
     confirmBtn(el.querySelector('#st-reset'),'Нажми ещё раз — статистика и банка начнутся с нуля',()=>{statsCut();save();close();render();haptic('medium');toast('Статистика и банка обнулены')});
