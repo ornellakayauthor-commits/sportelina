@@ -54,10 +54,9 @@ svg.jar{width:min(74vw,250px);height:auto;overflow:visible}
 svg.jar.sm{width:min(46vw,170px)}
 .count-big.sm{font-size:19px}.count-big.sm b{font-size:32px}
 .jar-cap{font-size:12.5px;color:var(--muted);margin-top:1px}
-/* своё фото на фоне: у всего, что лежит прямо на фото, — тень (настраивается в «Оформлении»); облачко под банкой — в цвет кнопок */
-body.bg-photo .jarzone .count-big,body.bg-photo .pin-title,body.bg-photo .top h1,body.bg-photo .top .date,body.bg-photo .jarzone .jar-cap,
-body.bg-photo .sec-title,body.bg-photo .note,body.bg-photo .st-reset .link,body.bg-photo .jarzone .shelf{
-  text-shadow:var(--tshadow)} /* тень настраивается в «Оформлении»: светлая, тёмная или без неё, и её сила */
+/* своё фото на фоне: у мелкого текста прямо на фото — лёгкая светлая тень; у заголовков и числа звёзд тени нет; облачко под банкой — в цвет кнопок */
+body.bg-photo .top .date,body.bg-photo .jarzone .jar-cap,body.bg-photo .note,body.bg-photo .st-reset .link,body.bg-photo .jarzone .shelf{
+  text-shadow:0 1px 2px rgba(255,255,255,.6),0 0 7px rgba(255,255,255,.38)}
 body.bg-photo svg.jar .jcl-a{fill:var(--acc);opacity:.55}
 body.bg-photo svg.jar .jcl-b{fill:var(--acc-mist);opacity:.5}
 /* облачко своего цвета (выбирается в «Оформлении») — на любом фоне */
@@ -522,7 +521,7 @@ let state = null, tab = 'home', animNew = false, animFun = false, photo = null;
 try{photo=localStorage.getItem(PHOTO_LS)}catch(e){}
 
 function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],pins:{items:[]},fun:{seq:[],log:{}},
-  theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic',shadow:'light',shadowPow:2,headColor:'#5A4466'}}}
+  theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic',headColor:'#5A4466'}}}
 function normalize(s){
   if(!s || s.v!==1) return fresh();
   const f=fresh();
@@ -584,10 +583,6 @@ function applyTheme(){
   // на своём фото подпись под банкой, облачко под ней и «Закреплено» берут цвет кнопок
   root.setProperty('--acc-ink',lum(a)>.72?mix(a,'#3B2343',.42):mix(a,'#3B2343',.18));
   root.setProperty('--acc-mist',mix(a,'#ffffff',.35));
-  // тень у текста поверх своего фото
-  const sp=[1,2,3].includes(t.shadowPow)?t.shadowPow:2, sc=t.shadow==='dark'?'35,22,40':'255,255,255';
-  const SH={1:[.35,.22,4],2:[.6,.38,7],3:[.85,.6,10]}[sp], dk=t.shadow==='dark'?.55:1;
-  root.setProperty('--tshadow',t.shadow==='none'?'none':`0 1px 2px rgba(${sc},${(SH[0]*dk).toFixed(2)}),0 0 ${SH[2]}px rgba(${sc},${(SH[1]*dk).toFixed(2)})`);
   document.body.classList.toggle('cloud-own',!!t.cloud);
   if(t.cloud){root.setProperty('--cloud',t.cloud);root.setProperty('--cloud-mist',mix(t.cloud,'#ffffff',.35))}
   // цвета текста выбираются вручную в «Оформлении» и от цвета кнопок не зависят
@@ -1668,11 +1663,6 @@ function renderLook(){
   h+=`<div class="sec-title">Цвет текста</div><div class="card">
       <div class="look-row"><div class="lbl">Заголовки</div>${colorField('hc',t.headColor,HEAD_COLORS)}</div>
 </div>`;
-  if(t.bg==='photo'&&photo){
-    const sh=t.shadow||'light', sp=t.shadowPow||2;
-    h+=`<div class="sec-title">Тень у текста</div><div class="card"><div class="seg">${[['light','Светлая'],['dark','Тёмная'],['none','Без тени']].map(([k,n])=>`<button data-a="tsh" data-k="${k}" class="${sh===k?'on':''}">${n}</button>`).join('')}</div>
-      ${sh!=='none'?`<div class="seg" style="margin-top:8px">${[[1,'Слегка'],[2,'Средне'],[3,'Сильно']].map(([k,n])=>`<button data-a="tshp" data-k="${k}" class="${sp===k?'on':''}">${n}</button>`).join('')}</div>`:''}</div>`;
-  }
   const TC=['#F4C26B','#E8A3B6','#F2BD98','#B8A4DE'];
   h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div>
     <div class="look-row"><div class="lbl">Облачко под баночкой</div>${colorField('cl',t.cloud,CLOUD_COLORS)}</div></div>`;
@@ -2355,8 +2345,7 @@ const A={
   unplan:t=>{const j=jarById(t.dataset.j),x=j&&j.items.find(y=>y.id===t.dataset.x);if(x){x.st='idle';delete x.date;save();render();haptic('light')}},
   pickPhoto:()=>document.getElementById('photoIn').click(),
   jar:t=>{state.theme.jar=t.dataset.k;save();render();haptic('light')},
-  tsh:t=>{state.theme.shadow=t.dataset.k;applyTheme();save();render();haptic('light')},
-  tshp:t=>{state.theme.shadowPow=+t.dataset.k;applyTheme();save();render();haptic('light')}
+
 };
 document.addEventListener('click',e=>{
   if(Date.now()<dragBlockUntil){e.preventDefault();e.stopPropagation();return}
