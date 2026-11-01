@@ -101,7 +101,7 @@ body.cloud-own svg.jar .jcl-b{fill:var(--cloud-mist)}
 .group+.group{border-top:1px dashed rgba(200,170,200,.45)}
 .ghead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
 .gname{font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px}
-.link{font-size:12.5px;color:var(--acc-text);font-weight:600;text-align:right}
+.link{font-size:12.5px;color:var(--c-link,var(--acc-text));font-weight:600;text-align:right}
 .ghead .link,.ghead .tag{min-width:0;max-width:62%;overflow-wrap:anywhere}
 .ghead .gname{min-width:0;overflow-wrap:anywhere}
 .item{display:flex;align-items:center;gap:12px;padding:8px 0}
@@ -111,7 +111,7 @@ body.cloud-own svg.jar .jcl-b{fill:var(--cloud-mist)}
 .tick svg{width:14px;height:14px}
 .iname{flex:1;cursor:pointer;min-width:0;overflow-wrap:anywhere}
 .item.done .iname{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(156,135,152,.5)}
-.more{width:34px;height:30px;border-radius:10px;color:var(--soft);font-size:11px;letter-spacing:1px;flex-shrink:0}
+.more{width:34px;height:30px;border-radius:10px;color:var(--c-dots,var(--soft));font-size:11px;letter-spacing:1px;flex-shrink:0}
 .nodir{color:var(--muted);font-size:13.5px;padding:6px 0 4px}
 .dhead{display:flex;justify-content:space-between;align-items:center;margin:10px 0 2px;padding-top:10px;border-top:1px dashed rgba(200,170,200,.45);font-size:12.5px;font-weight:700;color:var(--muted)}
 .dlist .item{padding:5px 0}
@@ -211,7 +211,7 @@ body.cloud-own svg.jar .jcl-b{fill:var(--cloud-mist)}
 .note{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--muted);text-align:center;margin-top:22px}
 .st-reset{text-align:center;margin-top:10px}
 .st-reset2{margin-top:0}
-.st-reset .link{text-align:center;color:var(--muted);font-weight:500;padding:8px 12px}
+.st-reset .link{text-align:center;color:var(--c-link,var(--muted));font-weight:500;padding:8px 12px}
 
 /* программы */
 .dir{padding:14px 16px}
@@ -347,7 +347,7 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .ex-add button{height:48px}
 .ex-add button{width:48px;border-radius:14px;background:var(--c);color:#fff;font-size:22px;font-weight:700}
 .seg3 button{font-size:13px;padding:10px 4px}
-.tag{font-size:12.5px;color:var(--acc-text);font-weight:600;text-align:right}
+.tag{font-size:12.5px;color:var(--c-link,var(--acc-text));font-weight:600;text-align:right}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:999px;background:#fff;font-size:14px;font-weight:600}
 .chip .dot{width:9px;height:9px;box-shadow:none}
@@ -512,6 +512,8 @@ const HEAD_COLORS = ['#5A4466','#2E2233','#A0679A','#C27389','#7B6FB5','#4F86B8'
 const INK_COLORS = ['#5A4466','#2E2233','#3D3A5C','#5B4636','#7A3E5E','#2F4F6B','#FFFFFF'];
 const SMALL_COLORS = ['#9C8798','#7D6E7A','#8A8FA8','#A08A78','#B98AA6','#5A4466','#FFFFFF'];
 const TAB_COLORS = ['#9C8798','#5A4466','#2E2233','#A0679A','#4F86B8','#C98A3E','#FFFFFF'];
+const LINK_COLORS = ['#A0679A','#C27389','#7A1F1F','#5A4466','#4F86B8','#C98A3E','#9C8798','#FFFFFF'];
+const DOTS_COLORS = ['#CDB9CC','#9C8798','#5A4466','#A0679A','#7A1F1F','#C98A3E','#FFFFFF'];
 const CARD_COLORS = ['#FFFAF7','#FFFFFF','#F8EEF3','#F1ECFA','#EAF2FB','#EEF7F1','#FBF3E4','#2E2233'];
 // что можно перекрасить в «Оформлении»: ключ в теме, CSS-переменная, подпись, палитра, цвет по умолчанию
 const PAINT = [
@@ -521,6 +523,8 @@ const PAINT = [
   ['cloud',null,'Облачко под баночкой',null,null],
   ['lheadColor','--c-lhead','Заголовки списков',INK_COLORS,'#5A4466'],
   ['ltextColor','--c-ltext','Текст в списках',INK_COLORS,'#5A4466'],
+  ['linkColor','--c-link','Ссылки',LINK_COLORS,null],
+  ['dotsColor','--c-dots','Три точки',DOTS_COLORS,'#CDB9CC'],
   ['smallColor','--c-muted','Мелкий текст',SMALL_COLORS,'#9C8798'],
   ['tabColor','--c-tab','Нижние кнопки',TAB_COLORS,'#9C8798']];
 const CLOUD_COLORS = ['#C9A4DA','#E9A8C0','#F4C26B','#8FB3E0','#7FC1A6','#E7A982','#A08AA8','#FFFFFF'];
