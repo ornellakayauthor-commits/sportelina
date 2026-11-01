@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600;1,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#5A4466; --head:#5A4466; --muted:#9C8798; --soft:#CDB9CC;
+  --ink:#5A4466; --muted:#9C8798; --soft:#CDB9CC;
   --card:rgba(255,250,247,.6); --card-line:rgba(255,255,255,.85);
   --acc:#D49BC4; --acc-text:#A0679A; --acc-soft:rgba(212,155,196,.25); --acc-line:rgba(212,155,196,.55); --acc-glow:rgba(212,155,196,.38);
   --grad:linear-gradient(135deg,#E2BBD7,#D49BC4);
@@ -37,9 +37,12 @@ button{cursor:pointer;border:0;background:none}
 .gate p{font-family:Manrope,sans-serif;font-style:normal;font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 6px}
 
 /* ---------- заголовки ---------- */
-.top h1,.sec-title,.count-big{color:var(--head)}
+.top h1{color:var(--c-title,#5A4466)}
+.top .date{color:var(--c-title,var(--muted))}
+.sec-title{color:var(--c-sec,#5A4466)}
+.count-big{color:var(--c-count,#5A4466)}
 .top h1{font-family:var(--serif);font-style:italic;font-weight:600;font-size:38px;line-height:1}
-.top .date{color:var(--muted);font-size:13px;margin-top:6px}
+.top .date{font-size:13px;margin-top:6px}
 .sec-title{font-family:var(--serif);font-style:italic;font-weight:600;font-size:25px;margin:24px 4px 10px;
   display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .sec-title small{font-family:Manrope,sans-serif;font-style:normal;font-size:12.5px;color:var(--muted);font-weight:500}
@@ -71,7 +74,11 @@ body.cloud-own svg.jar .jcl-b{fill:var(--cloud-mist)}
 
 /* ---------- карточки ---------- */
 .card{background:var(--card);border:1px solid var(--card-line);border-radius:24px;box-shadow:var(--shadow);
-  backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);padding:4px 16px}
+  backdrop-filter:blur(var(--card-blur,14px)) saturate(1.1);-webkit-backdrop-filter:blur(var(--card-blur,14px)) saturate(1.1);padding:4px 16px}
+/* цвета, выбранные в «Оформлении»: текст в списках, заголовки списков, мелкий текст, нижние кнопки */
+.wrap{--muted:var(--c-muted,#9C8798)}
+.card{--ink:var(--c-ltext,#5A4466);color:var(--ink)}
+.gname,.gname.gtoggle,.dname,.prow .pn{color:var(--c-lhead,var(--ink))}
 .card+.card{margin-top:12px}
 .hint-empty{color:var(--muted);font-size:14px;padding:18px 4px;text-align:center;line-height:1.55}
 .pill{display:inline-block;padding:9px 16px;border-radius:999px;background:var(--grad);color:#fff;font-weight:700;font-size:13px;margin-top:12px;box-shadow:0 4px 12px var(--acc-glow)}
@@ -256,7 +263,10 @@ body.cloud-own svg.jar .jcl-b{fill:var(--cloud-mist)}
   display:flex;gap:2px;padding:6px;border-radius:24px;width:min(440px,calc(100% - 24px));
   background:rgba(255,250,248,.8);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid #fff;box-shadow:var(--shadow)}
 .tabs button{flex:1;padding:8px 2px;border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--muted);transition:background .2s;min-width:0}
-.tabs button.on{background:var(--acc-soft);color:var(--ink)}
+.tabs button.on{background:var(--acc-soft);color:var(--c-tab,var(--ink))}
+.tabs button{color:var(--c-tab,var(--muted))}
+.range{width:100%;accent-color:var(--acc);margin:4px 0 2px}
+.lbl b{float:right;font-weight:600}
 .tabs svg{width:22px;height:22px}
 
 /* шторка */
@@ -499,6 +509,20 @@ const CLOUD = !!(TG && TG.initData && TG.CloudStorage && (!TG.isVersionAtLeast |
 const LS = 'starjar-v1', PHOTO_LS = 'starjar-photo', CAP = 50;
 const COLORS = ['#E8A3B6','#B8A4DE','#9DBFE3','#F2BD98','#A8D5C0','#E3B86E','#D59BC8','#F4C26B'];
 const HEAD_COLORS = ['#5A4466','#2E2233','#A0679A','#C27389','#7B6FB5','#4F86B8','#C98A3E','#FFFFFF'];
+const INK_COLORS = ['#5A4466','#2E2233','#3D3A5C','#5B4636','#7A3E5E','#2F4F6B','#FFFFFF'];
+const SMALL_COLORS = ['#9C8798','#7D6E7A','#8A8FA8','#A08A78','#B98AA6','#5A4466','#FFFFFF'];
+const TAB_COLORS = ['#9C8798','#5A4466','#2E2233','#A0679A','#4F86B8','#C98A3E','#FFFFFF'];
+const CARD_COLORS = ['#FFFAF7','#FFFFFF','#F8EEF3','#F1ECFA','#EAF2FB','#EEF7F1','#FBF3E4','#2E2233'];
+// что можно перекрасить в «Оформлении»: ключ в теме, CSS-переменная, подпись, палитра, цвет по умолчанию
+const PAINT = [
+  ['titleColor','--c-title','Название и дата',HEAD_COLORS,'#5A4466'],
+  ['secColor','--c-sec','Заголовки разделов',HEAD_COLORS,'#5A4466'],
+  ['countColor','--c-count','Число звёзд',HEAD_COLORS,'#5A4466'],
+  ['cloud',null,'Облачко под баночкой',null,null],
+  ['lheadColor','--c-lhead','Заголовки списков',INK_COLORS,'#5A4466'],
+  ['ltextColor','--c-ltext','Текст в списках',INK_COLORS,'#5A4466'],
+  ['smallColor','--c-muted','Мелкий текст',SMALL_COLORS,'#9C8798'],
+  ['tabColor','--c-tab','Нижние кнопки',TAB_COLORS,'#9C8798']];
 const CLOUD_COLORS = ['#C9A4DA','#E9A8C0','#F4C26B','#8FB3E0','#7FC1A6','#E7A982','#A08AA8','#FFFFFF'];
 const ACCENTS = ['#D49BC4','#E8A0B4','#B39DDB','#8FB3E0','#E7A982','#7FC1A6','#C9A45C','#A08AA8'];
 const BG_COLORS = ['#FBF3EF','#F8EEF3','#F3EFFA','#EEF3FA','#F1F7F2','#FBF4E8','#F6F1EA','#EFE9F1'];
@@ -521,7 +545,7 @@ let state = null, tab = 'home', animNew = false, animFun = false, photo = null;
 try{photo=localStorage.getItem(PHOTO_LS)}catch(e){}
 
 function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],pins:{items:[]},fun:{seq:[],log:{}},
-  theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic',headColor:'#5A4466'}}}
+  theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic',cardColor:'#FFFAF7',cardAlpha:.6}}}
 function normalize(s){
   if(!s || s.v!==1) return fresh();
   const f=fresh();
@@ -529,6 +553,8 @@ function normalize(s){
   s.theme=Object.assign({},f.theme,s.theme||{});
   s.fun=Object.assign({seq:[],log:{}},s.fun||{});
   if(!SHAPES[s.theme.jar]) s.theme.jar='classic';
+  // прежний общий «цвет заголовков» переезжает в три отдельных: название и дата, заголовки разделов, число звёзд
+  if(s.theme.headColor){const h=s.theme.headColor;if(h.toLowerCase()!=='#5a4466'){s.theme.titleColor=s.theme.titleColor||h;s.theme.secColor=s.theme.secColor||h;s.theme.countColor=s.theme.countColor||h}delete s.theme.headColor}
   // программ «в даты» больше нет: они становятся обычными «по очереди», а та, чьи даты идут сейчас, закрепляется
   const tk=today();
   s.dirs.forEach(d=>d.progs.forEach(p=>{if(p.status==='dates'||(!p.status&&p.from&&p.to)){const now=p.from&&p.to&&p.from<=tk&&tk<=p.to;p.status='queue';delete p.from;delete p.to;if(now&&!d.lock){d.lock=p.id;(s.relock=s.relock||[]).push(d.id)}}}));
@@ -586,7 +612,11 @@ function applyTheme(){
   document.body.classList.toggle('cloud-own',!!t.cloud);
   if(t.cloud){root.setProperty('--cloud',t.cloud);root.setProperty('--cloud-mist',mix(t.cloud,'#ffffff',.35))}
   // цвета текста выбираются вручную в «Оформлении» и от цвета кнопок не зависят
-  root.setProperty('--head',t.headColor||'#5A4466'); // текст и мелкий текст — постоянных цветов из :root
+  PAINT.forEach(([k,v])=>{if(!v)return; if(t[k]) root.setProperty(v,t[k]); else root.removeProperty(v)});
+  const ca=Math.max(0,Math.min(1,t.cardAlpha==null?.6:t.cardAlpha));
+  root.setProperty('--card',rgba(t.cardColor||'#FFFAF7',ca));
+  root.setProperty('--card-line',`rgba(255,255,255,${Math.min(.85,ca*1.4).toFixed(2)})`);
+  root.setProperty('--card-blur',Math.round(14*Math.min(1,ca/.6))+'px');
   const paint=document.getElementById('paint'), svg=paint.querySelector('svg'), paper=document.getElementById('paper');
   let bg=t.bg; if(bg==='photo'&&!photo) bg='rose';
   document.body.classList.toggle('bg-photo',bg==='photo');
@@ -1660,12 +1690,14 @@ function renderLook(){
   h+=`</div>`;
   h+=`<div class="sec-title">Цвет кнопок</div><div class="card"><div class="look-row">${colorField('acc',t.accent,ACCENTS)}
       <div class="preview-btn"><span class="fake">Кнопка</span><span class="fake2">+ Добавить</span></div></div></div>`;
-  h+=`<div class="sec-title">Цвет текста</div><div class="card">
-      <div class="look-row"><div class="lbl">Заголовки</div>${colorField('hc',t.headColor,HEAD_COLORS)}</div>
-</div>`;
+  const ca=t.cardAlpha==null?.6:t.cardAlpha;
+  h+=`<div class="sec-title">Плашки</div><div class="card">
+      <div class="look-row"><div class="lbl">Цвет</div>${colorField('cc',t.cardColor||'#FFFAF7',CARD_COLORS)}</div>
+      <div class="look-row"><div class="lbl">Прозрачность <b id="ca-v">${Math.round((1-ca)*100)}%</b></div><input type="range" class="range" id="ca" min="0" max="100" step="5" value="${Math.round((1-ca)*100)}"></div></div>`;
+  h+=`<div class="sec-title">Цвета</div><div class="card">`+PAINT.map(([k,,n,list,def])=>`
+      <div class="look-row"><div class="lbl">${n}</div>${k==='cloud'?colorField('cl',t.cloud,CLOUD_COLORS):colorField('p-'+k,t[k]||def,list)}</div>`).join('')+`</div>`;
   const TC=['#F4C26B','#E8A3B6','#F2BD98','#B8A4DE'];
-  h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div>
-    <div class="look-row"><div class="lbl">Облачко под баночкой</div>${colorField('cl',t.cloud,CLOUD_COLORS)}</div></div>`;
+  h+=`<div class="sec-title">Баночка</div><div class="card"><div class="look-row"><div class="jars2">${Object.keys(SHAPES).map(k=>`<button data-a="jar" data-k="${k}" class="${shapeOf(t.jar)===SHAPES[k]?'on':''}">${jarSVG(14,14,{shape:k,thumb:1,colors:TC})}${SHAPES[k].n}</button>`).join('')}</div></div></div>`;
   h+=`<p class="tiny" style="text-align:center;margin-top:16px">Цвет звёздочек меняется в настройках каждого направления и ежедневной задачи.</p>`;
   return h;
 }
@@ -1676,7 +1708,10 @@ function bindLook(){
   if(v.querySelector('[data-cf="bgc"]')) bindColor(v,'bgc',c=>{state.theme.bgColor=c;applyTheme();const i=v.querySelector('[data-k="plain"] i');if(i)i.style.background=c;later()});
   bindColor(v,'acc',c=>{state.theme.accent=c;applyTheme();later()});
   bindColor(v,'cl',c=>{state.theme.cloud=c;applyTheme();later()});
-  bindColor(v,'hc',c=>{state.theme.headColor=c;applyTheme();later()});
+  PAINT.forEach(([k,css])=>{if(css) bindColor(v,'p-'+k,c=>{state.theme[k]=c;applyTheme();later()})});
+  bindColor(v,'cc',c=>{state.theme.cardColor=c;applyTheme();later()});
+  const r=v.querySelector('#ca');
+  if(r) r.oninput=()=>{state.theme.cardAlpha=1-r.value/100;v.querySelector('#ca-v').textContent=r.value+'%';applyTheme();later()};
 }
 
 /* ================= выбор цвета ================= */
