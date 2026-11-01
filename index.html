@@ -2495,6 +2495,15 @@ function moveJarStarsOnce(){
   [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.jar&&i.done)i.fs=1}));
   return true;
 }
+// разовый сброс оформления 1 ноября 2026: цвета, тень и форма баночки — как изначально, фон (своё фото) остаётся.
+// Отметка themeReset1 остаётся в данных, поэтому второй раз сброс не повторится — ни здесь, ни на другом устройстве
+function resetThemeOnce(){
+  if(!state||state.themeReset1) return false;
+  state.themeReset1=1;
+  const f=fresh().theme, t=state.theme;
+  state.theme=Object.assign({},f,{bg:t.bg,bgColor:t.bgColor});
+  return true;
+}
 function gate(title,text,retry){
   const v=document.getElementById('view');
   v.innerHTML=`<div class="loading gate"><div><div class="gate-t">${title}</div><p>${text}</p>${retry?'<button class="btn main" id="gateRetry">Попробовать ещё раз</button>':''}</div></div>`;
@@ -2504,6 +2513,7 @@ function settle(){
   if(bootDirty){bootDirty=false;save()}
   if(resetJarOnce()){save();render()}
   if(moveJarStarsOnce()){save();render()}
+  if(resetThemeOnce()){save();applyTheme();render()}
   setTimeout(gcPinPhotos,1500);
 }
 async function boot(){
