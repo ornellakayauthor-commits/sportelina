@@ -1145,7 +1145,7 @@ function renderHome(){
   const sg=state.stable.length?`<div class="group">`+state.stable.map(s=>{const n=tl[s.id]||0;return `
       <div class="item srep${n?' on':''}" style="--c:${s.color}">
       <button class="tick" data-a="sPlus" data-id="${s.id}" aria-label="Отметить ещё раз">${n?`<b class="tnum">${n}</b>`:''}</button>
-      <span class="iname" data-a="sPlus" data-id="${s.id}">${esc(s.name)}<small class="ipr"> · каждый день</small></span>
+      <span class="iname" data-a="sPlus" data-id="${s.id}">${esc(s.name)}</span>
       ${n?`<button class="more sminus" data-a="sMinus" data-id="${s.id}" aria-label="Убрать одну отметку">−</button>`:''}</div>`}).join('')+`</div>`:'';
   const day=curDay();
   const build=(kind,list)=>{
