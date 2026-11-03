@@ -2247,12 +2247,12 @@ function goalSheet(id){
   const g=id?goalById(id):null, isNew=!g; if(id&&!g) return;
   const dr={track:g?!!g.track:true,u:g&&GOAL_U[g.u]?g.u:'t'};
   sheet(isNew?'Новая цель':'Цель',`
-    <div class="field"><label class="t" for="gx-name">Название</label><textarea id="gx-name" class="grow" rows="1" placeholder="Например, сесть на шпагат">${esc(g?g.name:'')}</textarea></div>
+    <div class="field"><label class="t" for="gx-name">Название</label><textarea id="gx-name" class="grow" rows="1">${esc(g?g.name:'')}</textarea></div>
     <div class="field"><label class="t">Отслеживать прогресс</label><div class="seg" id="gx-tr"><button type="button" data-v="0">Нет</button><button type="button" data-v="1">Да</button></div></div>
     <div id="gx-trk">
       <div class="field"><label class="t">Что считать</label><div class="seg seg4" id="gx-u">${Object.entries(GOAL_U).map(([k,u])=>`<button type="button" data-u="${k}">${u.n}</button>`).join('')}</div>
-        <input type="text" id="gx-cu" maxlength="30" placeholder="Например, главы" autocomplete="off" value="${esc(g&&g.cu||'')}" style="margin-top:8px"></div>
-      <div class="field"><label class="t" for="gx-t">Сколько всего</label><input type="text" inputmode="numeric" id="gx-t" placeholder="Например, 365" autocomplete="off" value="${g&&g.t?g.t:''}"></div>
+        <input type="text" id="gx-cu" maxlength="30" autocomplete="off" value="${esc(g&&g.cu||'')}" style="margin-top:8px"></div>
+      <div class="field"><label class="t" for="gx-t">Сколько всего</label><input type="text" inputmode="numeric" id="gx-t" autocomplete="off" value="${g&&g.t?g.t:''}"></div>
     </div>
     <button class="btn main" id="gx-save">${isNew?'Создать цель':'Сохранить'}</button>
     ${isNew?'':`<button class="btn soft" id="gx-look">Оформление карточки</button>
