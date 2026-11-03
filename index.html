@@ -462,7 +462,7 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 
 /* ---------- цели ---------- */
 .bolts{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:13px;font-weight:600;color:var(--muted)}
-.bolts svg{width:14px;height:14px}
+.bolts svg{width:16px;height:16px}
 body.bg-photo .jarzone .bolts{text-shadow:0 1px 2px rgba(255,255,255,.6),0 0 7px rgba(255,255,255,.38)}
 .gcar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:4px 16px 18px;scroll-padding:0 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .gcar::-webkit-scrollbar{display:none}
@@ -1186,7 +1186,7 @@ function renderHome(){
   const bolts=state.seq.filter(isBolt).length, stars=total-bolts;
   h+=`<div class="jarzone">${jarSVG(inJar,total)}
       <div class="count-big"><b>${stars}</b>${pl(stars,'звезда','звезды','звёзд')}</div>
-      ${bolts?`<div class="bolts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${BOLT}" fill="#F2B544"/></svg>и ${bolts} ${pl(bolts,'молния','молнии','молний')}</div>`:''}
+      ${bolts?`<div class="bolts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${BOLT}" fill="#F2B544" stroke="#F2B544" stroke-width=".8" stroke-linejoin="round"/></svg>и ${bolts} ${pl(bolts,'молния','молнии','молний')}</div>`:''}
       ${full?`<div class="shelf">${miniJars(full)}<span>${full} ${pl(full,'полная банка','полные банки','полных банок')}</span></div>`:''}
     </div>`;
   // ежедневные задачи живут в «Сегодня»: каждое нажатие — ещё одна отметка и звезда, число отметок — внутри кружка
@@ -2089,7 +2089,7 @@ function prSheet(id){
 // У цели без отслеживания одна отметка — «Достигнута», за неё одна молния.
 // g.hist — последние шаги (дата; '*' в конце — шаг до обнуления статистики), чтобы «−» снимал молнию оттуда, где она лежит.
 // g.z — сколько молний получено за цель всего (для «Достигнутых целей»; обнуление статистики их не трогает).
-const GOAL_MAX=5, GOAL_HIST=40, BOLT='M15 1.8 7.6 12.9l4.9-.4L9.6 22.2l7.6-11.6-4.9.4z';
+const GOAL_MAX=5, GOAL_HIST=40, BOLT='M17.32 3.36 5 12.9h5.04l-3.36 7.92L19 10.74h-5.32z';
 const GOAL_U={d:{n:'Дни',f:['день','дня','дней']},t:{n:'Тренировки',f:['тренировка','тренировки','тренировок']},
               l:{n:'Уроки',f:['урок','урока','уроков']},c:{n:'Своё'}};
 const RING_COLORS=['#A68ED8','#E39AB3','#82A5D8','#6DB2A1','#E29B7D','#D8B44E','#8AB076','#B48D69'];
@@ -2193,7 +2193,7 @@ function goalCardHTML(g,raw){
   return `<div class="gcard" data-a="gOpen" data-id="${g.id}">
     ${ph?`<img class="gph" src="${srcOf(ph)}" alt="" style="object-position:center ${GOAL_Y[L.y]||'center'};filter:blur(${bl}px) saturate(1.1);transform:scale(${(1+bl*.012).toFixed(3)})">`:''}
     <div class="gveil" style="background:${rgba(state.theme.cardColor||'#FFFAF7',a)}${ph?'':`;backdrop-filter:blur(${bl}px) saturate(1.1);-webkit-backdrop-filter:blur(${bl}px) saturate(1.1)`}"></div>
-    <div class="gin"><svg class="gring" viewBox="0 0 80 80" role="img" aria-label="${esc(gText(g)||'Цель без отслеживания')}">${ring}<path transform="translate(28 28)" d="${BOLT}" fill="#F2B544"/></svg>
+    <div class="gin"><svg class="gring" viewBox="0 0 80 80" role="img" aria-label="${esc(gText(g)||'Цель без отслеживания')}">${ring}<path transform="translate(28 28)" d="${BOLT}" fill="#F2B544" stroke="#F2B544" stroke-width=".8" stroke-linejoin="round"/></svg>
       <div class="gtx"><div class="gc-name">${esc(g.name)}</div>${g.track?`<div class="gc-sub">${esc(gText(g))}</div>`:''}<div class="gc-acts">${acts}</div></div></div></div>`;
 }
 let goalIdx=0;
