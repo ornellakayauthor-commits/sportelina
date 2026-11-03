@@ -1139,7 +1139,7 @@ function jarSVG(n,total,opt){
   for(let i=0;i<n;i++){
     const s=slots[i], key=seq[start+i];
     // шаг к цели — золотая молния среди звёзд
-    if(!opt.colors&&isBolt(key)){const k=s.r*2.6/20;stars+=`<g class="${!thumb&&anim&&i===n-1?'drop':''}"><path transform="translate(${f1(s.x-12*k)} ${f1(s.y-12*k)}) scale(${f1(k*100)/100})" d="${BOLT}" fill="#F2B544" stroke="#F2B544" stroke-width=".8" stroke-linejoin="round"/></g>`;continue}
+    if(!opt.colors&&isBolt(key)){stars+=`<g class="${!thumb&&anim&&i===n-1?'drop':''}"><path transform="translate(${f1(s.x-12*BOLT_K)} ${f1(s.y-12*BOLT_K)}) scale(${BOLT_K})" d="${BOLT}" fill="#F2B544"/></g>`;continue}
     const col=opt.colors?opt.colors[i%opt.colors.length]:colorOf(key);
     stars+=`<g class="${!thumb&&anim&&i===n-1?'drop':''}"><path d="${sparkle(s.x,s.y,s.r)}" fill="${col}"/><circle cx="${s.x}" cy="${s.y}" r="${f1(s.r*.24)}" fill="#fff"/></g>`;
   }
@@ -2089,6 +2089,8 @@ function prSheet(id){
 // У цели без отслеживания одна отметка — «Достигнута», за неё одна молния.
 // g.hist — последние шаги (дата; '*' в конце — шаг до обнуления статистики), чтобы «−» снимал молнию оттуда, где она лежит.
 // g.z — сколько молний получено за цель всего (для «Достигнутых целей»; обнуление статистики их не трогает).
+// молния в банке — значок 19 px (банка шириной 250 px рисуется в 260 единиц), без обводки; сияние — общее со звёздами
+const BOLT_K=+(19/24*260/250).toFixed(3);
 const GOAL_MAX=5, GOAL_HIST=40, BOLT='M15.6 4 6.6 12.6h7.54L8.4 20l9-8.6H9.86z';
 const GOAL_U={d:{n:'Дни',f:['день','дня','дней']},t:{n:'Тренировки',f:['тренировка','тренировки','тренировок']},
               l:{n:'Уроки',f:['урок','урока','уроков']},c:{n:'Своё'}};
