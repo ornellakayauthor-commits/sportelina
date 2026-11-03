@@ -459,6 +459,49 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .lk-decos button.none{background:#fff;font-size:12px;font-weight:700;color:var(--muted)}
 .lk-decos button.on{box-shadow:inset 0 0 0 1.5px var(--acc)}
 .lk-d{max-width:42px;max-height:42px;width:auto;height:auto;overflow:visible}
+
+/* ---------- цели ---------- */
+.bolts{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:13px;font-weight:600;color:var(--muted)}
+.bolts svg{width:14px;height:14px}
+body.bg-photo .jarzone .bolts{text-shadow:0 1px 2px rgba(255,255,255,.6),0 0 7px rgba(255,255,255,.38)}
+.gcar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:4px 16px 18px;scroll-padding:0 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.gcar::-webkit-scrollbar{display:none}
+.gcard{position:relative;flex:0 0 calc(100% - 40px);scroll-snap-align:start;min-height:156px;display:flex;border-radius:24px;overflow:hidden;
+  border:1px solid var(--card-line);box-shadow:var(--shadow);color:var(--c-ltext,#5A4466);cursor:pointer;transition:opacity .3s ease,transform .3s ease}
+.gcar .gcard:only-child{flex-basis:100%}
+.gcard.bye{opacity:0;transform:scale(.92)}
+.gph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.gveil{position:absolute;inset:0;pointer-events:none}
+.gin{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:16px 14px 14px 16px}
+.gring{width:82px;height:82px;flex-shrink:0}
+.gtx{flex:1;min-width:0;display:flex;flex-direction:column}
+.gc-name{font-weight:700;font-size:16px;line-height:1.3;overflow-wrap:break-word;word-break:normal;hyphens:manual;-webkit-hyphens:manual}
+.gc-sub{margin-top:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.gc-acts{margin-top:8px;display:flex;align-items:center;justify-content:flex-end;gap:2px;min-height:44px}
+.gc-plus{height:44px;padding:0 16px;border-radius:22px;background:var(--grad);box-shadow:0 4px 12px var(--acc-glow);color:#fff;font-weight:800;font-size:15px;transition:transform .12s}
+.gc-plus:active{transform:scale(.94)}
+.gc-minus{width:40px;height:40px;margin:2px 6px 2px 0;border-radius:50%;background:rgba(255,255,255,.62);font-size:21px;font-weight:600;line-height:1;color:var(--muted)}
+.gc-ok{display:flex;align-items:center;white-space:nowrap;height:40px;padding:0 14px;border-radius:20px;background:rgba(255,255,255,.62);font-size:13px;font-weight:700;color:var(--muted)}
+.gdots{display:flex;justify-content:center;gap:6px;margin:-6px 0 2px}
+.gdots i{width:6px;height:6px;border-radius:3px;background:var(--acc-line);opacity:.55;transition:width .25s ease,opacity .25s ease}
+.gdots i.on{width:18px;background:var(--acc);opacity:1}
+.gl-card{padding:4px 16px}
+.glist{list-style:none;margin:0;padding:2px 0}
+.glist li{display:flex;align-items:center;gap:8px;padding:4px 0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.glist li+li{border-top:1px dashed rgba(200,170,200,.45)}
+.glist li.dragging{margin:0 -10px;padding:4px 10px}
+.gl-row{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:10px 0;cursor:pointer}
+.gl-t{flex:1;min-width:0;font-weight:600;overflow-wrap:break-word}
+.gl-t small{display:block;margin-top:2px;font-weight:500;font-size:12.5px;color:var(--muted)}
+.glist .pinb{width:44px;height:44px;background:rgba(255,255,255,.55)}
+.dhead [data-a=gClear]{flex:none;margin-left:12px;transition:opacity .25s ease,visibility .25s}
+.dhead.folded [data-a=gClear]{opacity:0;visibility:hidden;pointer-events:none}
+.seg4 button{font-size:13px;padding:10px 2px}
+.opt.grep.arm{box-shadow:inset 0 0 0 2px var(--acc)}
+.opt.grep.arm small{color:var(--acc-text)}
+.gprev{padding:2px 0 18px}
+.gprev .gcard{width:100%;cursor:default}
+.field label.t b{color:var(--ink);font-weight:700;margin-left:4px}
 </style>
 </head>
 <body>
@@ -548,7 +591,7 @@ const TICK = '<svg viewBox="0 0 20 20"><path d="M10 1Q11.4 8.6 19 10Q11.4 11.4 1
 let state = null, tab = 'home', animNew = false, animFun = false, photo = null;
 try{photo=localStorage.getItem(PHOTO_LS)}catch(e){}
 
-function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],pins:{items:[]},fun:{seq:[],log:{}},
+function fresh(){return {v:1,ts:0,dirs:[],stable:[{id:'eyes',name:'Зарядка для глаз',color:STABLE_COLOR}],weeks:{},lastWeek:null,carry:[],log:{},seq:[],days:{},jars:[],goals:[],pins:{items:[]},fun:{seq:[],log:{}},
   theme:{bg:'rose',bgColor:'#F8EEF3',accent:'#D49BC4',jar:'classic',cardColor:'#FFFAF7',cardAlpha:.6}}}
 function normalize(s){
   if(!s || s.v!==1) return fresh();
@@ -1094,7 +1137,10 @@ function jarSVG(n,total,opt){
   opt=opt||{}; const k=opt.shape||state.theme.jar, S=shapeOf(k), thumb=!!opt.thumb, id=(thumb?'jt'+k:'jm')+'-'+tab;
   const slots=starSlots(k), start=total-n, seq=opt.seq||state.seq, anim=opt.anim!==undefined?opt.anim:animNew; let stars='';
   for(let i=0;i<n;i++){
-    const s=slots[i], col=opt.colors?opt.colors[i%opt.colors.length]:colorOf(seq[start+i]);
+    const s=slots[i], key=seq[start+i];
+    // шаг к цели — золотая молния среди звёзд
+    if(!opt.colors&&isBolt(key)){const k=s.r*2.3/20;stars+=`<g class="${!thumb&&anim&&i===n-1?'drop':''}"><path transform="translate(${f1(s.x-12*k)} ${f1(s.y-12*k)}) scale(${f1(k*100)/100})" d="${BOLT}" fill="#F2B544" stroke="#fff" stroke-width="${f1(1.3/k)}" stroke-linejoin="round"/></g>`;continue}
+    const col=opt.colors?opt.colors[i%opt.colors.length]:colorOf(key);
     stars+=`<g class="${!thumb&&anim&&i===n-1?'drop':''}"><path d="${sparkle(s.x,s.y,s.r)}" fill="${col}"/><circle cx="${s.x}" cy="${s.y}" r="${f1(s.r*.24)}" fill="#fff"/></g>`;
   }
   const frac=n/CAP, [mx,my,mr]=S.mouth;
@@ -1137,8 +1183,10 @@ function renderHome(){
   const tl=state.log[today()]||{};
   const date=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
   let h=`<header class="top"><h1>Sportelina</h1><div class="date">${esc(date)}</div></header>`;
+  const bolts=state.seq.filter(isBolt).length, stars=total-bolts;
   h+=`<div class="jarzone">${jarSVG(inJar,total)}
-      <div class="count-big"><b>${total}</b>${pl(total,'звезда','звезды','звёзд')}</div>
+      <div class="count-big"><b>${stars}</b>${pl(stars,'звезда','звезды','звёзд')}</div>
+      ${bolts?`<div class="bolts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${BOLT}" fill="#F2B544"/></svg>и ${bolts} ${pl(bolts,'молния','молнии','молний')}</div>`:''}
       ${full?`<div class="shelf">${miniJars(full)}<span>${full} ${pl(full,'полная банка','полные банки','полных банок')}</span></div>`:''}
     </div>`;
   // ежедневные задачи живут в «Сегодня»: каждое нажатие — ещё одна отметка и звезда, число отметок — внутри кружка
@@ -1164,10 +1212,11 @@ function renderHome(){
   };
   const locked=[];
   const dg=build('day',day), wg=build('week',w), pg=build('pin',state.pins);
+  h+=goalsHTML(); // цели — первыми под банкой, затем закреплённые идеи и программы
   h+=pinsHTML();
   // закреплённые программы — обычной карточкой со своим заголовком, сразу под закреплёнными идеями
   if(locked.length) h+=`<div class="card lock-card">${locked.map(({d,items,kind})=>groupHTML(d,items,w,kind,true)).join('')}</div>`;
-  if(!sg&&!locked.length&&!dg.length&&!wg.length&&!pg.length){
+  if(!sg&&!locked.length&&!dg.length&&!wg.length&&!pg.length&&!gPinned().length){
     h+=`<div class="sec-title">Сегодня</div><div class="card"><div class="hint-empty">Пока здесь пусто.<br>Заведи направления и программы во вкладке «Программы» — и план соберётся сам.</div></div>`;
   }
   if(sg||dg.length) h+=`<div class="sec-title">Сегодня</div><div class="card">${sg}${dg.join('')}</div>`;
@@ -1563,6 +1612,8 @@ function statsCut(){
   const old=(state.cut&&state.cut.s)||[];
   state.cut={d:today(),l:Object.assign({},state.log[today()]),f:Object.assign({},state.fun.log[today()]),s:old.concat(state.seq)};
   state.seq=[];
+  // шаги целей до обнуления: если снять такой шаг, молния снимается из запаса обнуления
+  (state.goals||[]).forEach(g=>{if(g.hist)g.hist=g.hist.map(e=>e.endsWith('*')?e:e+'*')});
   // звёзды за уже отмеченные дела ушли вместе с банкой: если снять отметку, новую звезду из банки не забираем
   [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&!i.fs)i.cz=1}));
 }
@@ -1606,9 +1657,11 @@ function renderStats(){
   // после обнуления: дни до него не считаются, а в сам день вычитается то, что было до обнуления
   const sum=(pred,key,log)=>{let s=0;const L=log||state.log, B=C?((L===state.log?C.l:C.f)||{}):{};
     for(const d in L){if(!pred(d)||(C&&d<C.d))continue;const o=L[d],b=C&&d===C.d?B:{},v=k=>Math.max(0,(o[k]||0)-(b[k]||0));
-      if(key)s+=v(key);else for(const k in o)s+=v(k)}return s};
+      if(key)s+=v(key);else for(const k in o)if(withBolts||!isBolt(k))s+=v(k)}return s};
+  let withBolts=false;
   const inWeek=d=>d>=wk&&d<=t, inMonth=d=>d.slice(0,7)===mo, all=()=>true;
-  const total=sum(all), full=Math.floor(total/CAP);
+  // молнии лежат в банке вместе со звёздами, поэтому полные банки считаются по всему вместе
+  const total=sum(all); withBolts=true; const full=Math.floor(sum(all)/CAP); withBolts=false;
   let h=`<header class="top"><h1>Статистика</h1><div class="date">Здесь считается только то, что сделано</div></header>`;
   h+=`<div class="sec-title">Звёзды</div><div class="tiles">
     <div class="card"><div class="tile-v">${total}</div><div class="tile-l">всего</div></div>
@@ -1635,6 +1688,8 @@ function renderStats(){
     fin.sort((a,b)=>(a.p.doneOn||'')<(b.p.doneOn||'')?1:-1);
     h+=`<div class="sec-title">Завершённые программы</div><div class="card">`+fin.map(({d,p})=>{const n=(state.pstars||{})[p.id]||0;return `<div class="frow">${dot(d.color)}<div class="ftxt"><div class="fname">${esc(p.name)}</div><div class="small">${esc(d.name)} · <button class="link" data-a="unfinish" data-d="${d.id}" data-p="${p.id}">вернуть</button></div></div><div class="fstars"><b>${n}</b><span>${pl(n,'звезда','звезды','звёзд')}</span></div></div>`}).join('')+`</div>`;
   }
+  const ach=state.goals.filter(g=>g.done).sort((a,b)=>a.done<b.done?1:-1);
+  if(ach.length) h+=`<div class="sec-title">Достигнутые цели</div><div class="card">`+ach.map(g=>{const z=g.z||0;return `<div class="frow">${dot(gLook(g).r)}<div class="ftxt"><div class="fname">${esc(g.name)}</div>${g.track?`<div class="small">${esc(gTotal(g))}</div>`:''}</div><div class="fstars"><b>${z}</b><span>${pl(z,'молния','молнии','молний')}</span></div></div>`}).join('')+`</div>`;
   h+=`<p class="note">каждая звёздочка остаётся с тобой</p>`;
   h+=`<div class="st-reset"><button class="link" data-a="statsReset">${C?'статистика с '+cutLabel()+' · изменить':'обнулить статистику'}</button></div>`;
   h+=`<div class="st-reset st-reset2"><button class="link" data-a="funReset">обнулить баночку копилок</button></div>`;
@@ -1813,6 +1868,7 @@ function renderJars(){
       ${ff?`<div class="shelf">${miniJars(ff)}<span>${ff} ${pl(ff,'полная банка','полные банки','полных банок')}</span></div>`:''}
     </div>`;
   h+=`<div class="jars">${state.jars.map(j=>jarCard(j)).join('')}<button class="jcard add" data-a="addJar">+ Новая копилка</button></div>`;
+  h+=goalsListHTML();
   const plans=[];state.jars.forEach(j=>j.items.forEach(x=>{if(x.st==='plan')plans.push({j,x})}));
   if(plans.length){
     plans.sort((a,b)=>a.x.date<b.x.date?-1:1);
@@ -2025,6 +2081,256 @@ function prSheet(id){
     const del=el.querySelector('#pr-del');
     if(del) confirmBtn(del,'Нажми ещё раз — счётчик пропадёт, звёзды останутся',()=>{delete x.pr;save();close();render()});
   });
+}
+
+/* ================= цели ================= */
+// Цели живут в разделе «Цели» на вкладке «Копилки»: список без лимита. До пяти можно закрепить на главном — каруселью.
+// Открепленная цель просто возвращается в список. Шаг к цели — молния в основную банку (ключ 'g:'+id).
+// У цели без отслеживания одна отметка — «Достигнута», за неё одна молния.
+// g.hist — последние шаги (дата; '*' в конце — шаг до обнуления статистики), чтобы «−» снимал молнию оттуда, где она лежит.
+// g.z — сколько молний получено за цель всего (для «Достигнутых целей»; обнуление статистики их не трогает).
+const GOAL_MAX=5, GOAL_HIST=40, BOLT='M13.5 2 4 13.5h6.5L9.5 22 20 9.5h-6.5z';
+const GOAL_U={d:{n:'Дни',f:['день','дня','дней']},t:{n:'Тренировки',f:['тренировка','тренировки','тренировок']},
+              l:{n:'Уроки',f:['урок','урока','уроков']},c:{n:'Своё'}};
+const RING_COLORS=['#A68ED8','#E39AB3','#82A5D8','#6DB2A1','#E29B7D','#D8B44E','#8AB076','#B48D69'];
+const GOAL_Y={t:'top',c:'center',b:'bottom'};
+// фото под стеклом: только на этом устройстве, как обложки копилок и фото закреплённых карточек
+const GOAL_PH='starjar-goalph-', goalPh={};
+function goalPhoto(id){if(!(id in goalPh)){try{goalPh[id]=localStorage.getItem(GOAL_PH+id)||''}catch(e){goalPh[id]=''}}return goalPh[id]}
+function setGoalPhoto(id,url){goalPh[id]=url||'';try{if(url)localStorage.setItem(GOAL_PH+id,url);else localStorage.removeItem(GOAL_PH+id)}catch(e){toast('Фото не сохранится после закрытия — оно слишком большое')}}
+function gcGoalPhotos(){
+  try{const ids=new Set((state.goals||[]).map(g=>g.id)),dead=[];
+    for(let k=0;k<localStorage.length;k++){const key=localStorage.key(k);if(key&&key.startsWith(GOAL_PH)&&!ids.has(key.slice(GOAL_PH.length)))dead.push(key)}
+    dead.forEach(k=>localStorage.removeItem(k))}catch(e){}
+}
+function goalById(id){return (state.goals||[]).find(g=>g.id===id)}
+function gLook(g){const L=g.look||{};return {a:L.a==null?40:L.a,y:L.y||'c',r:L.r||RING_COLORS[hashStr(g.id)%RING_COLORS.length],p:L.p?1:0}}
+function gPinned(){return state.goals.filter(g=>g.pin&&!g.done)}
+const isBolt=k=>String(k).startsWith('g:');
+// «из 21 тренировки», «из 365 тренировок»
+function gOf(g){const f=GOAL_U[g.u]&&GOAL_U[g.u].f;if(!f)return '';const m=g.t%100;return m%10===1&&m!==11?f[1]:f[2]}
+function gText(g){if(!g.track)return '';if(g.u==='c')return (g.cu||'Шаги')+': '+g.n+' из '+g.t;return g.n+' из '+g.t+' '+gOf(g)}
+function gTotal(g){if(!g.track)return '';if(g.u==='c')return (g.cu||'Шаги')+': '+g.t;const f=GOAL_U[g.u].f;return g.t+' '+pl(g.t,f[0],f[1],f[2])}
+// «Дни» отмечаются не чаще раза в сутки
+function gToday(g){const h=g.hist||[];return g.track&&g.u==='d'&&h.length>0&&h[h.length-1].slice(0,10)===today()}
+function gBolt(g){
+  const d=today(); addStar('g:'+g.id,d);
+  (g.hist=g.hist||[]).push(d); if(g.hist.length>GOAL_HIST) g.hist=g.hist.slice(-GOAL_HIST);
+  g.z=(g.z||0)+1;
+}
+function gUnbolt(g){
+  const e=(g.hist||[]).pop(); if(!e) return false;
+  removeStar('g:'+g.id,e.slice(0,10),e.endsWith('*')); g.z=Math.max(0,(g.z||0)-1); return true;
+}
+function gComplete(g){g.done=today();g.pin=0;delete g.hid}
+// анимация ухода карточки с главного — и только потом перерисовка
+function gLeave(id,msg){
+  const el=document.querySelector(`.gcard[data-id="${id}"]`);
+  if(el){el.classList.add('bye');setTimeout(()=>{render();toast(msg)},330)} else {render();toast(msg)}
+}
+function gStep(id){
+  const g=goalById(id); if(!g||!g.track||g.done) return;
+  if(gToday(g)) return toast('Сегодняшний день уже отмечен');
+  g.n=Math.min(g.t,(g.n||0)+1); gBolt(g); haptic('light');
+  if(g.n>=g.t){gComplete(g);save();haptic('medium');return gLeave(id,'Цель достигнута — она в «Выполнено» раздела «Цели»')}
+  save();render();toast('Молния — в банку');
+}
+function gMinus(id){
+  const g=goalById(id); if(!g||!g.track||!g.n) return;
+  if(gUnbolt(g)){g.n--;haptic('light');save();render()}
+}
+let gArm={id:null,k:'',t:0};
+function armed(id,k){const ok=gArm.id===id&&gArm.k===k&&Date.now()-gArm.t<4000;gArm=ok?{id:null,k:'',t:0}:{id,k,t:Date.now()};return ok}
+function gAchieve(t){
+  const id=t.dataset.id, g=goalById(id); if(!g||g.track||g.done) return;
+  if(!armed(id,'done')){t.textContent='Нажми ещё раз';haptic('light');setTimeout(()=>{if(t.isConnected&&gArm.id!==id)t.textContent='Достигнута'},4000);return}
+  gBolt(g); gComplete(g); save(); haptic('medium'); gLeave(id,'Цель достигнута — молния в банку');
+}
+// вернуть выполненную цель в список: у цели без отслеживания снимается её молния, у остальных — последний шаг
+function gReopen(id){
+  const g=goalById(id); if(!g||!g.done) return;
+  if(gUnbolt(g)&&g.track) g.n=Math.max(0,(g.n||0)-1);
+  delete g.done; delete g.hid; g.pin=0; haptic('light'); save(); render(); toast('Цель вернулась в список');
+}
+function gPin(id,fromSheet){
+  const g=goalById(id); if(!g||g.done) return false;
+  if(g.pin){
+    if(!fromSheet&&!armed(id,'unpin')){toast('Нажми ещё раз, чтобы открепить');haptic('light');return false}
+    g.pin=0; save(); render(); toast('Цель вернулась в список'); return true;
+  }
+  if(gPinned().length<GOAL_MAX){g.pin=1;save();render();haptic('medium');toast('Закреплено на главном');return true}
+  gReplaceSheet(g); return false;
+}
+// на главном уже пять целей: выбираешь, какую открепить, — новая встаёт на её место (двойной тап, чтобы не промахнуться)
+function gReplaceSheet(g){
+  const ps=gPinned();
+  sheet('Какую открепить?',`<div>${ps.map(p=>`<button type="button" class="opt grep" data-id="${p.id}"><span>${esc(p.name)}<small data-s="${esc(gText(p))}">${esc(gText(p))}</small></span></button>`).join('')}</div>`,(el,close)=>{
+    let arm=null, tm;
+    const disarm=()=>{if(!arm)return;arm.classList.remove('arm');const s=arm.querySelector('small');s.textContent=s.dataset.s;arm=null};
+    el.querySelectorAll('.grep').forEach(b=>b.onclick=()=>{
+      if(arm===b){
+        const old=goalById(b.dataset.id); if(!old) return close();
+        const L=state.goals, i=L.indexOf(old), j=L.indexOf(g); L[i]=g; L[j]=old;
+        old.pin=0; g.pin=1; save(); close(); render(); haptic('medium'); toast('Закреплено на главном'); return;
+      }
+      disarm(); arm=b; b.classList.add('arm'); b.querySelector('small').textContent='Нажми ещё раз — открепить'; haptic('light');
+      clearTimeout(tm); tm=setTimeout(disarm,4000);
+    });
+  });
+}
+
+/* карточка-стекло */
+function goalCardHTML(g,raw){
+  const L=gLook(g), ph=raw!==undefined?raw:(L.p?goalPhoto(g.id):'');
+  const a=(.82-L.a*.006).toFixed(2), bl=Math.round(18-L.a*.14), C=201.06;
+  const ring=g.track
+    ?`<circle cx="40" cy="40" r="32" fill="rgba(255,255,255,.7)" stroke="${mix(L.r,'#ffffff',.62)}" stroke-width="7"/>
+      <circle cx="40" cy="40" r="32" fill="none" stroke="${L.r}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${f1(C*(1-Math.min(1,(g.n||0)/g.t)))}" transform="rotate(-90 40 40)"/>`
+    :`<circle cx="40" cy="40" r="32" fill="rgba(255,255,255,.7)" stroke="${L.r}" stroke-width="3" stroke-dasharray="5 6"/>`;
+  const acts=!g.track?`<button class="gc-plus" data-a="gDone" data-id="${g.id}">Достигнута</button>`
+    :(g.n&&(g.hist||[]).length?`<button class="gc-minus" data-a="gMinus" data-id="${g.id}" aria-label="Убрать последний шаг">−</button>`:'')+
+     (gToday(g)?`<span class="gc-ok" title="Сегодня уже отмечено">Отмечено</span>`:`<button class="gc-plus" data-a="gPlus" data-id="${g.id}" aria-label="Шаг к цели">+1</button>`);
+  return `<div class="gcard" data-a="gOpen" data-id="${g.id}">
+    ${ph?`<img class="gph" src="${srcOf(ph)}" alt="" style="object-position:center ${GOAL_Y[L.y]||'center'};filter:blur(${bl}px) saturate(1.1);transform:scale(${(1+bl*.012).toFixed(3)})">`:''}
+    <div class="gveil" style="background:${rgba(state.theme.cardColor||'#FFFAF7',a)}${ph?'':`;backdrop-filter:blur(${bl}px) saturate(1.1);-webkit-backdrop-filter:blur(${bl}px) saturate(1.1)`}"></div>
+    <div class="gin"><svg class="gring" viewBox="0 0 80 80" role="img" aria-label="${esc(gText(g)||'Цель без отслеживания')}">${ring}<path transform="translate(28 28)" d="${BOLT}" fill="#F2B544"/></svg>
+      <div class="gtx"><div class="gc-name">${esc(g.name)}</div>${g.track?`<div class="gc-sub">${esc(gText(g))}</div>`:''}<div class="gc-acts">${acts}</div></div></div></div>`;
+}
+let goalIdx=0;
+function goalsHTML(){
+  const gs=gPinned(); if(!gs.length) return '';
+  if(goalIdx>=gs.length) goalIdx=gs.length-1;
+  return `<div class="sec-title">Цели</div><div class="gcar" id="gcar">${gs.map(g=>goalCardHTML(g)).join('')}</div>`+
+    (gs.length>1?`<div class="gdots" aria-hidden="true">${gs.map((g,i)=>`<i class="${i===goalIdx?'on':''}"></i>`).join('')}</div>`:'');
+}
+function bindGoalCar(){
+  const c=document.getElementById('gcar'); if(!c||c.__b) return; c.__b=1;
+  c.addEventListener('scroll',()=>{
+    const k=c.children; if(!k.length) return;
+    const i=Math.max(0,Math.min(k.length-1,Math.round(c.scrollLeft/(k[0].offsetWidth+12))));
+    if(i===goalIdx) return; goalIdx=i;
+    const d=c.nextElementSibling; if(d&&d.classList.contains('gdots')) [...d.children].forEach((x,n)=>x.classList.toggle('on',n===i));
+  },{passive:true});
+}
+
+/* раздел «Цели» в «Копилках» */
+function goalsListHTML(){
+  const gs=state.goals.filter(g=>!g.done), dn=state.goals.filter(g=>g.done&&!g.hid);
+  let h=`<div class="sec-title">Цели</div>`;
+  if(gs.length||dn.length){
+    h+=`<div class="card gl-card">`;
+    if(gs.length) h+=`<ul class="glist" id="glist">${gs.map(g=>{const L=gLook(g);return `<li class="drag-item" data-id="${g.id}">
+      <div class="gl-row" data-a="gOpen" data-id="${g.id}">${dot(L.r)}<span class="gl-t">${esc(g.name)}${g.track?`<small>${esc(gText(g))}</small>`:''}</span></div>
+      <button class="pinb${g.pin?' on':''}" data-a="gPin" data-id="${g.id}" aria-pressed="${g.pin?'true':'false'}" aria-label="${g.pin?'Открепить с главного':'Закрепить на главном'}">${PIN(g.pin)}</button></li>`}).join('')}</ul>`;
+    if(dn.length){
+      const fk='goals:done', fo=isFolded(fk)?' folded':'';
+      h+=`<div class="dhead${fo}"${gs.length?'':' style="border-top:0;margin-top:0"'}><button class="dtoggle" data-a="fold" data-k="${fk}" aria-label="Свернуть или развернуть"><span class="chev-s">▾</span>Выполнено · ${dn.length}</button><button class="link" data-a="gClear">Очистить</button></div>
+        <div class="dwrap${fo}"><div class="dlist">${dn.map(g=>`<div class="item done" data-id="${g.id}" style="--c:${gLook(g).r}">
+          <button class="tick" data-a="gBack" data-id="${g.id}" aria-label="Вернуть цель в список"></button><span class="iname">${esc(g.name)}</span></div>`).join('')}</div></div>`;
+    }
+    h+=`</div>`;
+  }
+  h+=`<button class="add-btn" data-a="gAdd">+ Новая цель</button>`;
+  return h;
+}
+function bindGoalsDrag(){
+  sortable(document.getElementById('glist'),'li','.gl-row',ids=>{
+    const open=state.goals.filter(g=>!g.done); if(ids.join()===open.map(g=>g.id).join()) return;
+    state.goals=[...ids.map(goalById).filter(Boolean),...state.goals.filter(g=>g.done)]; save(); render();
+  });
+}
+
+/* создание и правка цели */
+function goalSheet(id){
+  const g=id?goalById(id):null, isNew=!g; if(id&&!g) return;
+  const dr={track:g?!!g.track:true,u:g&&GOAL_U[g.u]?g.u:'t'};
+  sheet(isNew?'Новая цель':'Цель',`
+    <div class="field"><label class="t" for="gx-name">Название</label><textarea id="gx-name" class="grow" rows="1" placeholder="Например, сесть на шпагат">${esc(g?g.name:'')}</textarea></div>
+    <div class="field"><label class="t">Отслеживать прогресс</label><div class="seg" id="gx-tr"><button type="button" data-v="0">Нет</button><button type="button" data-v="1">Да</button></div></div>
+    <div id="gx-trk">
+      <div class="field"><label class="t">Что считать</label><div class="seg seg4" id="gx-u">${Object.entries(GOAL_U).map(([k,u])=>`<button type="button" data-u="${k}">${u.n}</button>`).join('')}</div>
+        <input type="text" id="gx-cu" maxlength="30" placeholder="Например, главы" autocomplete="off" value="${esc(g&&g.cu||'')}" style="margin-top:8px"></div>
+      <div class="field"><label class="t" for="gx-t">Сколько всего</label><input type="text" inputmode="numeric" id="gx-t" placeholder="Например, 365" autocomplete="off" value="${g&&g.t?g.t:''}"></div>
+    </div>
+    <button class="btn main" id="gx-save">${isNew?'Создать цель':'Сохранить'}</button>
+    ${isNew?'':`<button class="btn soft" id="gx-look">Оформление карточки</button>
+      ${g.done?'':`<button class="btn soft" id="gx-pin">${g.pin?'Открепить с главного':'Закрепить на главном'}</button>`}
+      <button class="btn danger" id="gx-del">Удалить цель</button>`}`,(el,close)=>{
+    const nm=el.querySelector('#gx-name'), cu=el.querySelector('#gx-cu'), tt=el.querySelector('#gx-t');
+    grow(nm); nm.addEventListener('input',()=>grow(nm));
+    const upd=()=>{
+      el.querySelectorAll('#gx-tr button').forEach(b=>b.classList.toggle('on',(b.dataset.v==='1')===dr.track));
+      el.querySelector('#gx-trk').hidden=!dr.track;
+      el.querySelectorAll('#gx-u button').forEach(b=>b.classList.toggle('on',b.dataset.u===dr.u));
+      cu.hidden=dr.u!=='c';
+    };
+    upd(); if(isNew) setTimeout(()=>nm.focus(),320);
+    el.querySelectorAll('#gx-tr button').forEach(b=>b.onclick=()=>{dr.track=b.dataset.v==='1';upd();haptic('light')});
+    el.querySelectorAll('#gx-u button').forEach(b=>b.onclick=()=>{dr.u=b.dataset.u;upd();haptic('light');if(dr.u==='c')cu.focus()});
+    el.querySelector('#gx-save').onclick=()=>{
+      const name=nm.value.trim(); if(!name) return nm.focus();
+      let t=null, c='';
+      if(dr.track){
+        if(dr.u==='c'){c=cu.value.trim(); if(!c) return cu.focus()}
+        t=num(tt.value); if(!t) return tt.focus();
+      }
+      // цвет кольца у новой цели — следующий по кругу, чтобы соседние карточки различались
+      const o=g||{id:uid(),n:0,hist:[],z:0,pin:0,look:{r:RING_COLORS[state.goals.length%RING_COLORS.length]}};
+      o.name=name; o.track=dr.track?1:0;
+      if(dr.track){o.u=dr.u;o.t=t;if(c)o.cu=c;else delete o.cu;o.n=Math.min(o.n||0,t)}
+      if(isNew) state.goals.push(o);
+      let fin=false; if(o.track&&!o.done&&o.t&&o.n>=o.t){gComplete(o);fin=true}
+      save(); close(); haptic('medium'); render();
+      if(fin) toast('Цель достигнута — она в «Выполнено» раздела «Цели»');
+      else if(isNew) toast('Цель добавлена в список');
+    };
+    if(isNew) return;
+    el.querySelector('#gx-look').onclick=()=>gLookSheet(g.id);
+    const pb=el.querySelector('#gx-pin');
+    if(pb){
+      if(g.pin) confirmBtn(pb,'Нажми ещё раз — цель вернётся в список',()=>{gPin(g.id,true);close()});
+      else pb.onclick=()=>{close();setTimeout(()=>gPin(g.id,true),g.pin||gPinned().length<GOAL_MAX?0:300)};
+    }
+    confirmBtn(el.querySelector('#gx-del'),'Нажми ещё раз — цель удалится, молнии останутся в банке',()=>{
+      setGoalPhoto(g.id,''); state.goals=state.goals.filter(x=>x!==g); save(); close(); render(); toast('Цель удалена');
+    });
+  });
+}
+// оформление карточки цели: фото под стеклом, прозрачность стекла, какая часть фото видна, цвет кольца
+function gLookSheet(id){
+  const g=goalById(id); if(!g) return;
+  const L=gLook(g);
+  sheet('Оформление карточки',`
+    <div class="gprev"></div>
+    <div class="field"><label class="t">Фото на фоне</label><div id="gl-ph"></div><input type="file" id="gl-file" accept="image/*" hidden></div>
+    <div class="field"><label class="t" for="gl-a">Прозрачность стекла <b id="gl-av">${L.a}%</b></label><input type="range" class="range" id="gl-a" min="0" max="100" step="1" value="${L.a}"></div>
+    <div class="field" id="gl-yf"><label class="t">Какая часть фото видна</label><div class="seg sm" id="gl-y"><button type="button" data-y="t">Верх</button><button type="button" data-y="c">Середина</button><button type="button" data-y="b">Низ</button></div></div>
+    <div class="field"><label class="t">Цвет кольца</label>${colorField('gr',L.r,RING_COLORS)}</div>
+    <button class="btn main" id="gl-ok">Готово</button>`,(el,close)=>{
+    let shownPh=null, raf=0, saveT;
+    const draw=()=>{
+      const raw=L.p?goalPhoto(g.id):'';
+      if(shownPh!==raw){shownPh=raw;
+        el.querySelector('#gl-ph').innerHTML=raw
+          ?`<div class="phrow"><span class="phthumb" style="background-image:url('${srcOf(raw)}')"></span><button type="button" class="btn soft" data-ph="pick">Заменить</button><button type="button" class="btn soft" data-ph="del">Убрать</button></div>`
+          :`<button type="button" class="phadd" data-ph="pick">+ Выбрать из галереи</button>`}
+      el.querySelector('#gl-yf').hidden=!raw;
+      el.querySelectorAll('#gl-y button').forEach(b=>b.classList.toggle('on',b.dataset.y===L.y));
+      el.querySelector('#gl-av').textContent=L.a+'%';
+      el.querySelector('.gprev').innerHTML=goalCardHTML({...g,look:{...L}},raw);
+    };
+    // сразу видно и в превью, и на главном под шторкой
+    const apply=()=>{g.look={...L};draw();cancelAnimationFrame(raf);raf=requestAnimationFrame(render);clearTimeout(saveT);saveT=setTimeout(save,400)};
+    const file=el.querySelector('#gl-file');
+    el.querySelector('#gl-ph').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;
+      if(b.dataset.ph==='pick')file.click();else{setGoalPhoto(g.id,'');L.p=0;haptic('light');apply()}});
+    file.addEventListener('change',()=>{const f=file.files&&file.files[0];file.value='';if(f)readPhoto(f,u=>{setGoalPhoto(g.id,u);L.p=1;haptic('light');apply()})});
+    el.querySelector('#gl-a').addEventListener('input',e=>{L.a=+e.target.value;apply()});
+    el.querySelectorAll('#gl-y button').forEach(b=>b.onclick=()=>{L.y=b.dataset.y;haptic('light');apply()});
+    bindColor(el,'gr',c=>{L.r=c;apply()});
+    el.querySelector('#gl-ok').onclick=close;
+    draw();
+  },()=>{save();render()});
 }
 
 /* ================= шторки ================= */
@@ -2384,6 +2690,14 @@ const A={
   unplan:t=>{const j=jarById(t.dataset.j),x=j&&j.items.find(y=>y.id===t.dataset.x);if(x){x.st='idle';delete x.date;save();render();haptic('light')}},
   pickPhoto:()=>document.getElementById('photoIn').click(),
   jar:t=>{state.theme.jar=t.dataset.k;save();render();haptic('light')},
+  gOpen:t=>goalSheet(t.dataset.id),
+  gAdd:()=>goalSheet(null),
+  gPlus:t=>gStep(t.dataset.id),
+  gMinus:t=>gMinus(t.dataset.id),
+  gDone:t=>gAchieve(t),
+  gPin:t=>gPin(t.dataset.id),
+  gBack:t=>gReopen(t.dataset.id),
+  gClear:()=>{state.goals.forEach(g=>{if(g.done)g.hid=1});haptic('light');save();render()},
 
 };
 document.addEventListener('click',e=>{
@@ -2491,7 +2805,8 @@ function render(){
   morph(box,tab==='home'?renderHome():tab==='stats'?renderStats():tab==='progs'?renderProgs():tab==='jars'?renderJars():renderLook());
   if(tab==='look') bindLook();
   if(tab==='progs') bindProgsDrag();
-  if(tab==='home'){paintStickers(box);bindHomeDrag()}
+  if(tab==='home'){paintStickers(box);bindHomeDrag();bindGoalCar()}
+  if(tab==='jars') bindGoalsDrag();
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   animNew=false; animFun=false;
 }
@@ -2542,7 +2857,7 @@ function settle(){
   if(resetJarOnce()){save();render()}
   if(moveJarStarsOnce()){save();render()}
   if(resetThemeOnce()){save();applyTheme();render()}
-  setTimeout(gcPinPhotos,1500);
+  setTimeout(()=>{gcPinPhotos();gcGoalPhotos()},1500);
 }
 async function boot(){
   try{TG&&TG.disableClosingConfirmation&&TG.disableClosingConfirmation()}catch(e){}
