@@ -383,7 +383,7 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 
 /* ---------- наклейки «Закреплено» ---------- */
 .stk-grid{display:grid;grid-auto-flow:row dense;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px 16px;padding:14px 6px 6px}
-.stk{position:relative;min-width:0;min-height:124px;color:#5A4466;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.stk{position:relative;display:flex;flex-direction:column;min-width:0;min-height:124px;color:#5A4466;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .stk-bg{position:absolute;left:-8px;top:-8px;overflow:visible;pointer-events:none;
   filter:drop-shadow(0 4px 8px rgba(140,100,130,.16)) drop-shadow(0 1px 1.5px rgba(140,100,130,.12))}
 .stk-deco{position:absolute;z-index:2;pointer-events:none;overflow:visible;filter:drop-shadow(0 1.5px 1.5px rgba(110,80,100,.18))}
@@ -391,7 +391,7 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .d-tc .stk-deco{left:50%;top:-30px;transform:translateX(-50%)}
 .d-br .stk-deco{right:-7px;bottom:-7px}
 .stk[class*="d-tc"] .stk-deco[height="22"]{top:-11px}
-.stk-in{position:relative;z-index:1;display:flex;flex-direction:column;min-height:124px;padding:14px 12px 12px 16px}
+.stk-in{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;min-height:124px;padding:14px 12px 12px 16px}
 .d-tl .stk-in,.d-tc .stk-in{padding-top:22px}
 .stk[data-shape=cloud] .stk-in{padding:18px 16px 14px 20px}
 .stk[data-shape=cloud].d-tl .stk-in,.stk[data-shape=cloud].d-tc .stk-in{padding-top:24px}
