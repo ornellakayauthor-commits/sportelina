@@ -1063,12 +1063,57 @@ function removeFunStar(key,date,keepJar){
   const d=F.log[date];
   if(d&&d[key]){d[key]--; if(!d[key]) delete d[key]; if(!Object.keys(d).length) delete F.log[date];}
 }
+// ===== звёзды при удалении программы, направления или цели =====
+// снять со всех мест одну звезду ключа key за день dt: до обнуления она лежит в запасе обнуления, после — в банке
+function dropStars(key,dates){
+  for(const dt in dates) for(let k=0;k<dates[dt];k++){
+    const C=state.cut, c=(state.log[dt]||{})[key]||0; if(!c) break;
+    removeStar(key,dt,!!C&&(dt<C.d||(dt===C.d&&c<=((C.l||{})[key]||0))));
+  }
+}
+function keyDates(key){const o={};for(const dt in state.log){const n=state.log[dt][key];if(n)o[dt]=n}return o}
+function sumDates(o){let s=0;for(const k in o)s+=o[k];return s}
+// звёзды программы по дням: учёт по дням ведётся с этой версии, более ранние восстановлены из истории дел
+function progStarDates(d,p){
+  const out=Object.assign({},(state.plog||{})[p.id]||{});
+  let rest=Math.max(0,((state.pstars||{})[p.id]||0)-sumDates(out));
+  // самые старые звёзды, которых уже нет в истории дел, снимаем с последних дней направления до начала учёта
+  if(rest){const from=state.plogFrom||today();
+    for(const dt of Object.keys(state.log).filter(k=>k<from).sort().reverse()){
+      if(!rest) break; const n=Math.min(rest,Math.max(0,((state.log[dt]||{})[d.id]||0)-(out[dt]||0)));
+      if(n){out[dt]=(out[dt]||0)+n;rest-=n}}}
+  return out;
+}
+// после того как звёзды убраны, снятие отметки с уже выполненного дела не должно забирать чужую звезду
+function markNoStar(pred){[state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&!i.fs&&pred(i)){i.ns=1;delete i.ps}}))}
+function plogOnce(){
+  if(!state||state.plogFrom) return false;
+  const P=state.plog=state.plog||{}, seen=new Set();
+  [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{
+    if(!i.done||!i.ps||!i.pid||!i.doneOn||seen.has(i.id)) return; seen.add(i.id);
+    const q=P[i.pid]||(P[i.pid]={}); q[i.doneOn]=(q[i.doneOn]||0)+1}));
+  state.plogFrom=Object.keys(state.days||{}).sort()[0]||today();
+  return true;
+}
+// окно выбора при удалении: оставить заработанное в банке или убрать вместе с удаляемым
+function starsChoice(title,n,bolts,onDone){
+  const w=bolts?pl(n,'молния','молнии','молний'):pl(n,'звезда','звезды','звёзд'), W=bolts?'молнии':'звёзды';
+  sheet(title,`
+    <div class="explain" style="margin:-6px 0 14px">Получено ${n} ${w}</div>
+    <button class="btn soft" id="sc-keep">Удалить, ${W} оставить</button>
+    <button class="btn danger" id="sc-drop">Удалить вместе с ${bolts?'молниями':'звёздами'}</button>`,(el,close)=>{
+    el.querySelector('#sc-keep').onclick=()=>{close();onDone(false)};
+    confirmBtn(el.querySelector('#sc-drop'),`Нажми ещё раз — ${W} уйдут из банки и статистики`,()=>{close();onDone(true)});
+  });
+}
 function toggleItem(id){
   const f=findItem(id); if(!f) return; const it=f.it;
   const key=it.dir||(it.jar?'j:'+it.jar:'one');
   // звёзды за идеи из копилок падают в свою баночку (во вкладке «Копилки»); старые — там, где лежали
-  if(!it.done){it.done=true;it.doneOn=today();if(it.jar&&jarById(it.jar)){addFunStar(key,it.doneOn);it.fs=1;toast('Звезда — в баночку копилок')}else addStar(key,it.doneOn);if(it.pid&&!it.fs){const P=state.pstars||(state.pstars={});P[it.pid]=(P[it.pid]||0)+1;it.ps=1}haptic('light')}
-  else{if(it.fs){removeFunStar(key,it.doneOn,it.fz);delete it.fs;delete it.fz}else removeStar(key,it.doneOn,it.cz);delete it.cz;if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;delete it.ps}it.done=false;it.doneOn=null}
+  if(!it.done){it.done=true;it.doneOn=today();if(it.jar&&jarById(it.jar)){addFunStar(key,it.doneOn);it.fs=1;toast('Звезда — в баночку копилок')}else addStar(key,it.doneOn);if(it.pid&&!it.fs){const P=state.pstars||(state.pstars={});P[it.pid]=(P[it.pid]||0)+1;it.ps=1;
+      const L=state.plog||(state.plog={}),q=L[it.pid]||(L[it.pid]={});q[it.doneOn]=(q[it.doneOn]||0)+1}haptic('light')}
+  else{if(it.ns){delete it.ns}else if(it.fs){removeFunStar(key,it.doneOn,it.fz);delete it.fs;delete it.fz}else removeStar(key,it.doneOn,it.cz);delete it.cz;
+    if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;const q=(state.plog||{})[it.pid];if(q&&q[it.doneOn]){q[it.doneOn]--;if(!q[it.doneOn])delete q[it.doneOn]}delete it.ps}it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
   if(f.kind==='pin'&&it.done) unpinDone(); // выполненное само открепляется и уходит в «Сегодня» → «Выполнено»
@@ -2312,9 +2357,14 @@ function goalSheet(id){
       if(g.pin) confirmBtn(pb,'Нажми ещё раз — цель вернётся в список',()=>{gPin(g.id,true);close()});
       else pb.onclick=()=>{close();setTimeout(()=>gPin(g.id,true),g.pin||gPinned().length<GOAL_MAX?0:300)};
     }
-    confirmBtn(el.querySelector('#gx-del'),'Нажми ещё раз — цель удалится, молнии останутся в банке',()=>{
-      setGoalPhoto(g.id,''); state.goals=state.goals.filter(x=>x!==g); save(); close(); render(); toast('Цель удалена');
-    });
+    const delGoal=drop=>{
+      if(drop) dropStars('g:'+g.id,keyDates('g:'+g.id));
+      setGoalPhoto(g.id,''); state.goals=state.goals.filter(x=>x!==g); save(); render();
+      toast(drop?'Цель удалена вместе с молниями':'Цель удалена');
+    };
+    const gn=sumDates(keyDates('g:'+g.id)), gd=el.querySelector('#gx-del');
+    if(gn) gd.onclick=()=>{close();setTimeout(()=>starsChoice('Удалить «'+esc(g.name)+'»',gn,true,delGoal),280)};
+    else confirmBtn(gd,'Нажми ещё раз — цель удалится',()=>{close();delGoal(false)});
   });
 }
 // оформление карточки цели: фото под стеклом, прозрачность стекла, какая часть фото видна, цвет кольца
@@ -2550,11 +2600,18 @@ function dirSheet(id){
       else state.dirs.push({id:uid(),name,color:st.color,mode:'cycle',freq:st.freq,next:0,progs:[]});
       save();close();render();
     };
-    if(d) confirmBtn(el.querySelector('#f-del'),'Нажми ещё раз — направление удалится',()=>{
+    const delDir=drop=>{
+      if(drop){dropStars(d.id,keyDates(d.id));markNoStar(i=>i.dir===d.id);
+        d.progs.forEach(p=>{if(state.pstars)delete state.pstars[p.id];if(state.plog)delete state.plog[p.id]})}
       state.dirs=state.dirs.filter(x=>x!==d);
       [curWeek(),curDay()].forEach(L=>L.items=L.items.filter(i=>!(i.dir===d.id&&!i.done)));
-      save();close();render();
-    });
+      save();render();
+      if(drop) toast('Направление удалено вместе со звёздами');
+    };
+    if(d){const n=sumDates(keyDates(d.id)), b=el.querySelector('#f-del');
+      if(n) b.onclick=()=>{close();setTimeout(()=>starsChoice('Удалить «'+esc(d.name)+'»',n,false,delDir),280)};
+      else confirmBtn(b,'Нажми ещё раз — направление удалится',()=>{close();delDir(false)});
+    }
   });
 }
 function progSheet(dId,pId){
@@ -2670,14 +2727,21 @@ function progSheet(dId,pId){
     const fin=el.querySelector('#p-fin');
     if(fin) confirmBtn(fin,'Нажми ещё раз — программа уйдёт в завершённые',()=>{dr.status='done';el.querySelector('#p-save').click();toast('Программа завершена — она в «Статистике»')});
     const del=el.querySelector('#p-del');
-    if(del) confirmBtn(del,'Нажми ещё раз — программа удалится',()=>{
+    const delProg=drop=>{
       const w=curWeek();
+      if(drop){dropStars(d.id,progStarDates(d,orig));markNoStar(i=>i.pid===orig.id)}
+      if(drop){if(state.pstars)delete state.pstars[orig.id];if(state.plog)delete state.plog[orig.id]}
       d.progs=d.progs.filter(x=>x!==orig);
       if(w.progs[d.id]===orig.id) delete w.progs[d.id];
       fixNext(d);
       syncWeek(d); refreshToday(d);
-      save();close();render();
-    });
+      save();render();
+      if(drop) toast('Программа удалена вместе со звёздами');
+    };
+    if(del){const n=sumDates(progStarDates(d,orig));
+      if(n) del.onclick=()=>{close();setTimeout(()=>starsChoice('Удалить «'+esc(orig.name)+'»',n,false,delProg),280)};
+      else confirmBtn(del,'Нажми ещё раз — программа удалится',()=>{close();delProg(false)});
+    }
   });
 }
 function stableSheet(id){
@@ -2904,6 +2968,7 @@ function settle(){
   if(resetJarOnce()){save();render()}
   if(moveJarStarsOnce()){save();render()}
   if(resetThemeOnce()){save();applyTheme();render()}
+  if(plogOnce()) save();
   setTimeout(()=>{gcPinPhotos();gcGoalPhotos()},1500);
 }
 async function boot(){
