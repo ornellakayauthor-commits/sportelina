@@ -1076,10 +1076,10 @@ function sumDates(o){let s=0;for(const k in o)s+=o[k];return s}
 // звёзды программы по дням: учёт по дням ведётся с этой версии, более ранние восстановлены из истории дел
 function progStarDates(d,p){
   const out=Object.assign({},(state.plog||{})[p.id]||{});
-  let rest=Math.max(0,((state.pstars||{})[p.id]||0)-sumDates(out));
+  let rest=Math.max(0,((state.pstars||{})[p.id]||0)-((state.pbase||{})[p.id]||0)-sumDates(out));
   // самые старые звёзды, которых уже нет в истории дел, снимаем с последних дней направления до начала учёта
   if(rest){const from=state.plogFrom||today();
-    for(const dt of Object.keys(state.log).filter(k=>k<from).sort().reverse()){
+    for(const dt of Object.keys(state.log).filter(k=>k<from&&!(state.statsFrom&&k<state.statsFrom)).sort().reverse()){
       if(!rest) break; const n=Math.min(rest,Math.max(0,((state.log[dt]||{})[d.id]||0)-(out[dt]||0)));
       if(n){out[dt]=(out[dt]||0)+n;rest-=n}}}
   return out;
@@ -1671,64 +1671,62 @@ function sortableGrid(box,itemSel,done){
 }
 
 /* ================= экран «Статистика» ================= */
-// Обнуление статистики ничего не стирает: в state.cut запоминается день обнуления и сколько звёзд
-// к этому моменту уже было в тот день. Статистика считает только то, что появилось после, а банки не трогаются.
-// Поэтому статистику можно вернуть целиком — достаточно убрать state.cut.
+// Обнуление стирает насовсем: обнулённое забывается, вернуть его нельзя.
+const allLists=()=>[state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].filter(L=>L&&L.items);
+// уже выполненные дела: их звёзды забыты, поэтому снятие отметки не должно забирать новую звезду
+function forgetDoneMain(){allLists().forEach(L=>L.items.forEach(i=>{if(i.done&&!i.fs){i.ns=1;delete i.cz}}));
+  (state.goals||[]).forEach(g=>{if(g.hist)g.hist=g.hist.map(e=>e.endsWith('*')?e:e+'*')})}
+function forgetDoneFun(){allLists().forEach(L=>L.items.forEach(i=>{if(i.done&&i.fs)i.fz=1}));
+  state.jars.forEach(j=>j.items.forEach(x=>{if(x.pr&&x.pr.last)x.pr.last.z=1;delete x.star}))}
+// звёзды программ, полученные до обнуления, тоже забыты: счёт звёзд завершённых программ (pstars) остаётся
+function forgetPlog(){const P=state.pstars||{};state.pbase=Object.assign({},P);state.plog={};state.plogFrom=today()}
 function statsCut(){
-  const old=(state.cut&&state.cut.s)||[];
-  state.cut={d:today(),l:Object.assign({},state.log[today()]),f:Object.assign({},state.fun.log[today()]),s:old.concat(state.seq)};
-  state.seq=[];
-  // шаги целей до обнуления: если снять такой шаг, молния снимается из запаса обнуления
-  (state.goals||[]).forEach(g=>{if(g.hist)g.hist=g.hist.map(e=>e.endsWith('*')?e:e+'*')});
-  // звёзды за уже отмеченные дела ушли вместе с банкой: если снять отметку, новую звезду из банки не забираем
-  [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&!i.fs)i.cz=1}));
+  state.seq=[]; state.log={}; state.fun.log={}; state.statsFrom=today();
+  forgetDoneMain(); forgetPlog(); delete state.cut;
 }
-// обнуление баночки копилок: звёзды уходят в запас F.cutS, откуда их можно вернуть
 function funCut(){
-  const F=state.fun; F.cutS=(F.cutS||[]).concat(F.seq); F.seq=[];
-  [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&i.fs)i.fz=1}));
-  state.jars.forEach(j=>j.items.forEach(x=>{if(x.pr&&x.pr.last)x.pr.last.z=1;if(x.star)x.star.z=1}));
+  const F=state.fun; F.seq=[]; delete F.cutS;
+  forgetDoneFun();
 }
-// звезда за выполненную идею: до обнуления баночки она лежит в запасе обнуления, после — в баночке
+// звезда за выполненную идею лежит в баночке копилок
 function unJarStar(j,x){
-  if(!x.star) return; const k='j:'+j.id, F=state.fun;
-  removeFunStar(k,x.star.d,!!(x.star.z&&F.cutS&&F.cutS.includes(k))); delete x.star;
+  if(!x.star) return; removeFunStar('j:'+j.id,x.star.d,false); delete x.star;
 }
 // раньше выполненные идеи оставались на главном: переносим звезду в саму идею и убираем их оттуда
 function jarDoneOnce(){
   if(!state||state.jarDone1) return false; state.jarDone1=1;
   [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>{if(!L||!L.items)return;
     L.items=L.items.filter(i=>{if(!(i.jar&&i.done))return true;const x=jarItemOf(i);
-      if(x&&x.st==='done'&&i.fs&&!x.star)x.star={d:i.doneOn,z:i.fz?1:0};return false})});
+      if(x&&x.st==='done'&&i.fs&&!i.fz&&!x.star)x.star={d:i.doneOn};return false})});
   return true;
 }
-function funBack(){
-  const F=state.fun; if(!F.cutS) return;
-  F.seq=F.cutS.concat(F.seq); delete F.cutS;
+// раньше обнуление откладывало звёзды в запас: стираем запас и всё, что было до обнуления
+function forgetCutOnce(){
+  if(!state) return false; let ch=false; const C=state.cut, F=state.fun;
+  if(C){
+    const strip=(log,base)=>{for(const d in log){if(d<C.d)delete log[d];else if(d===C.d){const o=log[d];
+      for(const k in base){if(o[k]){o[k]-=base[k];if(o[k]<=0)delete o[k]}}if(!Object.keys(o).length)delete log[d]}}};
+    strip(state.log,C.l||{}); strip(F.log,C.f||{});
+    allLists().forEach(L=>L.items.forEach(i=>{if(i.cz){i.ns=1;delete i.cz}}));
+    const P=state.plog||{}, B=state.pbase=state.pbase||{};
+    for(const pid in P){for(const d in P[pid]){if(d<=C.d){B[pid]=(B[pid]||0)+P[pid][d];delete P[pid][d]}}}
+    state.statsFrom=C.d; delete state.cut; ch=true;
+  }
+  if(F.cutS){delete F.cutS;state.jars.forEach(j=>j.items.forEach(x=>{if(x.star&&x.star.z)delete x.star}));ch=true}
+  state.jars.forEach(j=>j.items.forEach(x=>{if(x.star&&'z' in x.star){if(x.star.z)delete x.star;else delete x.star.z;ch=true}}));
+  return ch;
 }
 function funResetSheet(){
-  const F=state.fun;
   sheet('Обнулить баночку копилок',`
-    <button class="btn danger" id="fj-reset">Обнулить баночку</button>
-    ${F.cutS?'<button class="btn soft" id="fj-back">Вернуть звёзды в баночку</button>':''}`,(el,close)=>{
+    <button class="btn danger" id="fj-reset">Обнулить баночку</button>`,(el,close)=>{
     confirmBtn(el.querySelector('#fj-reset'),'Нажми ещё раз',()=>{funCut();save();close();render();haptic('medium');toast('Баночка копилок обнулена')});
-    const b=el.querySelector('#fj-back');
-    if(b) b.onclick=()=>{funBack();save();close();render();toast('Звёзды вернулись в баночку')};
   });
 }
-function statsBack(){
-  const C=state.cut; if(!C) return;
-  state.seq=(C.s||[]).concat(state.seq); delete state.cut;
-}
-function cutLabel(){const [y,m,d]=state.cut.d.split('-');return +d+' '+['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][+m-1]}
+function cutLabel(){const [y,m,d]=state.statsFrom.split('-');return +d+' '+['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][+m-1]}
 function statsResetSheet(){
-  const C=state.cut;
   sheet('Обнулить статистику',`
-    <button class="btn danger" id="st-reset">Обнулить статистику и банку</button>
-    ${C?'<button class="btn soft" id="st-back">Вернуть всю статистику и звёзды в банку</button>':''}`,(el,close)=>{
+    <button class="btn danger" id="st-reset">Обнулить статистику и банку</button>`,(el,close)=>{
     confirmBtn(el.querySelector('#st-reset'),'Нажми ещё раз — статистика и банка начнутся с нуля',()=>{statsCut();save();close();render();haptic('medium');toast('Статистика и банка обнулены')});
-    const b=el.querySelector('#st-back');
-    if(b) b.onclick=()=>{statsBack();save();close();render();toast('Статистика и звёзды вернулись')};
   });
 }
 function renderStats(){
@@ -1770,7 +1768,7 @@ function renderStats(){
   const ach=state.goals.filter(g=>g.done).sort((a,b)=>a.done<b.done?1:-1);
   if(ach.length) h+=`<div class="sec-title">Достигнутые цели</div><div class="card">`+ach.map(g=>{const z=g.z||0;return `<div class="frow">${dot(gLook(g).r)}<div class="ftxt"><div class="fname">${esc(g.name)}</div>${g.track?`<div class="small">${esc(gTotal(g))}</div>`:''}</div><div class="fstars"><b>${z}</b><span>${pl(z,'молния','молнии','молний')}</span></div></div>`}).join('')+`</div>`;
   h+=`<p class="note">каждая звёздочка остаётся с тобой</p>`;
-  h+=`<div class="st-reset"><button class="link" data-a="statsReset">${C?'статистика с '+cutLabel()+' · изменить':'обнулить статистику'}</button></div>`;
+  h+=`<div class="st-reset"><button class="link" data-a="statsReset">${state.statsFrom?'статистика с '+cutLabel()+' · обнулить':'обнулить статистику'}</button></div>`;
   h+=`<div class="st-reset st-reset2"><button class="link" data-a="funReset">обнулить баночку копилок</button></div>`;
   return h;
 }
@@ -2204,7 +2202,7 @@ function gBolt(g){
 }
 function gUnbolt(g){
   const e=(g.hist||[]).pop(); if(!e) return false;
-  removeStar('g:'+g.id,e.slice(0,10),e.endsWith('*')); g.z=Math.max(0,(g.z||0)-1); return true;
+  if(!e.endsWith('*')) removeStar('g:'+g.id,e.slice(0,10),false); g.z=Math.max(0,(g.z||0)-1); return true; // * — молния до обнуления, она уже забыта
 }
 function gComplete(g){g.done=today();g.pin=0;delete g.hid}
 // анимация ухода карточки с главного — и только потом перерисовка
@@ -2988,6 +2986,7 @@ function settle(){
   if(resetThemeOnce()){save();applyTheme();render()}
   if(plogOnce()) save();
   if(jarDoneOnce()){save();render()}
+  if(forgetCutOnce()){save();render()}
   setTimeout(()=>{gcPinPhotos();gcGoalPhotos()},1500);
 }
 async function boot(){
