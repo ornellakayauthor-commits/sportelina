@@ -2497,8 +2497,8 @@ function noteOf(it){if(!it||it.jar)return '';const P=progForItem(it),x=P&&progIt
 const openNotes=new Set();
 function noteSheet(title,val,where,cb){
   sheet(title,`
-    <div class="field"><textarea id="n-text" class="grow" rows="3" placeholder="Как делать, на что обратить внимание">${esc(val||'')}</textarea>
-    ${where?`<div class="explain">${where}</div>`:''}</div>
+    <div class="field"><textarea id="n-text" class="grow" rows="3">${esc(val||'')}</textarea>
+    </div>
     <button class="btn main" id="n-ok">Сохранить</button>
     ${val?'<button class="btn danger" id="n-del">Удалить заметку</button>':''}`,(el,close)=>{
     const t=el.querySelector('#n-text'); grow(t);
