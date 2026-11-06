@@ -407,6 +407,20 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .stk-plus{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:19px;font-weight:600;line-height:1;color:#fff;background:var(--line);box-shadow:0 0 0 2px rgba(255,255,255,.85);transition:transform .12s}
 .stk-plus:active{transform:scale(.88)}
 .ipr{color:var(--muted);font-weight:500;font-size:12.5px}
+.item.has-note{flex-wrap:wrap;row-gap:0}
+.nbtn{width:30px;height:30px;border-radius:10px;color:var(--c-dots,var(--soft));flex-shrink:0;display:grid;place-items:center;margin-right:-8px;transition:color .2s}
+.nbtn svg{width:18px;height:18px}
+.item.nopen .nbtn{color:var(--c)}
+.inote{flex-basis:100%;display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .3s ease,opacity .3s ease}
+.inote>div{overflow:hidden;min-height:0}
+.inote p{margin:6px 0 2px 40px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.6);font-size:13.5px;line-height:1.5;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;-webkit-user-select:text;user-select:text}
+.item.nopen .inote{grid-template-rows:1fr;opacity:1}
+.item.done .inote p{color:var(--muted)}
+.ex-list li{flex-wrap:wrap}
+.ex-list li .nb{width:28px;height:28px;margin:-4px -4px -4px 0;display:grid;place-items:center;color:var(--soft);flex-shrink:0;border-radius:8px}
+.ex-list li .nb.on{color:var(--c)}
+.ex-list li .nb svg{width:18px;height:18px}
+.ex-list li .xn{flex-basis:100%;padding-left:17px;margin-top:-4px;font-size:12.5px;color:var(--muted);line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .item.srep{padding:11px 0;gap:14px}
 .item.srep .tick{width:36px;height:36px;border-width:2.5px}
 .item.srep .iname{font-size:17px;font-weight:600}
@@ -585,6 +599,7 @@ const BGS = {
 const LETTERS = 'АБВГДЕЖЗИКЛМНОПРСТ';
 const MON = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 const STABLE_COLOR = '#F4C26B', ONE_COLOR = '#F2BD98';
+const NOTE_I=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h8l3.5 3.5v13.5H6.5z"/><path d="M9.5 11h5.5M9.5 14.5h5.5M9.5 18h3"/></svg>`;
 const PIN = f=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 5 3 3v2H7v-2l3-3z"/><path d="M12 14v6" fill="none"/></svg>`;
 const TICK = '<svg viewBox="0 0 20 20"><path d="M10 1Q11.4 8.6 19 10Q11.4 11.4 10 19Q8.6 11.4 1 10Q8.6 8.6 10 1Z" fill="#fff"/></svg>';
 
@@ -1250,10 +1265,14 @@ function groupHTML(d,items,w,kind,own,noHead){
     }
     gtitle=esc(fp?fp.name:d.name)+(fp&&d.lock===fp.id?`<span class="gpin" title="Закреплена">${PIN(1)}</span>`:''); gright=right;
   } else gtitle='Разное';
-  const row=i=>`<div class="item${i.done?' done':' drag-item'}" data-id="${i.id}">
+  // у дела из программы может быть заметка — она раскрывается под делом по тапу на значок
+  const row=i=>{const n=noteOf(i), op=!!n&&openNotes.has(i.id);
+    return `<div class="item${i.done?' done':' drag-item'}${n?' has-note':''}${op?' nopen':''}" data-id="${i.id}">
       <button class="tick" data-a="toggle" data-id="${i.id}" aria-label="Отметить"></button>
       <span class="iname" data-a="toggle" data-id="${i.id}">${esc(i.name)}${prSmall(i)}</span>
-      <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button></div>`;
+      ${n?`<button class="nbtn" data-a="note" data-id="${i.id}" aria-label="Заметка" aria-expanded="${op}">${NOTE_I}</button>`:''}
+      <button class="more" data-a="menu" data-id="${i.id}" aria-label="Ещё">●●●</button>
+      ${n?`<div class="inote"><div><p>${esc(n)}</p></div></div>`:''}</div>`};
   const und=items.filter(i=>!i.done), dn=items.filter(i=>i.done);
   let body=und.length?`<div class="ilist" data-k="${kind}">${und.map(row).join('')}</div>`:'';
   // у каждой программы — свой список «Выполнено», чтобы дела разных книг не смешивались
@@ -2388,8 +2407,13 @@ function itemMenu(id){
   const look=f.kind==='pin'&&!it.done?`<button class="opt" id="o-look"><span>Оформление карточки<small>Форма, цвет и украшение</small></span></button>`:'';
   const PX=J&&f.kind==='pin'&&!it.done?jarItemOf(it):null;
   const prOpt=PX?`<button class="opt" id="o-pr"><span>${PX.pr?'Прогресс':'Отмечать прогресс'}<small>${PX.pr?esc(prText(PX.pr))+' · изменить или убрать':'Страницы или серии — за каждую отметку звезда'}</small></span></button>`:'';
-  sheet(esc(it.name),look+prOpt+`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
+  const NP=!J&&progForItem(it), NX=NP&&progItemFor(NP,it);
+  const noteOpt=NX?`<button class="opt" id="o-note"><span>${NX.note?'Заметка':'Добавить заметку'}<small>${NX.note?'Изменить или удалить':'Как делать — откроется по значку рядом с делом'}</small></span></button>`:'';
+  sheet(esc(it.name),look+prOpt+noteOpt+`<button class="opt" id="o-edit"><span>Изменить текст</span></button>`+opts,(el,close)=>{
     const lk=el.querySelector('#o-look'); if(lk) lk.onclick=()=>{close();setTimeout(()=>lookSheet(id),280)};
+    const no=el.querySelector('#o-note');
+    if(no) no.onclick=()=>{close();setTimeout(()=>noteSheet(NX.note?'Заметка':'Новая заметка',NX.note,`Хранится в программе «${esc(NP.name)}» и приходит вместе с делом каждый раз`,v=>{
+      if(v){NX.note=v;openNotes.add(id)}else{delete NX.note;openNotes.delete(id)}save();render()}),280)};
     const po=el.querySelector('#o-pr'); if(po) po.onclick=()=>{close();setTimeout(()=>prSheet(id),280)};
     const mv=el.querySelector('#o-move'), rp=el.querySelector('#o-rep');
     if(mv) mv.onclick=()=>{L.items=L.items.filter(i=>i!==it);state.carry.push({dir:it.dir,name:it.name,prog:it.prog});save();close();render();toast('Переедет на следующую неделю')};
@@ -2417,6 +2441,21 @@ function renameItem(it,v){
   }
   const jx=jarItemOf(it); if(jx) jx.name=v;
   it.name=v; return P;
+}
+// заметка живёт в пункте программы, поэтому приходит вместе с делом при каждом включении программы
+function noteOf(it){if(!it||it.jar)return '';const P=progForItem(it),x=P&&progItemFor(P,it);return x&&x.note?x.note:''}
+const openNotes=new Set();
+function noteSheet(title,val,where,cb){
+  sheet(title,`
+    <div class="field"><textarea id="n-text" class="grow" rows="3" placeholder="Как делать, на что обратить внимание">${esc(val||'')}</textarea>
+    ${where?`<div class="explain">${where}</div>`:''}</div>
+    <button class="btn main" id="n-ok">Сохранить</button>
+    ${val?'<button class="btn danger" id="n-del">Удалить заметку</button>':''}`,(el,close)=>{
+    const t=el.querySelector('#n-text'); grow(t);
+    setTimeout(()=>{t.focus();t.setSelectionRange(t.value.length,t.value.length);grow(t)},320);
+    el.querySelector('#n-ok').onclick=()=>{cb(t.value.trim());close()};
+    const dl=el.querySelector('#n-del'); if(dl) confirmBtn(dl,'Нажми ещё раз — заметка удалится',()=>{cb('');close()});
+  });
 }
 function editSheet(id){
   const f=findItem(id); if(!f) return; const it=f.it, P=progForItem(it);
@@ -2541,7 +2580,7 @@ function progSheet(dId,pId){
     const list=el.querySelector('#p-list');
     const nameEl=el.querySelector('#p-name'); grow(nameEl);
     nameEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('#p-new').focus()}});
-    const liHTML=x=>`<li class="drag-item" data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="x" aria-label="Удалить">×</button></li>`;
+    const liHTML=x=>`<li class="drag-item" data-id="${x.id}"><span>${esc(x.name)}</span><button type="button" class="nb${x.note?' on':''}" aria-label="Заметка">${NOTE_I}</button><button type="button" class="x" aria-label="Удалить">×</button>${x.note?`<div class="xn">${esc(x.note)}</div>`:''}</li>`;
     const EMPTY='<div class="ex-empty">Пока пусто — добавь первое дело</div>';
     const isAct=x=>dr.mode!=='once'||!x.doneAt;
     const doneList=el.querySelector('#p-done'), doneBox=el.querySelector('#p-donebox');
@@ -2567,11 +2606,15 @@ function progSheet(dId,pId){
     setM(dr.mode); msegs.forEach(b=>b.onclick=()=>setM(b.dataset.m));
     const inp=el.querySelector('#p-new'), addBtn=el.querySelector('#p-addbtn');
     // кнопки «+» и «×» не забирают фокус у поля — клавиатура не прячется и не выскакивает заново
-    const keepFocus=e=>{if(e.target.closest('.x,#p-addbtn'))e.preventDefault()};
+    const keepFocus=e=>{if(e.target.closest('.x,.nb,#p-addbtn'))e.preventDefault()};
     list.addEventListener('mousedown',keepFocus); addBtn.addEventListener('mousedown',keepFocus);
     // удаление: строка плавно схлопывается, остальные мягко подтягиваются
     list.addEventListener('click',e=>{
       const sp=e.target.closest('li > span'); if(sp&&!sp.querySelector('textarea')) return editInline(sp);
+      const nb=e.target.closest('.nb,.xn');
+      if(nb){const x=dr.items.find(y=>y.id===nb.closest('li').dataset.id); if(!x) return;
+        if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+        return noteSheet(x.note?'Заметка':'Новая заметка',x.note,'',v=>{if(v)x.note=v;else delete x.note;draw()})}
       const b=e.target.closest('.x'); if(!b) return;
       const li=b.closest('li'); if(!li||li.classList.contains('leaving')) return;
       dr.items=dr.items.filter(x=>x.id!==li.dataset.id);
@@ -2673,6 +2716,8 @@ const A={
     L.items.forEach(i=>{if(i.done&&(pId==null||doneBucket(i)===pId)&&(dId==='*'?true:dId?(i.dir===dId||'jar_'+i.jar===dId):(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar)))){i.hidden=true;forgetDone(i)}});
     haptic('light');save();flip(render)},
   menu:t=>itemMenu(t.dataset.id),
+  note:t=>{const it=t.closest('.item'),id=t.dataset.id,o=!openNotes.has(id);if(o)openNotes.add(id);else openNotes.delete(id);
+    it.classList.toggle('nopen',o);t.setAttribute('aria-expanded',o);haptic('light')},
   prPlus:t=>{const f=findItem(t.dataset.id);if(!f)return;const x=jarItemOf(f.it);if(!x||!x.pr||prDone(x.pr))return;
     if(x.pr.u!=='s') return prAddSheet(f.it.id);
     if(prMark(f.it,x,1)){save();if(!prFinishIfDone(f.it,x)){render();toast(prText(x.pr)+' · звезда в баночку копилок')}}},
