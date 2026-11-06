@@ -301,6 +301,12 @@ textarea.grow{display:block;resize:none;overflow:hidden;font:inherit;font-size:1
 .seg{display:flex;background:#fff;border-radius:14px;padding:4px}
 .seg button{flex:1;padding:10px;border-radius:10px;font-weight:600;font-size:14px;color:var(--muted)}
 .seg button.on{background:var(--acc-soft);color:var(--ink)}
+.seg3 button{padding:10px 4px;font-size:13px;white-space:nowrap}
+.dowl{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.dowrow{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:4px 4px 4px 14px}
+.dowrow span{flex:0 0 104px;font-weight:600;font-size:14px;color:var(--ink)}
+.dowrow select{flex:1;min-width:0;-webkit-appearance:none;appearance:none;border:0;outline:none;border-radius:10px;padding:10px 30px 10px 12px;font:inherit;font-size:16px;font-weight:600;color:var(--ink);background:var(--acc-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23998' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center/12px}
+.dowrow select.rest{background-color:transparent;color:var(--muted);font-weight:500}
 .explain{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.5}
 .dates{display:flex;gap:10px;margin-top:10px}
 .dates label{flex:1;min-width:0;font-size:12px;color:var(--muted);font-weight:600}
@@ -860,7 +866,11 @@ async function pull(){
 }
 
 /* ================= логика недели и дня ================= */
-function isDaily(d){return !!d&&d.freq==='day'}
+function isDaily(d){return !!d&&(d.freq==='day'||d.freq==='dow')}
+// «По дням недели»: у каждого дня своя программа (d.dow[0] — понедельник … d.dow[6] — воскресенье), недельной смены нет
+function isDow(d){return !!d&&d.freq==='dow'}
+const DOW=['пн','вт','ср','чт','пт','сб','вс'], DOWF=['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
+function dowIdx(date){const [y,m,dd]=date.split('-').map(Number);return (new Date(y,m-1,dd).getDay()+6)%7}
 function mkItem(dir,name,prog,pid,pi){const o={id:uid(),dir:dir||null,name,prog:!!prog,done:false,doneOn:null};if(pid){o.pid=pid;o.pi=pi||null}return o}
 // режим «Только несделанное»: выполненное остаётся в программе с пометкой doneAt и больше не приходит
 function isOnce(p){return !!p&&p.mode==='once'}
@@ -876,11 +886,14 @@ function curDay(){return state.days[today()]}
 function isDated(p){return !!(p&&p.status==='dates'&&p.from&&p.to)}
 function cyc(d){return d.progs.filter(p=>(p.status||'queue')==='queue')}
 // закреплённая программа направления: включается каждую неделю, очередь при этом стоит на месте
-function lockOf(d){return (d&&d.lock&&cyc(d).find(p=>p.id===d.lock))||null}
+function lockOf(d){return (d&&!isDow(d)&&d.lock&&cyc(d).find(p=>p.id===d.lock))||null}
 function datedFor(d,date){return d.progs.find(p=>isDated(p)&&p.from<=date&&date<=p.to)}
 function fmtD(k){const [y,m,dd]=k.split('-').map(Number);return dd+' '+MON[m-1]}
 function skipOf(d){const w=curWeek();return (w.skip&&w.skip[d.id])||[]}
-function dayProg(d,date){const dp=datedFor(d,date);if(dp)return dp;if(isDaily(d))return progOf(d.id,curWeek().progs[d.id]);return null}
+function dayProg(d,date){const dp=datedFor(d,date);if(dp)return dp;
+  // программа на паузе или завершённая в свой день не приходит, её день просто пустой
+  if(isDow(d)){const p=progOf(d.id,(d.dow||[])[dowIdx(date)]);return p&&(p.status||'queue')==='queue'?p:null}
+  if(isDaily(d))return progOf(d.id,curWeek().progs[d.id]);return null}
 // «Только несделанное»: выполненное живёт в самой программе и возвращается на главный при каждом её включении
 function restoreDone(list,d,p){
   if(!list||!isOnce(p)) return;
@@ -952,7 +965,7 @@ function ensureWeek(){
   }
   state.weeks[key]=w;
   state.dirs.forEach(dir=>{
-    const list=cyc(dir); if(!list.length) return;
+    const list=cyc(dir); if(!list.length||isDow(dir)) return;
     const lk=lockOf(dir);
     if(lk){const nx=dir.next;startProgram(w,dir,list.indexOf(lk),false);dir.next=nx;return}
     let idx=(dir.next||0)%list.length;
@@ -1025,9 +1038,13 @@ function syncWeek(d){
 }
 function changeFreq(d,f){
   if(d.freq===f) return;
-  const w=curWeek(), p=progOf(d.id,w.progs[d.id]);
+  const w=curWeek(), was=d.freq;
   if(!isDaily(d)) dropUndone(w,d.id);
   d.freq=f;
+  if(isDow(d)){delete w.progs[d.id];refreshToday(d);return}
+  // из «По дням недели» в обычный режим: включаем программу по очереди, как в начале недели
+  if(was==='dow'){refreshToday(d);const cl=cyc(d);if(cl.length)startProgram(w,d,(d.next||0)%cl.length,true);return}
+  const p=progOf(d.id,w.progs[d.id]);
   refreshToday(d);
   if(!isDaily(d)&&p&&!isDated(p)) active(p).forEach(it=>w.items.push(mkItem(d.id,it.name,1,p.id,it.id)));
 }
@@ -1265,7 +1282,7 @@ function renderHome(){
       if(kind==='pin'){if(items.length)g.push(groupHTML(d,items,w,kind,false));return} // в «Закреплено» — только закреплённое
       const own=(kind==='day')===isDaily(d);
       const lk=own&&lockOf(d); if(lk&&w.progs[d.id]===lk.id){locked.push({d,items,kind});return} // закреплённая — своим разделом
-      if(items.length||(own&&cyc(d).length)||(kind==='day'&&datedFor(d,today()))) g.push(groupHTML(d,items,w,kind,own));
+      if(items.length||(own&&(isDow(d)?!!dayProg(d,today()):cyc(d).length))||(kind==='day'&&datedFor(d,today()))) g.push(groupHTML(d,items,w,kind,own));
     });
     state.jars.forEach(j=>{const it=list.items.filter(i=>i.jar===j.id&&!i.hidden);if(it.length)g.push(groupHTML(jarAsDir(j),it,w,kind,false))});
     const misc=list.items.filter(i=>(!i.dir||!dirById(i.dir))&&!(i.jar&&jarById(i.jar))&&!i.hidden);
@@ -1304,11 +1321,11 @@ function groupHTML(d,items,w,kind,own,noHead){
     let right;
     if(fp){
       right=dp?`<span class="tag">${esc(d.name)} · до ${fmtD(dp.to)}</span>`
-        :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${esc(d.name)} · сменить</button>`
+        :(own&&cyc(d).length&&!isDow(d)?`<button class="link" data-a="switch" data-id="${d.id}">${esc(d.name)} · сменить</button>`
         :`<span class="tag">${esc(d.name)}</span>`);
     } else {
       right=dp?`<span class="tag">${esc(dp.name)} · до ${fmtD(dp.to)}</span>`
-        :(own&&cyc(d).length?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
+        :(own&&cyc(d).length&&!isDow(d)?`<button class="link" data-a="switch" data-id="${d.id}">${p?esc(p.name)+' · сменить':'выбрать программу'}</button>`:'');
     }
     gtitle=esc(fp?fp.name:d.name)+(fp&&d.lock===fp.id?`<span class="gpin" title="Закреплена">${PIN(1)}</span>`:''); gright=right;
   } else gtitle='Разное';
@@ -1335,7 +1352,7 @@ function groupHTML(d,items,w,kind,own,noHead){
     body+=`<div class="dhead${fo}"><button class="dtoggle" data-a="fold" data-k="${fk}" aria-label="Свернуть или развернуть"><span class="chev-s">▾</span><span class="dlabel">${label} · ${l.length}</span></button><button class="link" data-a="clearDone" data-k="${kind}" data-d="${d?d.id:''}" data-p="${b}">Очистить</button></div><div class="dwrap${fo}"><div class="dlist">${l.map(row).join('')}</div></div>`;
   });
   if(d&&!items.length){
-    if(own&&!w.progs[d.id]&&cyc(d).length&&!(kind==='day'&&datedFor(d,today()))){
+    if(own&&!isDow(d)&&!w.progs[d.id]&&cyc(d).length&&!(kind==='day'&&datedFor(d,today()))){
       const nx=cyc(d)[(d.next||0)%cyc(d).length];
       body=`<div class="nodir">На этой неделе программы пока нет<br><button class="pill" data-a="startNext" data-id="${d.id}">Начать «${esc(nx.name)}»</button></div>`;
     } else body=`<div class="nodir">${kind==='day'?'На сегодня свободно':'Пока пусто'}</div>`;
@@ -1778,6 +1795,7 @@ function progStatus(d,p){
   const t=today(), w=curWeek(), st=p.status||'queue';
   if(st==='off') return {txt:'на паузе',cls:'off'};
   if(st==='done') return {txt:'завершена',cls:'off'};
+  if(isDow(d)){const ds=DOW.filter((x,i)=>(d.dow||[])[i]===p.id);return {txt:ds.length?ds.join(', '):'без дня',cls:dayProg(d,t)===p?'now':''}}
   if(st==='dates'){
     if(!p.from||!p.to) return {txt:'даты не выбраны',cls:'off'};
     if(p.from<=t&&t<=p.to) return {txt:'сейчас · до '+fmtD(p.to),cls:'now'};
@@ -1799,7 +1817,7 @@ function renderProgs(){
   state.dirs.forEach(d=>{
     h+=`<div class="card dir drag-item" data-id="${d.id}" style="--c:${d.color}">
       <div class="dir-head" data-a="editDir" data-id="${d.id}">${dot(d.color,1)}
-        <div><div class="dname">${esc(d.name)}</div><div class="small">${isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
+        <div><div class="dname">${esc(d.name)}</div><div class="small">${isDow(d)?'по дням недели':isDaily(d)?'каждый день недели':'один раз за неделю'}</div></div><span class="chev">›</span></div>
       <div class="plist" data-d="${d.id}" style="margin-top:8px">${d.progs.filter(p=>p.status!=='done').map(p=>{const s=progStatus(d,p);return `<div class="prow drag-item" data-p="${p.id}"><button class="pbody" data-a="editProg" data-d="${d.id}" data-p="${p.id}"><span class="pn">${esc(p.name)}${isOnce(p)&&p.items.length&&!active(p).length?'<small>всё выполнено ✓</small>':''}</span><span class="pst ${s.cls}">${s.txt}</span><span class="chev">›</span></button></div>`}).join('')}</div>
       <button class="ghost" data-a="addProg" data-id="${d.id}">+ Программа</button></div>`;
   });
@@ -2597,23 +2615,33 @@ function addOneSheet(){
 }
 function dirSheet(id){
   const d=id?dirById(id):null;
-  const st={color:d?d.color:COLORS[state.dirs.length%COLORS.length],freq:d?d.freq:'day'};
+  const st={color:d?d.color:COLORS[state.dirs.length%COLORS.length],freq:d?d.freq:'day',dow:d&&d.dow?d.dow.slice():Array(7).fill(null)};
   const fx={day:'Всю неделю каждый день — одни и те же дела. В понедельник программа сменится на следующую.',
-            week:'Дела программы нужно сделать один раз за неделю, в любые дни. В понедельник — следующая программа.'};
+            week:'Дела программы нужно сделать один раз за неделю, в любые дни. В понедельник — следующая программа.',
+            dow:'У каждого дня своя программа. Пропущенный день не переносится — программа придёт снова в свой день через неделю.'};
+  const dprogs=d?d.progs.filter(p=>p.status!=='done'):[];
   sheet(d?'Направление':'Новое направление',`
     <div class="field"><label class="t">Название</label><input type="text" id="f-name" maxlength="40" placeholder="Название направления" value="${d?esc(d.name):''}"></div>
     <div class="field"><label class="t">Цвет звёздочек</label>${colorField('fc',st.color,COLORS)}</div>
-    <div class="field"><label class="t">Как выполнять программы</label><div class="seg"><button type="button" data-f="day">Каждый день</button><button type="button" data-f="week">Раз за неделю</button></div><div class="explain" id="f-fx"></div></div>
+    <div class="field"><label class="t">Как выполнять программы</label><div class="seg seg3"><button type="button" data-f="day">Каждый день</button><button type="button" data-f="week">Раз за неделю</button><button type="button" data-f="dow">По дням</button></div><div class="explain" id="f-fx"></div><div id="f-dow"></div></div>
     <button class="btn main" id="f-save">Сохранить</button>
     ${d?'<button class="btn danger" id="f-del">Удалить направление</button>':''}`,(el,close)=>{
     const fsegs=el.querySelectorAll('[data-f]');
-    const setF=f=>{st.freq=f;fsegs.forEach(b=>b.classList.toggle('on',b.dataset.f===f));el.querySelector('#f-fx').textContent=fx[f]};
+    const dwBox=el.querySelector('#f-dow');
+    const drawDow=()=>{
+      if(st.freq!=='dow'){dwBox.innerHTML='';return}
+      if(!dprogs.length){dwBox.innerHTML='<div class="explain">Дни можно будет выбрать, когда в направлении появятся программы.</div>';return}
+      dwBox.innerHTML='<div class="dowl">'+DOWF.map((nm,i)=>{const v=st.dow[i]&&dprogs.some(p=>p.id===st.dow[i])?st.dow[i]:'';
+        return `<label class="dowrow"><span>${nm}</span><select data-dw="${i}" class="${v?'':'rest'}"><option value="">Отдых</option>${dprogs.map(p=>`<option value="${p.id}"${p.id===v?' selected':''}>${esc(p.name)}${p.status==='off'?' · на паузе':''}</option>`).join('')}</select></label>`}).join('')+'</div>';
+      dwBox.querySelectorAll('[data-dw]').forEach(sl=>sl.onchange=()=>{st.dow[+sl.dataset.dw]=sl.value||null;sl.classList.toggle('rest',!sl.value)});
+    };
+    const setF=f=>{st.freq=f;fsegs.forEach(b=>b.classList.toggle('on',b.dataset.f===f));el.querySelector('#f-fx').textContent=fx[f];drawDow()};
     setF(st.freq); fsegs.forEach(b=>b.onclick=()=>setF(b.dataset.f));
     bindColor(el,'fc',c=>st.color=c);
     el.querySelector('#f-save').onclick=()=>{
       const inp=el.querySelector('#f-name'),name=inp.value.trim(); if(!name) return inp.focus();
-      if(d){Object.assign(d,{name,color:st.color});changeFreq(d,st.freq)}
-      else state.dirs.push({id:uid(),name,color:st.color,mode:'cycle',freq:st.freq,next:0,progs:[]});
+      if(d){Object.assign(d,{name,color:st.color});if(st.freq==='dow')d.dow=st.dow.slice();const was=d.freq;changeFreq(d,st.freq);if(isDow(d)&&was==='dow')refreshToday(d)}
+      else state.dirs.push({id:uid(),name,color:st.color,mode:'cycle',freq:st.freq,next:0,progs:[],dow:st.dow.slice()});
       save();close();render();
     };
     const delDir=drop=>{
@@ -2634,11 +2662,13 @@ function progSheet(dId,pId){
   const d=dirById(dId); if(!d) return;
   const orig=pId?progOf(dId,pId):null, isNew=!orig;
   const dr={name:orig?orig.name:'',items:orig?orig.items.map(x=>({...x,id:x.id||uid()})):[],status:orig?(orig.status||'queue'):'queue',mode:orig&&orig.mode||'repeat',from:orig&&orig.from||'',to:orig&&orig.to||''};
-  const ex={queue:'Программы «по очереди» сменяют друг друга каждый понедельник.',
+  const ex=isDow(d)?{queue:'Приходит в свои дни. Дни выбираются в настройках направления.',
+            off:'Программа сохранена, но не приходит. Её дни в расписании ждут, пока снимешь паузу.'}
+    :{queue:'Программы «по очереди» сменяют друг друга каждый понедельник.',
             off:'Программа сохранена, но не включается. Верни её «по очереди», когда понадобится.'};
   sheet(isNew?'Новая программа':'Программа',`
     <div class="field"><label class="t">Название</label><textarea id="p-name" class="grow" rows="1" placeholder="Название программы" enterkeyhint="next">${esc(dr.name)}</textarea></div>
-    <div class="field" style="--c:${d.color}"><label class="t">${isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
+    <div class="field" style="--c:${d.color}"><label class="t">${isDow(d)?'Дела на день':isDaily(d)?'Дела на каждый день':'Дела на неделю'}</label>
       <ul class="ex-list" id="p-list"></ul>
       <div class="ex-add"><textarea id="p-new" class="grow" rows="1" placeholder="Добавить дело" enterkeyhint="done"></textarea><button type="button" id="p-addbtn" aria-label="Добавить">+</button></div>
       <div id="p-donebox"><div class="done-head" id="p-dhead"><button type="button" class="dtoggle" id="p-fold"><span class="chev-s">▾</span><span id="p-donecnt"></span></button><button type="button" id="p-clear">Очистить</button></div><div class="dwrap" id="p-dwrap"><ul class="ex-list done" id="p-done"></ul></div></div></div>
@@ -2646,7 +2676,7 @@ function progSheet(dId,pId){
       <div class="seg"><button type="button" data-m="repeat">Целиком</button><button type="button" data-m="once">Только несделанное</button></div>
       <div class="explain" id="p-mex"></div></div>
     <div class="field"><label class="t">Когда включать</label>
-      <div class="seg"><button type="button" data-s="queue">По очереди</button><button type="button" data-s="off">Пауза</button></div>
+      <div class="seg"><button type="button" data-s="queue">${isDow(d)?'В расписании':'По очереди'}</button><button type="button" data-s="off">Пауза</button></div>
       <div class="explain" id="p-ex"></div></div>
     <button class="btn main" id="p-save">Сохранить</button>
     ${isNew?'':'<button class="btn soft" id="p-fin">Завершить программу</button><button class="btn danger" id="p-del">Удалить программу</button>'}`,(el,close)=>{
@@ -2735,7 +2765,7 @@ function progSheet(dId,pId){
       if(isNew) d.progs.push(p);
       if(w.progs[d.id]===p.id&&p.status!=='queue') delete w.progs[d.id];
       fixNext(d);
-      if(p.status==='queue'&&!w.progs[d.id]) startProgram(w,d,cyc(d).indexOf(p),true);
+      if(!isDow(d)&&p.status==='queue'&&!w.progs[d.id]) startProgram(w,d,cyc(d).indexOf(p),true);
       fixNext(d);
       syncWeek(d); refreshToday(d);
       save();close();render();
@@ -2748,6 +2778,7 @@ function progSheet(dId,pId){
       if(drop){dropStars(d.id,progStarDates(d,orig));markNoStar(i=>i.pid===orig.id)}
       if(drop){if(state.pstars)delete state.pstars[orig.id];if(state.plog)delete state.plog[orig.id]}
       d.progs=d.progs.filter(x=>x!==orig);
+      if(d.dow) d.dow=d.dow.map(x=>x===orig.id?null:x);
       if(w.progs[d.id]===orig.id) delete w.progs[d.id];
       fixNext(d);
       syncWeek(d); refreshToday(d);
@@ -2804,7 +2835,7 @@ const A={
   switch:t=>switchSheet(t.dataset.id),
   statsReset:()=>statsResetSheet(),
   funReset:()=>funResetSheet(),
-  unfinish:t=>{const d=dirById(t.dataset.d),p=d&&d.progs.find(x=>x.id===t.dataset.p);if(!p)return;p.status='queue';delete p.doneOn;fixNext(d);save();render();toast('Программа вернулась в очередь')},
+  unfinish:t=>{const d=dirById(t.dataset.d),p=d&&d.progs.find(x=>x.id===t.dataset.p);if(!p)return;p.status='queue';delete p.doneOn;fixNext(d);if(isDow(d))refreshToday(d);save();render();toast(isDow(d)?'Программа вернулась в расписание':'Программа вернулась в очередь')},
   startNext:t=>{const d=dirById(t.dataset.id);const n=cyc(d).length;if(!n)return;startProgram(curWeek(),d,(d.next||0)%n,true);save();render();haptic('medium')},
   addOne:()=>addOneSheet(),
   addDir:()=>dirSheet(null),
