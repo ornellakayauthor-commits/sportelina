@@ -2204,7 +2204,9 @@ function gcGoalPhotos(){
     dead.forEach(k=>localStorage.removeItem(k))}catch(e){}
 }
 function goalById(id){return (state.goals||[]).find(g=>g.id===id)}
-function gLook(g){const L=g.look||{};return {a:L.a==null?40:L.a,y:L.y||'c',r:L.r||RING_COLORS[hashStr(g.id)%RING_COLORS.length],p:L.p?1:0}}
+// b — размытие, v — дымка (0…100). Старая единая «прозрачность» a переводится без изменения вида карточки
+function gLook(g){const L=g.look||{}, a=L.a==null?40:L.a;
+  return {b:L.b!=null?L.b:Math.round((18-a*.14)/.18),v:L.v!=null?L.v:Math.round((.82-a*.006)/.82*100),y:L.y||'c',r:L.r||RING_COLORS[hashStr(g.id)%RING_COLORS.length],p:L.p?1:0}}
 function gPinned(){return state.goals.filter(g=>g.pin&&!g.done)}
 const isBolt=k=>String(k).startsWith('g:');
 // «из 21 тренировки», «из 365 тренировок»
@@ -2282,7 +2284,7 @@ function gReplaceSheet(g){
 /* карточка-стекло */
 function goalCardHTML(g,raw){
   const L=gLook(g), ph=raw!==undefined?raw:(L.p?goalPhoto(g.id):'');
-  const a=(.82-L.a*.006).toFixed(2), bl=Math.round(18-L.a*.14), C=201.06;
+  const a=(L.v/100*.82).toFixed(3), bl=+(L.b*.18).toFixed(1), C=201.06;
   const ring=g.track
     ?`<circle cx="40" cy="40" r="32" fill="rgba(255,255,255,.7)" stroke="${mix(L.r,'#ffffff',.62)}" stroke-width="7"/>
       <circle cx="40" cy="40" r="32" fill="none" stroke="${L.r}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${f1(C*(1-Math.min(1,(g.n||0)/g.t)))}" transform="rotate(-90 40 40)"/>`
@@ -2291,8 +2293,8 @@ function goalCardHTML(g,raw){
     :(g.n&&(g.hist||[]).length?`<button class="gc-minus" data-a="gMinus" data-id="${g.id}" aria-label="Убрать последний шаг">−</button>`:'')+
      (gToday(g)?`<span class="gc-ok" title="Сегодня уже отмечено">Отмечено</span>`:`<button class="gc-plus" data-a="gPlus" data-id="${g.id}" aria-label="Шаг к цели">+1</button>`);
   return `<div class="gcard" data-a="gOpen" data-id="${g.id}">
-    ${ph?`<img class="gph" src="${srcOf(ph)}" alt="" style="object-position:center ${GOAL_Y[L.y]||'center'};filter:blur(${bl}px) saturate(1.1);transform:scale(${(1+bl*.012).toFixed(3)})">`:''}
-    <div class="gveil" style="background:${rgba(state.theme.cardColor||'#FFFAF7',a)}${ph?'':`;backdrop-filter:blur(${bl}px) saturate(1.1);-webkit-backdrop-filter:blur(${bl}px) saturate(1.1)`}"></div>
+    ${ph?`<img class="gph" src="${srcOf(ph)}" alt="" style="object-position:center ${GOAL_Y[L.y]||'center'}${bl?`;filter:blur(${bl}px) saturate(1.1);transform:scale(${(1+bl*.012).toFixed(3)})`:''}">`:''}
+    <div class="gveil" style="background:${rgba(state.theme.cardColor||'#FFFAF7',a)}${ph||!bl?'':`;backdrop-filter:blur(${bl}px) saturate(1.1);-webkit-backdrop-filter:blur(${bl}px) saturate(1.1)`}"></div>
     <div class="gin"><svg class="gring" viewBox="0 0 80 80" role="img" aria-label="${esc(gText(g)||'Цель без отслеживания')}">${ring}<path transform="translate(28 28)" d="${BOLT}" fill="#F2B544" stroke="#F2B544" stroke-width=".8" stroke-linejoin="round"/></svg>
       <div class="gtx"><div class="gc-name">${esc(g.name)}</div>${g.track?`<div class="gc-sub">${esc(gText(g))}</div>`:''}<div class="gc-acts">${acts}</div></div></div></div>`;
 }
@@ -2401,14 +2403,15 @@ function goalSheet(id){
     else confirmBtn(gd,'Нажми ещё раз — цель удалится',()=>{close();delGoal(false)});
   });
 }
-// оформление карточки цели: фото под стеклом, прозрачность стекла, какая часть фото видна, цвет кольца
+// оформление карточки цели: фото под стеклом, размытие и дымка стекла, какая часть фото видна, цвет кольца
 function gLookSheet(id){
   const g=goalById(id); if(!g) return;
   const L=gLook(g);
   sheet('Оформление карточки',`
     <div class="gprev"></div>
     <div class="field"><label class="t">Фото на фоне</label><div id="gl-ph"></div><input type="file" id="gl-file" accept="image/*" hidden></div>
-    <div class="field"><label class="t" for="gl-a">Прозрачность стекла <b id="gl-av">${L.a}%</b></label><input type="range" class="range" id="gl-a" min="0" max="100" step="1" value="${L.a}"></div>
+    <div class="field"><label class="t" for="gl-b">Размытие <b id="gl-bv">${L.b}%</b></label><input type="range" class="range" id="gl-b" min="0" max="100" step="1" value="${L.b}"></div>
+    <div class="field"><label class="t" for="gl-v">Дымка <b id="gl-vv">${L.v}%</b></label><input type="range" class="range" id="gl-v" min="0" max="100" step="1" value="${L.v}"></div>
     <div class="field" id="gl-yf"><label class="t">Какая часть фото видна</label><div class="seg sm" id="gl-y"><button type="button" data-y="t">Верх</button><button type="button" data-y="c">Середина</button><button type="button" data-y="b">Низ</button></div></div>
     <div class="field"><label class="t">Цвет кольца</label>${colorField('gr',L.r,RING_COLORS)}</div>
     <button class="btn main" id="gl-ok">Готово</button>`,(el,close)=>{
@@ -2421,16 +2424,17 @@ function gLookSheet(id){
           :`<button type="button" class="phadd" data-ph="pick">+ Выбрать из галереи</button>`}
       el.querySelector('#gl-yf').hidden=!raw;
       el.querySelectorAll('#gl-y button').forEach(b=>b.classList.toggle('on',b.dataset.y===L.y));
-      el.querySelector('#gl-av').textContent=L.a+'%';
+      el.querySelector('#gl-bv').textContent=L.b+'%';el.querySelector('#gl-vv').textContent=L.v+'%';
       el.querySelector('.gprev').innerHTML=goalCardHTML({...g,look:{...L}},raw);
     };
     // сразу видно и в превью, и на главном под шторкой
-    const apply=()=>{g.look={...L};draw();cancelAnimationFrame(raf);raf=requestAnimationFrame(render);clearTimeout(saveT);saveT=setTimeout(save,400)};
+    const apply=()=>{g.look={...L};delete g.look.a;draw();cancelAnimationFrame(raf);raf=requestAnimationFrame(render);clearTimeout(saveT);saveT=setTimeout(save,400)};
     const file=el.querySelector('#gl-file');
     el.querySelector('#gl-ph').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;
       if(b.dataset.ph==='pick')file.click();else{setGoalPhoto(g.id,'');L.p=0;haptic('light');apply()}});
     file.addEventListener('change',()=>{const f=file.files&&file.files[0];file.value='';if(f)readPhoto(f,u=>{setGoalPhoto(g.id,u);L.p=1;haptic('light');apply()})});
-    el.querySelector('#gl-a').addEventListener('input',e=>{L.a=+e.target.value;apply()});
+    el.querySelector('#gl-b').addEventListener('input',e=>{L.b=+e.target.value;apply()});
+    el.querySelector('#gl-v').addEventListener('input',e=>{L.v=+e.target.value;apply()});
     el.querySelectorAll('#gl-y button').forEach(b=>b.onclick=()=>{L.y=b.dataset.y;haptic('light');apply()});
     bindColor(el,'gr',c=>{L.r=c;apply()});
     el.querySelector('#gl-ok').onclick=close;
