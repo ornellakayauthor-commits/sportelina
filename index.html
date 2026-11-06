@@ -2623,7 +2623,7 @@ function dirSheet(id){
   sheet(d?'Направление':'Новое направление',`
     <div class="field"><label class="t">Название</label><input type="text" id="f-name" maxlength="40" placeholder="Название направления" value="${d?esc(d.name):''}"></div>
     <div class="field"><label class="t">Цвет звёздочек</label>${colorField('fc',st.color,COLORS)}</div>
-    <div class="field"><label class="t">Как выполнять программы</label><div class="seg seg3"><button type="button" data-f="day">Каждый день</button><button type="button" data-f="week">Раз за неделю</button><button type="button" data-f="dow">По дням</button></div><div class="explain" id="f-fx"></div><div id="f-dow"></div></div>
+    <div class="field"><label class="t">Как выполнять программы</label><div class="seg seg3"><button type="button" data-f="day">Каждый день</button><button type="button" data-f="week">Раз в неделю</button><button type="button" data-f="dow">По дням</button></div><div class="explain" id="f-fx"></div><div id="f-dow"></div></div>
     <button class="btn main" id="f-save">Сохранить</button>
     ${d?'<button class="btn danger" id="f-del">Удалить направление</button>':''}`,(el,close)=>{
     const fsegs=el.querySelectorAll('[data-f]');
