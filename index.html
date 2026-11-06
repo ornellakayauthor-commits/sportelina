@@ -1116,6 +1116,8 @@ function toggleItem(id){
     if(it.ps){const P=state.pstars||{};if(P[it.pid])P[it.pid]--;const q=(state.plog||{})[it.pid];if(q&&q[it.doneOn]){q[it.doneOn]--;if(!q[it.doneOn])delete q[it.doneOn]}delete it.ps}it.done=false;it.doneOn=null}
   const pi=linkedProgItem(it); if(pi){if(it.done) pi.doneAt=it.doneOn; else delete pi.doneAt}
   const jx=jarItemOf(it); if(jx){if(it.done){jx.st='done';jx.doneAt=it.doneOn}else{jx.st='out';delete jx.doneAt}}
+  // выполненная идея уходит с главного и живёт только в «Выполнено» своей копилки; звезда запоминается в самой идее
+  if(jx&&it.done){if(it.fs)jx.star={d:it.doneOn};f.list.items=f.list.items.filter(i=>i!==it)}
   if(f.kind==='pin'&&it.done) unpinDone(); // выполненное само открепляется и уходит в «Сегодня» → «Выполнено»
   save();flip(render);
 }
@@ -1685,7 +1687,20 @@ function statsCut(){
 function funCut(){
   const F=state.fun; F.cutS=(F.cutS||[]).concat(F.seq); F.seq=[];
   [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>L&&L.items&&L.items.forEach(i=>{if(i.done&&i.fs)i.fz=1}));
-  state.jars.forEach(j=>j.items.forEach(x=>{if(x.pr&&x.pr.last)x.pr.last.z=1}));
+  state.jars.forEach(j=>j.items.forEach(x=>{if(x.pr&&x.pr.last)x.pr.last.z=1;if(x.star)x.star.z=1}));
+}
+// звезда за выполненную идею: до обнуления баночки она лежит в запасе обнуления, после — в баночке
+function unJarStar(j,x){
+  if(!x.star) return; const k='j:'+j.id, F=state.fun;
+  removeFunStar(k,x.star.d,!!(x.star.z&&F.cutS&&F.cutS.includes(k))); delete x.star;
+}
+// раньше выполненные идеи оставались на главном: переносим звезду в саму идею и убираем их оттуда
+function jarDoneOnce(){
+  if(!state||state.jarDone1) return false; state.jarDone1=1;
+  [state.pins,...Object.values(state.days||{}),...Object.values(state.weeks||{})].forEach(L=>{if(!L||!L.items)return;
+    L.items=L.items.filter(i=>{if(!(i.jar&&i.done))return true;const x=jarItemOf(i);
+      if(x&&x.st==='done'&&i.fs&&!x.star)x.star={d:i.doneOn,z:i.fz?1:0};return false})});
+  return true;
 }
 function funBack(){
   const F=state.fun; if(!F.cutS) return;
@@ -1972,7 +1987,7 @@ function jarSheet(id){
       const dn=xs('done');
       el.querySelector('#j-donebox').style.display=dn.length?'':'none';
       el.querySelector('#j-dcnt').textContent='Выполнено · '+dn.length;
-      el.querySelector('#j-done').innerHTML=dn.map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span></div></li>`).join('');
+      el.querySelector('#j-done').innerHTML=dn.map(x=>`<li data-id="${x.id}"><div class="jrow"><span class="jt">${esc(x.name)}</span><button type="button" class="back" aria-label="Вернуть в копилку">↺</button></div></li>`).join('');
     };
     const placeOf=x=>state.pins.items.some(i=>i.ji===x.id)?'закреплено на главном':curWeek().items.some(i=>i.ji===x.id&&!i.done)?'на этой неделе':'в «Сегодня»';
     const commit=()=>{save();draw()};
@@ -1996,7 +2011,10 @@ function jarSheet(id){
       else {x.st='plan';x.date=date;toast('Запланировано: '+dayLabel(date))}
       haptic('medium');commit();
     };
-    const back=x=>{[curDay(),curWeek(),state.pins].forEach(L=>{L.items=L.items.filter(i=>!(i.ji===x.id&&!i.done))});x.st='idle';delete x.date;haptic('light');commit()};
+    const back=x=>{const wasDone=x.st==='done';
+      [curDay(),curWeek(),state.pins].forEach(L=>{L.items=L.items.filter(i=>!(i.ji===x.id&&(wasDone||!i.done)))});
+      if(wasDone){unJarStar(j,x);delete x.doneAt;toast('Идея вернулась в копилку, звезда убрана')}
+      x.st='idle';delete x.date;haptic('light');commit()};
     el.addEventListener('click',e=>{
       const li=e.target.closest('li[data-id]'); if(!li) return;
       const x=j.items.find(y=>y.id===li.dataset.id); if(!x) return;
@@ -2969,6 +2987,7 @@ function settle(){
   if(moveJarStarsOnce()){save();render()}
   if(resetThemeOnce()){save();applyTheme();render()}
   if(plogOnce()) save();
+  if(jarDoneOnce()){save();render()}
   setTimeout(()=>{gcPinPhotos();gcGoalPhotos()},1500);
 }
 async function boot(){
